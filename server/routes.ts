@@ -1878,7 +1878,8 @@ export async function registerRoutes(
       }
       list.sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          (b.createdAt ? new Date(b.createdAt).getTime() : 0) -
+          (a.createdAt ? new Date(a.createdAt).getTime() : 0)
       );
       res.json(list);
     } catch (error) {

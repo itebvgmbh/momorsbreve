@@ -173,7 +173,7 @@ function Router() {
         <Route path="/agb" component={AGBPage} />
         <Route path="/widerrufsbelehrung" component={WiderrufsbelehrungPage} />
         <Route path="/blog" component={BlogPage} />
-        <Route path="/blog/:slug" component={BlogPostPage} />
+        <Route path="/blog/:slug">{(params) => <BlogPostPage slug={params.slug} />}</Route>
         <Route path="/beispiele" component={BeispielePage} />
         <Route path="/analysieren" component={AnalysierenPage} />
         <Route path="/faq" component={FaqPage} />

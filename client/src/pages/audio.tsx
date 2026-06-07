@@ -426,8 +426,8 @@ export default function AudioPage() {
                             onCheckedChange={() => toggleAudioSelection(gen.id)}
                             className="shrink-0"
                           />
-                          <div className={`p-2 rounded-full shrink-0 ${voiceInfo.gender === "female" ? "bg-pink-100 dark:bg-pink-900/30" : "bg-blue-100 dark:bg-blue-900/30"}`}>
-                            <User2 className={`h-4 w-4 ${voiceInfo.gender === "female" ? "text-pink-600 dark:text-pink-400" : "text-blue-600 dark:text-blue-400"}`} />
+                          <div className={`p-2 rounded-full shrink-0 ${voiceInfo.gender === "Weiblich" ? "bg-pink-100 dark:bg-pink-900/30" : "bg-blue-100 dark:bg-blue-900/30"}`}>
+                            <User2 className={`h-4 w-4 ${voiceInfo.gender === "Weiblich" ? "text-pink-600 dark:text-pink-400" : "text-blue-600 dark:text-blue-400"}`} />
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium text-sm">{voiceInfo.label}</p>
@@ -571,8 +571,8 @@ export default function AudioPage() {
               return (
                 <div key={id} className="flex items-center gap-2 rounded-md border px-3 py-2">
                   <span className="text-xs text-muted-foreground w-5 text-right shrink-0">{idx + 1}</span>
-                  <div className={`p-1 rounded-full shrink-0 ${voiceInfo.gender === "female" ? "bg-pink-100 dark:bg-pink-900/30" : "bg-blue-100 dark:bg-blue-900/30"}`}>
-                    <User2 className={`h-3 w-3 ${voiceInfo.gender === "female" ? "text-pink-600 dark:text-pink-400" : "text-blue-600 dark:text-blue-400"}`} />
+                  <div className={`p-1 rounded-full shrink-0 ${voiceInfo.gender === "Weiblich" ? "bg-pink-100 dark:bg-pink-900/30" : "bg-blue-100 dark:bg-blue-900/30"}`}>
+                    <User2 className={`h-3 w-3 ${voiceInfo.gender === "Weiblich" ? "text-pink-600 dark:text-pink-400" : "text-blue-600 dark:text-blue-400"}`} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium truncate">{gen.textSnippet || voiceInfo.label}</p>
