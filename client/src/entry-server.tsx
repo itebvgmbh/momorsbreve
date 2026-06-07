@@ -2,9 +2,13 @@ import React from "react";
 import { renderToString } from "react-dom/server";
 import { Router } from "wouter";
 import { HelmetProvider, Helmet } from "react-helmet-async";
+import { I18nextProvider } from "react-i18next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
+import { HreflangTags } from "@/components/hreflang-tags";
+import i18n from "@/i18n";
+import { parsePath, localizePath, SUPPORTED_LANGS, DEFAULT_LANG } from "@/i18n/lang";
 
 import LandingPage from "@/pages/landing";
 import DatenschutzPage from "@/pages/datenschutz";
@@ -84,24 +88,35 @@ for (const slug of getAllTopicSlugs()) {
 }
 
 export function render(url: string) {
-  const PageComponent = staticRoutes[url];
+  // Sprache + präfixlosen Pfad aus der URL bestimmen (/de, /en; da = präfixlos).
+  const { lang, base, path } = parsePath(url);
+  const PageComponent = staticRoutes[path];
   if (!PageComponent) {
     throw new Error(`No component registered for route: ${url}`);
+  }
+
+  // Sprache der gemeinsamen i18n-Instanz VOR dem synchronen Render setzen.
+  if (i18n.language !== lang) {
+    i18n.changeLanguage(lang);
   }
 
   const helmetContext: Record<string, any> = {};
 
   const html = renderToString(
     <HelmetProvider context={helmetContext}>
-      <Router ssrPath={url}>
-        <AuthProvider>
-          <ThemeProvider>
-            <TooltipProvider>
-              <PageComponent />
-            </TooltipProvider>
-          </ThemeProvider>
-        </AuthProvider>
-      </Router>
+      <I18nextProvider i18n={i18n}>
+        <Router base={base} ssrPath={url}>
+          <Helmet htmlAttributes={{ lang }} />
+          <HreflangTags />
+          <AuthProvider>
+            <ThemeProvider>
+              <TooltipProvider>
+                <PageComponent />
+              </TooltipProvider>
+            </ThemeProvider>
+          </AuthProvider>
+        </Router>
+      </I18nextProvider>
     </HelmetProvider>,
   );
 
@@ -109,5 +124,13 @@ export function render(url: string) {
 }
 
 export function getStaticRoutes(): string[] {
-  return Object.keys(staticRoutes);
+  // Für jede Basis-Route die dänische (präfixlose) Variante plus /de und /en.
+  const innerPaths = Object.keys(staticRoutes);
+  const routes: string[] = [];
+  for (const inner of innerPaths) {
+    for (const lang of SUPPORTED_LANGS) {
+      routes.push(lang === DEFAULT_LANG ? inner : localizePath(inner, lang));
+    }
+  }
+  return routes;
 }

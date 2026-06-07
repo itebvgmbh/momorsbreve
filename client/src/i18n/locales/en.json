@@ -1,0 +1,17 @@
+{
+  "nav": {
+    "openMenu": "Open menu",
+    "benefits": "Benefits",
+    "howItWorks": "How it works",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "examples": "Examples",
+    "blog": "Blog",
+    "topics": "Topics",
+    "myPage": "My page",
+    "login": "Log in"
+  },
+  "common": {
+    "language": "Language"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "nav": {
+    "openMenu": "Menü öffnen",
+    "benefits": "Vorteile",
+    "howItWorks": "So funktioniert's",
+    "pricing": "Preise",
+    "faq": "FAQ",
+    "examples": "Beispiele",
+    "blog": "Blog",
+    "topics": "Themen",
+    "myPage": "Mein Bereich",
+    "login": "Anmelden"
+  },
+  "common": {
+    "language": "Sprache"
+  }
+}

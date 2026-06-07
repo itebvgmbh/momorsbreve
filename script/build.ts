@@ -54,6 +54,7 @@ async function prerenderStaticPages() {
         meta: { toString(): string };
         link: { toString(): string };
         script: { toString(): string };
+        htmlAttributes: { toString(): string };
       };
     };
 
@@ -65,6 +66,11 @@ async function prerenderStaticPages() {
     );
 
     if (helmet) {
+      // <html lang="..."> pro Sprache setzen (de/en), sonst bleibt das Template-da.
+      const htmlAttrs = helmet.htmlAttributes?.toString?.();
+      if (htmlAttrs) {
+        output = output.replace(/<html[^>]*>/, `<html ${htmlAttrs}>`);
+      }
       const titleStr = helmet.title.toString();
       if (titleStr) {
         output = output.replace(/<title>.*?<\/title>/, titleStr);

@@ -1,0 +1,17 @@
+{
+  "nav": {
+    "openMenu": "Åbn menu",
+    "benefits": "Fordele",
+    "howItWorks": "Sådan virker det",
+    "pricing": "Priser",
+    "faq": "FAQ",
+    "examples": "Eksempler",
+    "blog": "Blog",
+    "topics": "Emner",
+    "myPage": "Min side",
+    "login": "Log ind"
+  },
+  "common": {
+    "language": "Sprog"
+  }
+}
