@@ -1,0 +1,1594 @@
+import { useState, useRef, useEffect } from "react";
+import { useParams, useSearch } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { apiRequest, queryClient, getAuthHeaders } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  CheckCircle2,
+  Coins,
+  Download,
+  FileText,
+  Globe,
+  Loader2,
+  Lock,
+  Pencil,
+  RefreshCw,
+  RotateCcw,
+  Sparkles,
+  StopCircle,
+  User,
+  Volume2,
+  Wand2,
+  XCircle,
+} from "lucide-react";
+import { DocumentPreview } from "@/components/document-preview";
+import { TranscriptionBackgroundHint } from "@/components/transcription-background-hint";
+import { QualityIndicator, type QualityDetails } from "@/components/quality-indicator";
+import { trackBeginCheckout } from "@/lib/gtag";
+import { PdfExportDialog } from "@/components/pdf-export-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import html2canvas from "html2canvas";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Headphones } from "lucide-react";
+import type { TranscriptionPage, UserCredits } from "@shared/models/transcription";
+import { getScriptTypeDisplayLabel, getTranslationLanguageLabel } from "@shared/models/transcription";
+import { TTS_VOICES, TTS_STYLE_PRESETS, TTS_CHARACTERS, TTS_CHARACTER_STYLES, ttsCreditsForText } from "@/lib/tts-constants";
+import { AudioCharacterPicker } from "@/components/audio-character-picker";
+
+interface ResultProgress {
+  completed: number;
+  processing: number;
+  failed: number;
+  pending: number;
+  total: number;
+}
+
+interface ResultData {
+  job: {
+    id: number;
+    scriptType: string;
+    status: string;
+    totalPages: number;
+    createdAt: string;
+    translationLanguage?: string;
+  };
+  pages: TranscriptionPage[];
+  progress?: ResultProgress;
+  expertResult?: {
+    request: {
+      id: number;
+      serviceLevel: "ki_geprueft" | "experten";
+      completedAt: string | null;
+    };
+    results: Array<{
+      pageId: number | null;
+      pageNumber: number;
+      text: string;
+      expertNotes: string | null;
+    }>;
+  } | null;
+}
+
+/** Read interpreted text from page (supports camelCase and snake_case from API) */
+function getPageInterpreted(page: TranscriptionPage & Record<string, unknown>): string | null | undefined {
+  return page.transcriptionInterpreted ?? (page.transcription_interpreted as string) ?? null;
+}
+
+type TextVersion = "original" | "completed" | "interpreted";
+type DisplayLanguage = "de" | "translation";
+
+
+/** Get edited value for a version (camelCase or snake_case from API) */
+function getPageEdited(page: TranscriptionPage & Record<string, unknown>, version: TextVersion): string | null | undefined {
+  if (version === "original") return page.transcriptionEdited ?? (page.transcription_edited as string) ?? null;
+  if (version === "completed") return page.transcriptionCompletedEdited ?? (page.transcription_completed_edited as string) ?? null;
+  return page.transcriptionInterpretedEdited ?? (page.transcription_interpreted_edited as string) ?? null;
+}
+
+/** Effective display text for given version + language. For translation mode, reads from translation fields. */
+function getPageDisplayText(page: TranscriptionPage & Record<string, unknown>, version: TextVersion, lang: DisplayLanguage = "de"): string | null {
+  if (lang === "translation") {
+    if (version === "interpreted") return (page as any).translationInterpreted || (page as any).translation_interpreted || (page as any).translationCompleted || (page as any).translation_completed || (page as any).translation || null;
+    if (version === "completed") return (page as any).translationCompleted || (page as any).translation_completed || (page as any).translation || null;
+    return (page as any).translation || null;
+  }
+  const edited = getPageEdited(page, version);
+  if (edited != null && edited !== "") return edited;
+  if (version === "interpreted") return getPageInterpreted(page) || page.transcriptionCompleted || page.transcription || null;
+  if (version === "completed" && page.transcriptionCompleted) return page.transcriptionCompleted;
+  return page.transcription ?? null;
+}
+
+/** Whether this page has a user-edited version for the given variant */
+function getPageHasEdited(page: TranscriptionPage & Record<string, unknown>, version: TextVersion): boolean {
+  const v = getPageEdited(page, version);
+  return v != null && v !== "";
+}
+
+/** Capture only the transcription text card as PNG (hides UI chrome during capture) */
+async function downloadResultPageAsImage(containerEl: HTMLDivElement | null, pageNumber: number): Promise<void> {
+  if (!containerEl) throw new Error("Seite nicht geladen.");
+  const hiddenEls = containerEl.querySelectorAll<HTMLElement>("[data-export-hide]");
+  hiddenEls.forEach((el) => (el.style.display = "none"));
+  try {
+    const canvas = await html2canvas(containerEl, {
+      useCORS: true,
+      allowTaint: true,
+      scale: 2,
+      backgroundColor: null,
+      logging: false,
+    });
+    return await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Bild konnte nicht erstellt werden."));
+            return;
+          }
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = `Ergebnis-Seite-${pageNumber}.png`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+          resolve();
+        },
+        "image/png",
+        0.95,
+      );
+    });
+  } finally {
+    hiddenEls.forEach((el) => (el.style.display = ""));
+  }
+}
+
+function PageNavigator({
+  currentPage,
+  totalPages,
+  pages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  pages?: TranscriptionPage[];
+  onPageChange: (page: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-10 w-10 sm:h-8 sm:w-8 shrink-0"
+        disabled={currentPage <= 0}
+        onClick={() => onPageChange(currentPage - 1)}
+        aria-label="Vorherige Seite"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+
+      <Select
+        value={String(currentPage)}
+        onValueChange={(val) => onPageChange(Number(val))}
+      >
+        <SelectTrigger className="w-auto min-w-0 flex-1 sm:flex-none sm:min-w-[160px] h-10 sm:h-8 text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {Array.from({ length: totalPages }, (_, i) => {
+            const pageStatus = pages?.[i]?.status;
+            return (
+              <SelectItem key={i} value={String(i)}>
+                <span className="flex items-center gap-2">
+                  {pageStatus === "completed" ? (
+                    <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                  ) : pageStatus === "processing" ? (
+                    <Loader2 className="h-3 w-3 text-amber-500 animate-spin shrink-0" />
+                  ) : pageStatus === "failed" ? (
+                    <span className="h-3 w-3 text-destructive text-center shrink-0">✗</span>
+                  ) : pageStatus === "pending" ? (
+                    <span className="h-3 w-3 rounded-full border border-muted-foreground/30 inline-block shrink-0" />
+                  ) : null}
+                  Seite {i + 1} von {totalPages}
+                </span>
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
+
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-10 w-10 sm:h-8 sm:w-8 shrink-0"
+        disabled={currentPage >= totalPages - 1}
+        onClick={() => onPageChange(currentPage + 1)}
+        aria-label="Nächste Seite"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+export default function ResultPage() {
+  const params = useParams<{ id: string }>();
+  const search = useSearch();
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const [currentPageIdx, setCurrentPageIdx] = useState(0);
+  const [textVersion, setTextVersion] = useState<"original" | "completed" | "interpreted">("original");
+  const [displayLanguage, setDisplayLanguage] = useState<DisplayLanguage | null>(null);
+  const effectiveDisplayLanguage: DisplayLanguage = displayLanguage ?? "de";
+  const [exporting, setExporting] = useState<"text" | "pdf" | null>(null);
+  const [showPdfExport, setShowPdfExport] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [editingPageId, setEditingPageId] = useState<number | null>(null);
+  const [editingVersion, setEditingVersion] = useState<TextVersion | null>(null);
+  const [editedTextDraft, setEditedTextDraft] = useState("");
+  const [showResetDialog, setShowResetDialog] = useState<{ pageId: number; version: TextVersion } | null>(null);
+  const [showTtsSheet, setShowTtsSheet] = useState(false);
+  const [savingImagePageId, setSavingImagePageId] = useState<number | null>(null);
+  const [ttsVoice, setTtsVoice] = useState(TTS_CHARACTERS[0].voice);
+  const [ttsStyle, setTtsStyle] = useState(TTS_CHARACTER_STYLES[0].prompt);
+
+  const originalColRef = useRef<HTMLDivElement>(null);
+  const transcriptionColRef = useRef<HTMLDivElement>(null);
+  const [originalColHeight, setOriginalColHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!originalColRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) setOriginalColHeight(Math.round(entry.contentRect.height));
+    });
+    ro.observe(originalColRef.current);
+    return () => ro.disconnect();
+  }, [currentPageIdx]);
+
+  const { data, isLoading } = useQuery<ResultData>({
+    queryKey: ["/api/jobs", params.id, "result"],
+    refetchInterval: (query) => {
+      const d = query.state.data;
+      if (!d || d.job.status === "processing") return 3000;
+      const hasUnfinishedPages = d.pages?.some(
+        (p) => p.status === "pending" || p.status === "processing",
+      );
+      if (hasUnfinishedPages) return 3000;
+      return false;
+    },
+  });
+
+  const { data: credits } = useQuery<UserCredits>({
+    queryKey: ["/api/credits"],
+  });
+
+  const { data: ttsCostAll } = useQuery<{ totalCharacters: number; creditsRequired: number; currentCredits: number }>({
+    queryKey: ["/api/jobs", params.id, "tts-cost", textVersion, effectiveDisplayLanguage],
+    queryFn: async () => {
+      const url = `/api/jobs/${params.id}/tts-cost?version=${encodeURIComponent(textVersion)}&lang=${encodeURIComponent(effectiveDisplayLanguage)}&pages=all`;
+      const res = await apiRequest("GET", url);
+      return res.json();
+    },
+    enabled: !!params.id && !!data?.job && data.job.status !== "preview" && data.job.status !== "processing",
+  });
+
+  type TtsGeneration = { id: number; version: string; lang: string; voice: string; style: string | null; pages: number[] | "all"; status: string; failReason: string | null; audioUrl: string | null; creditsUsed: number; createdAt: string };
+  const { data: ttsHistory } = useQuery<{ generations: TtsGeneration[] }>({
+    queryKey: ["/api/jobs", params.id, "tts-history"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/jobs/${params.id}/tts-history`);
+      return res.json();
+    },
+    enabled: !!params.id,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchInterval: (query) => {
+      const gens = query.state.data?.generations;
+      if (gens?.some((g) => g.status === "generating")) return 2000;
+      return false;
+    },
+  });
+
+  useEffect(() => {
+    if (params.id) {
+      queryClient.refetchQueries({ queryKey: ["/api/jobs", params.id, "tts-history"] });
+    }
+  }, [params.id]);
+
+  const prevTtsGeneratingIds = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (!ttsHistory?.generations) return;
+    const currentGenerating = new Set(
+      ttsHistory.generations.filter((g) => g.status === "generating").map((g) => g.id),
+    );
+    const newlyFailed = ttsHistory.generations.filter(
+      (g) => g.status === "failed" && prevTtsGeneratingIds.current.has(g.id),
+    );
+    if (newlyFailed.length > 0) {
+      queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
+      const reason = newlyFailed[0]?.failReason;
+      const isOverloaded = reason && /überlastet|overloaded|503/i.test(reason);
+      toast({
+        title: "Vorlese-Service nicht verfügbar",
+        description: isOverloaded
+          ? "Der Dienst ist momentan überlastet. Bitte versuchen Sie es in einigen Minuten erneut. Ihr Guthaben wurde nicht belastet."
+          : "Bei der Audio-Erzeugung ist ein Fehler aufgetreten. Ihr Guthaben wurde nicht belastet. Bitte versuchen Sie es erneut.",
+        variant: "destructive",
+      });
+    }
+    prevTtsGeneratingIds.current = currentGenerating;
+  }, [ttsHistory?.generations]);
+
+  const userChangedLanguage = useRef(false);
+  const hadTranslation = useRef(false);
+
+  // Auto-switch to translation tab once the first translation arrives
+  useEffect(() => {
+    if (!data?.job) return;
+
+    if (!data.job.translationLanguage) {
+      if (displayLanguage === null) setDisplayLanguage("de");
+      return;
+    }
+
+    const hasAnyTranslation = data.pages.some((p: any) => p.translation);
+
+    if (displayLanguage === null) {
+      setDisplayLanguage(hasAnyTranslation ? "translation" : "de");
+      if (hasAnyTranslation) hadTranslation.current = true;
+      return;
+    }
+
+    if (!userChangedLanguage.current && !hadTranslation.current && hasAnyTranslation) {
+      hadTranslation.current = true;
+      setDisplayLanguage("translation");
+    }
+  }, [data, displayLanguage]);
+
+  const prevPageStatuses = useRef<Map<number, string>>(new Map());
+  const shownTranslationErrors = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (!data?.pages) return;
+    const prev = prevPageStatuses.current;
+
+    for (const page of data.pages) {
+      const prevStatus = prev.get(page.id);
+
+      if (prevStatus && prevStatus !== "failed" && page.status === "failed") {
+        queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
+        toast({
+          title: "Transkription fehlgeschlagen",
+          description: page.transcription || "Die Transkription konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+          variant: "destructive",
+        });
+      }
+
+      if (
+        page.status === "completed" &&
+        prevStatus !== "completed" &&
+        data.job.translationLanguage &&
+        !page.translation
+      ) {
+        const qd = page.qualityDetails as Record<string, unknown> | null;
+        const translationError = qd?.translationError as string | undefined;
+        if (translationError && !shownTranslationErrors.current.has(page.id)) {
+          shownTranslationErrors.current.add(page.id);
+          toast({
+            title: "Übersetzung fehlgeschlagen",
+            description: translationError,
+            variant: "destructive",
+          });
+        }
+      }
+    }
+
+    const next = new Map<number, string>();
+    for (const page of data.pages) next.set(page.id, page.status);
+    prevPageStatuses.current = next;
+  }, [data?.pages, data?.job?.translationLanguage, toast]);
+
+  useEffect(() => {
+    const sp = new URLSearchParams(search);
+    if (sp.get("fromPreview") !== "true" || !params.id) return;
+    const key = `tts-hint-shown-${params.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    const timer = setTimeout(() => {
+      toast({
+        title: "Tipp: Vorlesen lassen",
+        description: "Lassen Sie Ihre Transkription vorlesen — mit verschiedenen Stimmen, ideal als Geschenk für die Familie.",
+      });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [search, params.id, toast]);
+
+  const ttsMutation = useMutation({
+    mutationFn: async (payload: { pages: number[] | "all"; voice: string; style?: string }) => {
+      const res = await apiRequest("POST", `/api/jobs/${params.id}/tts`, {
+        version: textVersion,
+        lang: effectiveDisplayLanguage,
+        voice: payload.voice,
+        style: payload.style || undefined,
+        pages: payload.pages,
+      });
+      return res.json() as Promise<{ generationId: number; status: string; creditsUsed: number }>;
+    },
+    onSuccess: (body) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs", params.id, "tts-history"] });
+      if (body.creditsUsed > 0) {
+        queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
+        toast({ title: "Vorlesen", description: `${body.creditsUsed} ${body.creditsUsed === 1 ? "Credit" : "Credits"} verwendet. Audio wird generiert…` });
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Vorlesen fehlgeschlagen", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const purchaseMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/jobs/${params.id}/transcribe`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs", params.id, "result"] });
+      toast({ title: "Gestartet", description: "Ihre Seiten werden jetzt ausgewertet." });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Fehler",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/jobs/${params.id}/cancel`);
+      return res.json() as Promise<{ refundedCredits: number }>;
+    },
+    onSuccess: (body) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs", params.id, "result"] });
+      const n = body.refundedCredits ?? 0;
+      toast({
+        title: "Verarbeitung abgebrochen",
+        description: n > 0 ? `${n} ${n === 1 ? "Seite wurde" : "Seiten wurden"} erstattet.` : "Die Verarbeitung wurde beendet.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Fehler",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const retryPageMutation = useMutation({
+    mutationFn: async (pageId: number) => {
+      const res = await apiRequest("POST", `/api/jobs/${params.id}/pages/${pageId}/retry`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs", params.id, "result"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
+      toast({ title: "Gestartet", description: "Die Seite wird erneut transkribiert." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const retryAllFailedMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/jobs/${params.id}/retry-failed`);
+      return res.json() as Promise<{ pageCount: number }>;
+    },
+    onSuccess: (body) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs", params.id, "result"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
+      toast({ title: "Gestartet", description: `${body.pageCount} ${body.pageCount === 1 ? "Seite wird" : "Seiten werden"} erneut transkribiert.` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Kopiert", description: "Text in die Zwischenablage kopiert." });
+  };
+
+  const updatePageMutation = useMutation({
+    mutationFn: async ({
+      pageId,
+      version,
+      text,
+    }: { pageId: number; version: TextVersion; text: string | null }) => {
+      const res = await apiRequest("PATCH", `/api/jobs/${params.id}/pages/${pageId}`, { version, text });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs", params.id, "result"] });
+      setEditingPageId(null);
+      setEditingVersion(null);
+      setEditedTextDraft("");
+      toast({ title: "Gespeichert", description: "Ihre Änderungen wurden übernommen." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const startEditing = (page: TranscriptionPage, version: TextVersion) => {
+    const display = getPageDisplayText(page as TranscriptionPage & Record<string, unknown>, version, effectiveDisplayLanguage);
+    setEditingPageId(page.id);
+    setEditingVersion(version);
+    setEditedTextDraft(display ?? "");
+  };
+
+  const cancelEditing = () => {
+    setEditingPageId(null);
+    setEditingVersion(null);
+    setEditedTextDraft("");
+  };
+
+  const saveEditing = () => {
+    if (editingPageId == null || editingVersion == null) return;
+    updatePageMutation.mutate({ pageId: editingPageId, version: editingVersion, text: editedTextDraft });
+  };
+
+  const resetToOriginal = () => {
+    const target = showResetDialog;
+    setShowResetDialog(null);
+    if (!target) return;
+    updatePageMutation.mutate({ pageId: target.pageId, version: target.version, text: null });
+  };
+
+  const copyAll = () => {
+    if (!data) return;
+    const fullText = data.pages
+      .filter((p) => p.transcription)
+      .map((p) => {
+        const text = getPageDisplayText(p as TranscriptionPage & Record<string, unknown>, textVersion, effectiveDisplayLanguage);
+        return `--- Seite ${p.pageNumber} ---\n${text ?? ""}`;
+      })
+      .join("\n\n");
+    copyToClipboard(fullText);
+  };
+
+  const downloadExport = async (type: "text" | "pdf") => {
+    if (!params.id) return;
+    setExporting(type);
+    try {
+      const headers = await getAuthHeaders();
+      const langParam = effectiveDisplayLanguage === "translation" ? "&lang=translation" : "";
+      const url = type === "pdf"
+        ? `/api/jobs/${params.id}/export-pdf?version=${textVersion}${langParam}`
+        : `/api/jobs/${params.id}/export?version=${textVersion}${langParam}`;
+      const res = await fetch(url, { headers });
+      if (!res.ok) throw new Error(res.status === 401 ? "Bitte erneut anmelden." : "Export fehlgeschlagen.");
+      const blob = await res.blob();
+      const disposition = res.headers.get("Content-Disposition");
+      const match = disposition?.match(/filename="?([^";\n]+)"?/);
+      const filename = match?.[1] ?? (type === "pdf" ? `transkription-${params.id}.pdf` : `transkription-${params.id}.txt`);
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(objectUrl);
+      toast({ title: "Export", description: type === "pdf" ? "PDF wird heruntergeladen." : "Text wird heruntergeladen." });
+    } catch (e) {
+      toast({ title: "Fehler", description: e instanceof Error ? e.message : "Export fehlgeschlagen.", variant: "destructive" });
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-96" />
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="p-4 sm:p-6 max-w-5xl mx-auto text-center">
+        <p className="text-muted-foreground">Ergebnis nicht gefunden.</p>
+      </div>
+    );
+  }
+
+  if (data.expertResult?.results?.length) {
+    const label = data.expertResult.request.serviceLevel === "ki_geprueft"
+      ? "KI-geprüfte Transkription"
+      : "Expertentranskription";
+    const resultPages = data.expertResult.results;
+    const selectedResult = resultPages[Math.min(currentPageIdx, resultPages.length - 1)];
+    const sourcePage = data.pages.find((p) => p.pageNumber === selectedResult.pageNumber) ?? data.pages[0];
+
+    return (
+      <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="font-serif text-2xl font-bold">{label}</h1>
+              <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Fertig
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {data.job.totalPages} {data.job.totalPages === 1 ? "Seite" : "Seiten"} · finale Fassung des Expertenauftrags
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/app")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Dashboard
+            </Button>
+            <Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => downloadExport("text")}>
+              {exporting === "text" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
+              Text-Export
+            </Button>
+            <Button size="sm" onClick={() => setShowPdfExport(true)}>
+              <BookOpen className="h-4 w-4 mr-2" />
+              PDF-Export
+            </Button>
+          </div>
+        </div>
+
+        <PageNavigator
+          currentPage={Math.min(currentPageIdx, resultPages.length - 1)}
+          totalPages={resultPages.length}
+          onPageChange={setCurrentPageIdx}
+        />
+
+        <div className="grid lg:grid-cols-2 gap-6 items-start">
+          <div>
+            <h2 className="font-serif text-lg font-semibold mb-3">Original</h2>
+            <Card>
+              {sourcePage ? (
+                <DocumentPreview src={sourcePage.imageUrl} alt={`Original Seite ${selectedResult.pageNumber}`} />
+              ) : (
+                <div className="p-8 text-center text-muted-foreground">Kein Originalbild verfügbar.</div>
+              )}
+            </Card>
+          </div>
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h2 className="font-serif text-lg font-semibold">{label}</h2>
+              <Button size="sm" variant="ghost" onClick={() => copyToClipboard(selectedResult.text)}>
+                <Copy className="h-4 w-4 mr-2" />
+                Kopieren
+              </Button>
+            </div>
+            <Card className="p-5">
+              <div className="font-serif text-sm leading-relaxed whitespace-pre-wrap">
+                {selectedResult.text}
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        <PdfExportDialog
+          open={showPdfExport}
+          onOpenChange={setShowPdfExport}
+          jobId={params.id}
+          textVersion="interpreted"
+          anyPageHasCompleted
+          anyPageHasInterpreted
+        />
+      </div>
+    );
+  }
+
+  const isJobProcessing = data.job.status === "processing";
+  const hasRetryingPages = data.pages.some((p) => p.status === "pending" || p.status === "processing");
+  const isProcessing = isJobProcessing || hasRetryingPages;
+  const isPreviewOnly = data.job.status === "preview";
+  const remainingPages = data.pages.filter((p) => p.status === "pending").length;
+  const failedPages = data.pages.filter((p) => p.status === "failed");
+  const failedCount = failedPages.length;
+  const currentCredits = credits?.credits ?? 0;
+  const hasEnoughCredits = currentCredits >= remainingPages;
+
+  // For the page content renderer
+  const currentPage = data.pages[currentPageIdx];
+
+  function ttsPagesEqual(a: number[] | "all", b: number[] | "all"): boolean {
+    if (a === "all" && b === "all") return true;
+    if (a === "all" || b === "all") return false;
+    return a.length === b.length && a.every((v, i) => v === b[i]);
+  }
+  const ttsMatchesForThisPage = (() => {
+    if (!currentPage || !ttsHistory?.generations?.length) return [];
+    const wantPages: number[] = [currentPage.pageNumber];
+    return ttsHistory.generations.filter(
+      (g) =>
+        g.version === textVersion &&
+        g.lang === effectiveDisplayLanguage &&
+        ttsPagesEqual(g.pages as number[] | "all", wantPages),
+    );
+  })();
+  const ttsGeneratingForPage = ttsMatchesForThisPage.some((g) => g.status === "generating");
+  const ttsCompletedForPage = ttsMatchesForThisPage.filter((g) => g.status === "completed" && g.audioUrl);
+
+  const ttsMatchesForAll = (() => {
+    if (!ttsHistory?.generations?.length) return [];
+    return ttsHistory.generations.filter(
+      (g) =>
+        g.version === textVersion &&
+        g.lang === effectiveDisplayLanguage &&
+        ttsPagesEqual(g.pages as number[] | "all", "all"),
+    );
+  })();
+  const ttsGeneratingForAll = ttsMatchesForAll.some((g) => g.status === "generating");
+  const ttsCompletedForAll = ttsMatchesForAll.filter((g) => g.status === "completed" && g.audioUrl);
+
+  // Check if any page has enhanced versions (completed or interpreted)
+  const anyPageHasCompleted = data.pages.some((p) => p.transcriptionCompleted);
+  const anyPageHasInterpreted = data.pages.some((p) => getPageInterpreted(p as TranscriptionPage & Record<string, unknown>));
+  const anyPageHasEnhanced = anyPageHasCompleted || anyPageHasInterpreted;
+
+  // Quality data from the preview page (first analyzed page)
+  const previewPage = data.pages.find((p) => p.isPreview) ?? data.pages[0];
+  const qualityData = previewPage?.qualityDetails as QualityDetails | null;
+
+  function renderPageContent(page: TranscriptionPage) {
+    const hasTranscription = page.transcription && page.status === "completed";
+    const isLockedPage = isPreviewOnly && !page.isPreview && !hasTranscription;
+    const pageWithUnknown = page as TranscriptionPage & Record<string, unknown>;
+    const interpretedText = getPageInterpreted(pageWithUnknown);
+    const displayText = getPageDisplayText(pageWithUnknown, textVersion, effectiveDisplayLanguage);
+    const isEditingThis = editingPageId === page.id && editingVersion === textVersion;
+    const hasEditedThis = getPageHasEdited(pageWithUnknown, textVersion);
+
+    const savingImage = savingImagePageId === page.id;
+    const handleSaveImage = async () => {
+      setSavingImagePageId(page.id);
+      try {
+        await downloadResultPageAsImage(transcriptionColRef.current, page.pageNumber);
+        toast({ title: "Gespeichert", description: `Ergebnisseite ${page.pageNumber} wurde als Bild heruntergeladen.` });
+      } catch (e) {
+        toast({ variant: "destructive", title: "Fehler", description: (e as Error).message });
+      } finally {
+        setSavingImagePageId(null);
+      }
+    };
+
+    return (
+      <div className="grid lg:grid-cols-2 gap-6 items-start">
+        <div className="order-2 lg:order-1">
+          <h2 className="font-serif text-lg font-semibold mb-3">Original</h2>
+          <Card ref={originalColRef}>
+            <DocumentPreview
+              src={page.imageUrl}
+              alt={`Original Seite ${page.pageNumber}`}
+              data-testid={`img-original-${page.pageNumber}`}
+            />
+          </Card>
+        </div>
+        <div ref={transcriptionColRef} className="order-1 lg:order-2 min-w-0">
+          <div data-export-hide className="flex items-center justify-between gap-2 mb-2">
+            <h2 className="font-serif text-lg font-semibold">Transkription</h2>
+            {hasTranscription && !isEditingThis && (
+              <div className="flex items-center gap-1">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => copyToClipboard(displayText || "")} data-testid={`button-copy-page-${page.pageNumber}`}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Kopieren</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => startEditing(page, textVersion)} data-testid={`button-edit-page-${page.pageNumber}`}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Bearbeiten</TooltipContent>
+                  </Tooltip>
+                  {hasEditedThis && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => setShowResetDialog({ pageId: page.id, version: textVersion })} data-testid={`button-reset-page-${page.pageNumber}`}>
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Original wiederherstellen</TooltipContent>
+                    </Tooltip>
+                  )}
+                </TooltipProvider>
+              </div>
+            )}
+          </div>
+          {hasTranscription && data!.job.translationLanguage && (page as any).translation && (
+            <div data-export-hide className="flex items-center gap-2 mb-2 -mx-1 px-1 overflow-x-auto">
+              <Tabs
+                value={effectiveDisplayLanguage}
+                onValueChange={(v) => { userChangedLanguage.current = true; setDisplayLanguage(v as DisplayLanguage); }}
+              >
+                <TabsList className="h-9 sm:h-8">
+                  <TabsTrigger value="de" className="text-xs px-3 h-7 sm:h-6 whitespace-nowrap">
+                    Original
+                  </TabsTrigger>
+                  <TabsTrigger value="translation" className="text-xs px-3 h-7 sm:h-6 whitespace-nowrap">
+                    <Globe className="h-3 w-3 mr-1" />
+                    {getTranslationLanguageLabel(data!.job.translationLanguage!)}
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
+          {hasTranscription && anyPageHasEnhanced ? (
+            <div data-export-hide className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+              <Tabs
+                value={textVersion}
+                onValueChange={(v) => setTextVersion(v as "original" | "completed" | "interpreted")}
+                className="min-w-0 max-w-full overflow-x-auto"
+                data-tour="result-tabs"
+              >
+                <TabsList className="h-9 sm:h-8">
+                  <TabsTrigger
+                    value="original"
+                    className="text-xs px-3 h-7 sm:h-6 whitespace-nowrap"
+                    data-tour="result-tab-original"
+                    data-testid="result-tab-original"
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    Originaltreu
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="completed"
+                    className="text-xs px-3 h-7 sm:h-6 whitespace-nowrap"
+                    data-tour="result-tab-completed"
+                    data-testid="result-tab-completed"
+                  >
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Ergänzt
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="interpreted"
+                    className="text-xs px-3 h-7 sm:h-6 whitespace-nowrap"
+                    data-tour="result-tab-interpreted"
+                    data-testid="result-tab-interpreted"
+                  >
+                    <Wand2 className="h-3 w-3 mr-1" />
+                    Interpretation
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSaveImage}
+                      disabled={savingImage}
+                      className="gap-1.5 h-8 shrink-0"
+                      data-testid={`button-save-image-page-${page.pageNumber}`}
+                    >
+                      {savingImage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                      Als Bild speichern
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Ergebnistext als Bild herunterladen</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          ) : hasTranscription ? (
+            <div data-export-hide className="flex justify-end mb-3">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSaveImage}
+                      disabled={savingImage}
+                      className="gap-1.5 h-8"
+                      data-testid={`button-save-image-page-${page.pageNumber}`}
+                    >
+                      {savingImage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                      Als Bild speichern
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Ergebnistext als Bild herunterladen</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          ) : null}
+          {isLockedPage ? (
+            <Card className="p-8 text-center">
+              <Lock className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+              <h3 className="font-serif font-semibold mb-1">Diese Seite ist noch nicht ausgewertet</h3>
+              <p className="text-sm text-muted-foreground">
+                Alle Seiten als Text erhalten – dafür bitte unten „Jetzt alle Seiten lesbar machen“ wählen.
+              </p>
+            </Card>
+          ) : page.status === "failed" ? (
+            <Card className="p-6 border-destructive/30 bg-destructive/5">
+              <div className="flex flex-col items-center gap-3 py-4 text-center">
+                <XCircle className="h-8 w-8 text-destructive" />
+                <div>
+                  <h3 className="font-serif font-semibold mb-1">Transkription fehlgeschlagen</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {page.transcription || "Die Transkription konnte nicht erstellt werden."}
+                  </p>
+                </div>
+                <Button
+                  onClick={() => retryPageMutation.mutate(page.id)}
+                  disabled={retryPageMutation.isPending || retryAllFailedMutation.isPending}
+                  size="sm"
+                >
+                  {retryPageMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Seite erneut transkribieren (1 Credit)
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <Card className="p-5">
+              {hasTranscription && textVersion === "completed" && page.transcriptionCompleted && !isEditingThis && (
+                <div className="flex items-center gap-1.5 mb-3 text-xs text-amber-600 dark:text-amber-400">
+                  <Sparkles className="h-3 w-3" />
+                  <span>Lücken wurden sinnvoll ergänzt</span>
+                </div>
+              )}
+              {hasTranscription && textVersion === "interpreted" && (interpretedText || page.transcriptionCompleted) && !isEditingThis && (
+                <div className="flex items-center gap-1.5 mb-3 text-xs text-amber-600 dark:text-amber-400">
+                  <Wand2 className="h-3 w-3" />
+                  <span>Text wurde sinngemäß interpretiert</span>
+                </div>
+              )}
+              {hasTranscription && hasEditedThis && !isEditingThis && (
+                <Badge variant="secondary" className="mb-3 text-xs">Bearbeitet</Badge>
+              )}
+              {!displayText && (page.status === "pending" || page.status === "processing") ? (
+                <div className="flex flex-col items-center justify-center py-4 text-muted-foreground">
+                  <Loader2 className="h-6 w-6 animate-spin mb-2 text-primary" />
+                  <p className="font-serif text-sm">
+                    {page.status === "processing" ? "Seite wird transkribiert…" : "Warte auf Verarbeitung…"}
+                  </p>
+                  <TranscriptionBackgroundHint className="mt-1 text-center max-w-xs" />
+                </div>
+              ) : isEditingThis ? (
+                <div className="space-y-3">
+                  <textarea
+                    className="w-full font-serif text-sm leading-relaxed whitespace-pre-wrap rounded-md border border-input bg-background px-3 py-2 resize-y"
+                    style={{ minHeight: originalColHeight ? `${Math.max(200, originalColHeight)}px` : "300px" }}
+                    value={editedTextDraft}
+                    onChange={(e) => setEditedTextDraft(e.target.value)}
+                    data-testid={`textarea-edit-page-${page.pageNumber}`}
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={saveEditing} disabled={updatePageMutation.isPending} data-testid={`button-save-page-${page.pageNumber}`}>
+                      {updatePageMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                      Speichern
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={cancelEditing} disabled={updatePageMutation.isPending}>
+                      Abbrechen
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="font-serif text-sm leading-relaxed whitespace-pre-wrap"
+                  data-testid={`text-transcription-${page.pageNumber}`}
+                >
+                  {displayText || "Noch kein Text für diese Seite."}
+                </div>
+              )}
+            </Card>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="font-serif text-2xl font-bold" data-testid="text-result-title">
+              Ergebnis
+            </h1>
+            {isProcessing ? (
+              <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Verarbeitung
+              </Badge>
+            ) : isPreviewOnly ? (
+              <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                <FileText className="h-3 w-3 mr-1" />
+                Vorschau
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Fertig
+              </Badge>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {getScriptTypeDisplayLabel(data.job.scriptType) && (
+              <>{getScriptTypeDisplayLabel(data.job.scriptType)} &middot;{" "}</>
+            )}
+            {data.job.totalPages} {data.job.totalPages === 1 ? "Seite" : "Seiten"}
+          </p>
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            KI-generierte Transkription – kann Ungenauigkeiten enthalten und ist nicht für rechtlich oder urkundlich relevante Zwecke geeignet.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="ghost" size="sm" className="shrink-0" onClick={() => navigate("/app")} data-testid="button-back">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Dashboard
+          </Button>
+          {!isProcessing && !isPreviewOnly && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs sm:text-sm shrink-0"
+                data-testid="button-export-text"
+                disabled={exporting !== null}
+                onClick={() => downloadExport("text")}
+              >
+                {exporting === "text" ? (
+                  <Loader2 className="h-4 w-4 mr-1.5 sm:mr-2 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4 mr-1.5 sm:mr-2" />
+                )}
+                <span className="sm:hidden">Text</span>
+                <span className="hidden sm:inline">Text-Export</span>
+              </Button>
+              <Button
+                size="sm"
+                className="text-xs sm:text-sm shrink-0"
+                data-testid="button-export-pdf"
+                data-tour="result-export-pdf"
+                onClick={() => setShowPdfExport(true)}
+              >
+                <BookOpen className="h-4 w-4 mr-1.5 sm:mr-2" />
+                <span className="sm:hidden">PDF</span>
+                <span className="hidden sm:inline">PDF-Export</span>
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {qualityData && isPreviewOnly && (
+        <QualityIndicator quality={qualityData} deepAnalysis />
+      )}
+
+      {/* CTA when only preview is available */}
+      {isPreviewOnly && (
+        <>
+          <Card className={`p-5 ${!hasEnoughCredits ? "border-amber-300/40 bg-amber-50/50 dark:bg-amber-950/10" : "border-primary/20 bg-primary/[0.02]"}`}>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif font-semibold mb-1">
+                  Alle {data.pages.length} Seiten als Text erhalten
+                </h3>
+                {remainingPages > 0 ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Noch {remainingPages}{" "}
+                      {remainingPages === 1 ? "Credit" : "Credits"}{" "}
+                      nötig
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      <Coins className="h-3 w-3 inline mr-1" />
+                      Ihr Guthaben: {currentCredits} {currentCredits === 1 ? "Credit" : "Credits"}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Guthaben ausreichend – starten Sie jetzt die Transkription.
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                {!hasEnoughCredits && (
+                  <Button variant="outline" onClick={() => {
+                    trackBeginCheckout();
+                    navigate("/app/pricing");
+                  }}>
+                    <Coins className="h-4 w-4 mr-2" />
+                    Credits kaufen
+                  </Button>
+                )}
+                <Button
+                  disabled={purchaseMutation.isPending || !hasEnoughCredits}
+                  onClick={() => purchaseMutation.mutate()}
+                  data-testid="button-purchase-transcription"
+                >
+                  {purchaseMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Wird verarbeitet...
+                    </>
+                  ) : !hasEnoughCredits ? (
+                    <>
+                      <Lock className="h-4 w-4 mr-2" />
+                      Nicht genug Guthaben
+                    </>
+                  ) : (
+                    <>
+                      Jetzt alle Seiten lesbar machen
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <Card
+            className={
+              qualityData?.level === "yellow" || qualityData?.level === "red"
+                ? "p-5 border-amber-400/60 bg-amber-50/50 dark:bg-amber-950/20"
+                : "p-5 border-primary/20 bg-primary/[0.02]"
+            }
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif font-semibold mb-1 text-sm">
+                  Alternativ: Experten beauftragen
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Nur bei extrem schwer lesbaren Dokumenten nötig. Wir vermitteln Ihnen eine erfahrene Fachkraft.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/app/human-transcription/${params.id}`)}
+                className="shrink-0"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Experten fragen
+              </Button>
+            </div>
+          </Card>
+        </>
+      )}
+
+      {isProcessing && data.progress && data.progress.total > 0 && (
+        <Card className="p-4 border-amber-300/40 bg-amber-50/50 dark:bg-amber-950/10">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />
+                <h3 className="font-serif font-semibold text-sm">
+                  Seiten werden ausgewertet…
+                </h3>
+              </div>
+              <Progress
+                value={Math.round((data.progress.completed / data.progress.total) * 100)}
+                className="h-2 mb-1.5"
+              />
+              <p className="text-xs text-muted-foreground">
+                {data.progress.completed} von {data.progress.total} {data.progress.total === 1 ? "Seite" : "Seiten"} fertig
+                {data.progress.processing > 0 && (
+                  <span> – Seite {data.progress.completed + 1} wird ausgewertet…</span>
+                )}
+                {data.progress.failed > 0 && (
+                  <span className="text-destructive"> · {data.progress.failed} fehlgeschlagen</span>
+                )}
+              </p>
+              <TranscriptionBackgroundHint />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={cancelMutation.isPending}
+              onClick={() => setShowCancelDialog(true)}
+            >
+              {cancelMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <StopCircle className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Abbrechen
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Verarbeitung abbrechen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Die Transkription wird sofort gestoppt. Guthaben für noch nicht
+              transkribierte Seiten wird Ihnen automatisch zurückerstattet.
+              Bereits fertige Seiten bleiben erhalten.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Weiter transkribieren</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => cancelMutation.mutate()}
+            >
+              Abbrechen und Guthaben erstatten
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {!isProcessing && failedCount > 0 && (
+        <Card className="p-4 border-destructive/30 bg-destructive/5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <XCircle className="h-5 w-5 text-destructive shrink-0" />
+              <div>
+                <h3 className="font-serif font-semibold text-sm">
+                  {failedCount} {failedCount === 1 ? "Seite" : "Seiten"} fehlgeschlagen
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {failedCount === 1
+                    ? "Eine Seite konnte nicht transkribiert werden. Sie können es erneut versuchen."
+                    : `${failedCount} Seiten konnten nicht transkribiert werden. Sie können alle auf einmal erneut versuchen.`}
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => retryAllFailedMutation.mutate()}
+              disabled={retryAllFailedMutation.isPending || retryPageMutation.isPending}
+            >
+              {retryAllFailedMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Alle erneut versuchen ({failedCount} {failedCount === 1 ? "Credit" : "Credits"})
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {data.pages.length === 1 ? (
+        renderPageContent(data.pages[0])
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <PageNavigator
+              currentPage={currentPageIdx}
+              totalPages={data.pages.length}
+              pages={(isProcessing || failedCount > 0) ? data.pages : undefined}
+              onPageChange={setCurrentPageIdx}
+            />
+          </div>
+          {currentPage && renderPageContent(currentPage)}
+        </div>
+      )}
+
+      {/* TTS Vorlesen – Compact Teaser */}
+      {!isPreviewOnly && !isProcessing && data.pages.some((p) => p.transcription && p.status === "completed") && (() => {
+        const anyExistingAudio = ttsCompletedForPage.length > 0 || ttsCompletedForAll.length > 0;
+        const latestAudio = ttsCompletedForAll[0] || ttsCompletedForPage[0];
+        const pageCredits = currentPage ? ttsCreditsForText(getPageDisplayText(currentPage as TranscriptionPage & Record<string, unknown>, textVersion, effectiveDisplayLanguage) ?? "") : 0;
+        const isGenerating = ttsGeneratingForPage || ttsGeneratingForAll;
+
+        return (
+          <Card className="p-4 border-primary/20 bg-primary/[0.02]">
+            {latestAudio?.audioUrl ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <Headphones className="h-5 w-5 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <audio controls className="w-full h-9" src={latestAudio.audioUrl} />
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button size="sm" variant="ghost" className="h-8 text-xs" asChild>
+                    <a href={latestAudio.audioUrl} download={latestAudio.audioUrl.split("/").pop() ?? undefined}>
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      Download
+                    </a>
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowTtsSheet(true)}>
+                    Weitere Stimmen
+                  </Button>
+                </div>
+              </div>
+            ) : isGenerating ? (
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 text-primary animate-spin shrink-0" />
+                <p className="text-sm">Audio wird generiert…</p>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Headphones className="h-5 w-5 text-primary shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Diesen Text vorlesen lassen</p>
+                    <p className="text-xs text-muted-foreground">
+                      6 Stimmen, 4 Vorlesestile — ideal als Geschenk
+                      {pageCredits > 0 && ` · ab ${pageCredits} ${pageCredits === 1 ? "Credit" : "Credits"}`}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => setShowTtsSheet(true)}
+                  data-tour="result-tts"
+                  data-testid="button-tts-open"
+                >
+                  <Volume2 className="h-3.5 w-3.5 mr-1.5" />
+                  Stimme wählen
+                </Button>
+              </div>
+            )}
+          </Card>
+        );
+      })()}
+
+      {/* TTS Sheet */}
+      <Sheet open={showTtsSheet} onOpenChange={setShowTtsSheet}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto" data-tour="tts-sheet">
+          <SheetHeader>
+            <SheetTitle className="font-serif flex items-center gap-2">
+              <Headphones className="h-5 w-5" />
+              Vorlesen
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-5">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Ihr Guthaben: {currentCredits} {currentCredits === 1 ? "Credit" : "Credits"}</span>
+                <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary" onClick={() => { trackBeginCheckout(); navigate("/app/pricing"); }}>
+                  Credits kaufen
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground/60">
+                1 Credit = 1.000 Zeichen Vorlesen (oder 1 Transkriptionsseite)
+              </p>
+            </div>
+
+            <AudioCharacterPicker
+              selectedVoice={ttsVoice}
+              selectedStyle={ttsStyle}
+              onSelect={(voice, style) => { setTtsVoice(voice); setTtsStyle(style); }}
+              compact
+            />
+
+            {currentPage && (() => {
+              const pageText = getPageDisplayText(currentPage as TranscriptionPage & Record<string, unknown>, textVersion, effectiveDisplayLanguage) ?? "";
+              const pageChars = pageText.length;
+              const pgCredits = ttsCreditsForText(pageText);
+              const hasEnoughForPage = currentCredits >= pgCredits;
+              const hasEnoughForAll = ttsCostAll ? currentCredits >= ttsCostAll.creditsRequired : false;
+              return (
+                <div className="space-y-3 border-t pt-4">
+                  <p className="text-xs text-muted-foreground">
+                    Diese Seite: {pageChars.toLocaleString("de-DE")} Zeichen = {pgCredits} {pgCredits === 1 ? "Credit" : "Credits"}
+                  </p>
+                  {data!.pages.length > 1 && ttsCostAll && (
+                    <p className="text-xs text-muted-foreground">
+                      Alle {data!.pages.length} Seiten: {ttsCostAll.totalCharacters.toLocaleString("de-DE")} Zeichen = {ttsCostAll.creditsRequired} {ttsCostAll.creditsRequired === 1 ? "Credit" : "Credits"}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      disabled={ttsMutation.isPending || ttsGeneratingForPage || !hasEnoughForPage}
+                      onClick={() => {
+                        ttsMutation.mutate({ pages: [currentPage.pageNumber], voice: ttsVoice, style: ttsStyle || undefined });
+                        setShowTtsSheet(false);
+                      }}
+                    >
+                      {ttsGeneratingForPage ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Volume2 className="h-3.5 w-3.5 mr-1.5" />}
+                      {ttsGeneratingForPage ? "Wird generiert…" : `Diese Seite vorlesen (${pgCredits} Cr.)`}
+                    </Button>
+                    {data!.pages.length > 1 && ttsCostAll && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={ttsMutation.isPending || ttsGeneratingForAll || !hasEnoughForAll}
+                        onClick={() => {
+                          ttsMutation.mutate({ pages: "all", voice: ttsVoice, style: ttsStyle || undefined });
+                          setShowTtsSheet(false);
+                        }}
+                      >
+                        {ttsGeneratingForAll ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Volume2 className="h-3.5 w-3.5 mr-1.5" />}
+                        {ttsGeneratingForAll ? "Wird generiert…" : `Alle Seiten vorlesen (${ttsCostAll.creditsRequired} Cr.)`}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {(ttsCompletedForPage.length > 0 || ttsCompletedForAll.length > 0) && (
+              <div className="space-y-3 border-t pt-4">
+                <p className="text-xs font-semibold text-muted-foreground">Vorhandene Audios</p>
+                {[...ttsCompletedForPage, ...ttsCompletedForAll].map((gen) => {
+                  const voiceMeta = TTS_VOICES.find((v) => v.name === gen.voice);
+                  const styleLabel = gen.style ? TTS_STYLE_PRESETS.find((p) => p.value === gen.style)?.label ?? (gen.style || "").slice(0, 30) : null;
+                  const isAll = ttsCompletedForAll.includes(gen);
+                  return (
+                    <div key={gen.id} className="space-y-1.5 rounded-md border bg-muted/30 p-2.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">
+                          <span className="font-medium">{gen.voice}</span>
+                          {voiceMeta ? ` (${voiceMeta.gender})` : ""}
+                          {styleLabel ? ` · ${styleLabel}` : ""}
+                        </p>
+                        <Badge variant="secondary" className="text-[10px]">{isAll ? "Alle Seiten" : `Seite ${(gen.pages as number[])?.[0] ?? "?"}`}</Badge>
+                      </div>
+                      <audio controls className="w-full h-9" src={gen.audioUrl!} />
+                      <Button size="sm" variant="ghost" className="h-7 text-xs px-2" asChild>
+                        <a href={gen.audioUrl!} download={gen.audioUrl!.split("/").pop() ?? undefined}>
+                          <Download className="h-3 w-3 mr-1" />
+                          Herunterladen
+                        </a>
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Upsell for completed transcriptions – unter der Vorschau */}
+      {!isPreviewOnly && !isProcessing && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Card
+            className={
+              qualityData?.level === "yellow" || qualityData?.level === "red"
+                ? "p-5 border-amber-400/60 bg-amber-50/50 dark:bg-amber-950/20"
+                : "p-5 border-primary/20 bg-primary/[0.02]"
+            }
+          >
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                <h3 className="font-serif font-semibold text-sm">KI-Geprüft</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Lassen Sie Ihre Transkription von Experten prüfen und korrigieren. Lieferzeit 2–3 Werktage.
+              </p>
+              <p className="text-sm font-semibold">
+                {(data.pages.length * 8.99).toFixed(2).replace(".", ",")} EUR
+                <span className="text-muted-foreground font-normal text-xs ml-1">(8,99 EUR/Seite)</span>
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-auto"
+                onClick={() => navigate(`/app/human-transcription/${params.id}?tier=ki_geprueft`)}
+              >
+                KI-Geprüft anfragen
+              </Button>
+            </div>
+          </Card>
+
+          <Card
+            className={
+              qualityData?.level === "red"
+                ? "p-5 border-amber-400/60 bg-amber-50/50 dark:bg-amber-950/20"
+                : "p-5 border-amber-300/50 dark:border-amber-700/50 bg-amber-50/20 dark:bg-amber-950/10"
+            }
+          >
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <h3 className="font-serif font-semibold text-sm">Experten-Transkription</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Vollständige menschliche Transkription durch erfahrene Fachkräfte. Lieferzeit 5–7 Werktage.
+              </p>
+              <p className="text-sm font-semibold">
+                ab 14,90 EUR/Seite
+                <span className="text-muted-foreground font-normal text-xs block">Individuelles Angebot</span>
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-auto border-amber-400 dark:border-amber-600"
+                onClick={() => navigate(`/app/human-transcription/${params.id}?tier=experten`)}
+              >
+                Experten anfragen
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {params.id && (
+        <PdfExportDialog
+          open={showPdfExport}
+          onOpenChange={setShowPdfExport}
+          jobId={params.id}
+          textVersion={textVersion}
+          anyPageHasCompleted={anyPageHasCompleted}
+          anyPageHasInterpreted={anyPageHasInterpreted}
+          translationLanguage={data?.job?.translationLanguage}
+        />
+      )}
+
+      <AlertDialog open={!!showResetDialog} onOpenChange={(open) => !open && setShowResetDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Original wiederherstellen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ihre Bearbeitungen für diese Textversion werden verworfen und die
+              ursprüngliche KI-Transkription wird wieder angezeigt. Dieser Schritt
+              kann nicht rückgängig gemacht werden.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={resetToOriginal}
+            >
+              Verwerfen und Original anzeigen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1771882165833,
+      "tag": "0000_human_transcription_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771886299306,
+      "tag": "0001_anonymous_analyses",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1730000000000,
+      "tag": "0002_transcription_edited_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1773124845669,
+      "tag": "0003_unknown_dark_beast",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773666314013,
+      "tag": "0004_friendly_slapstick",
+      "breakpoints": true
+    }
+  ]
+}
