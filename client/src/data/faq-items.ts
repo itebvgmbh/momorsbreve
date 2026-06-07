@@ -10,92 +10,97 @@ export interface FaqCategory {
 
 export const FAQ_CATEGORIES: FaqCategory[] = [
   {
-    title: "Erste Schritte",
+    title: "Kom godt i gang",
     items: [
       {
-        question: "Wie funktioniert MormorsBreve? Brauche ich besondere Computerkenntnisse?",
+        question: "Hvordan virker MormorsBreve? Skal jeg kunne noget særligt med computere?",
         answer:
-          "Nein, Sie brauchen keine besonderen Kenntnisse. Sie brauchen nur ein Foto oder einen Scan der Handschrift. Sie laden das Bild auf unserer Seite hoch — das funktioniert am Computer, Tablet oder Handy. Die KI liest die Schrift und liefert Ihnen den Text. Das ist so einfach wie ein Foto per WhatsApp verschicken.",
+          "Nej, du behøver ingen særlige forudsætninger. Du skal blot bruge et foto eller en scanning af håndskriften. Du uploader billedet på vores side — det virker på computer, tablet og mobil. AI'en læser skriften og giver dig teksten. Det er lige så nemt som at sende et foto via beskeder.",
       },
       {
-        question: "Wie mache ich am besten ein Foto von der Handschrift?",
+        question: "Hvordan tager jeg bedst et foto af håndskriften?",
         answer:
-          "Legen Sie das Dokument flach auf einen Tisch, möglichst bei Tageslicht. Fotografieren Sie die Seite von oben, sodass der gesamte Text gut sichtbar ist. Achten Sie darauf, dass kein Schatten auf die Schrift fällt. Ein Handyfoto reicht völlig — es muss kein professioneller Scan sein.",
+          "Læg dokumentet fladt på et bord, helst i dagslys. Tag billedet ovenfra, så hele teksten er tydelig. Sørg for, at der ikke falder skygge på skriften. Et almindeligt mobilfoto er rigeligt — det behøver ikke være en professionel scanning. Tip: Du kan også uploade billeder, du har hentet fra Arkivalieronline.",
       },
       {
-        question: "Kann ich das auch mit dem Handy machen?",
+        question: "Kan jeg gøre det hele fra mobilen?",
         answer:
-          "Ja, die gesamte Seite funktioniert auf dem Handy und Tablet genauso wie am Computer. Sie können direkt mit der Handy-Kamera ein Foto machen und hochladen.",
+          "Ja, hele siden fungerer på mobil og tablet præcis som på computer. Du kan tage et foto direkte med mobilens kamera og uploade det med det samme.",
       },
     ],
   },
   {
-    title: "Ergebnis und Qualität",
+    title: "Resultat og kvalitet",
     items: [
       {
-        question: "Welche Handschriften werden erkannt?",
+        question: "Hvilke skrifttyper kan genkendes?",
         answer:
-          "Unsere KI ist spezialisiert auf historische deutsche Handschriften: Sütterlin (ab ca. 1915), Kurrentschrift (ältere Dokumente), Nachkriegsschrift und auch moderne Handschrift. Ob Tagebuch, Feldpostbrief, Rezeptbuch oder Postkarte — die häufigsten Schriftarten werden zuverlässig erkannt.",
+          "Vores AI er specialiseret i gammel dansk håndskrift: gotisk håndskrift (standard før ca. 1875), overgangsskrift (ca. 1875–1900), gotisk tryk (fraktur) og moderne håndskrift. Uanset om det er en dagbog, et gammelt brev, en kogebog, en kirkebog eller en folketælling — de mest almindelige skrifttyper genkendes pålideligt.",
       },
       {
-        question: "Was ist, wenn die KI Fehler macht oder etwas nicht lesen kann?",
+        question: "Hvad med den gamle retskrivning — »Aa« og navneord med stort?",
         answer:
-          "Die KI markiert unsichere Stellen im Text, sodass Sie sofort sehen, wo es Lücken gibt. Sie können den Text direkt im Browser korrigieren und anpassen. Wenn ein Dokument besonders schwer lesbar ist, können Sie unseren Experten-Service nutzen: Dann liest ein geschulter Mensch die Handschrift für Sie.",
+          "Det håndterer AI'en. Tekster fra før retskrivningsreformen i 1948 bruger »Aa« i stedet for »Å«, og alle navneord begynder med stort bogstav. Det er ikke fejl, men datidens korrekte stavemåde, og transskriptionen bevarer den, så teksten forbliver tro mod originalen.",
       },
       {
-        question: "Kann ich mich auf das KI-Ergebnis verlassen?",
+        question: "Hvad gør jeg, hvis AI'en laver fejl eller ikke kan læse noget?",
         answer:
-          "Die KI liefert in den meisten Fällen ein sehr gutes Ergebnis — aber wie jede künstliche Intelligenz kann sie Fehler machen. Gelegentlich werden Wörter falsch gelesen oder Lücken mit plausibel klingenden, aber falschen Begriffen gefüllt. Deshalb empfehlen wir: Prüfen Sie das Ergebnis immer selbst, besonders bei wichtigen Stellen. Verwenden Sie KI-Transkriptionen nicht als alleinige Grundlage für juristische, medizinische, finanzielle oder amtliche Zwecke. Für solche Fälle bieten wir unseren Experten-Service an, bei dem ein geschulter Mensch die Handschrift liest und prüft.",
+          "AI'en markerer usikre steder i teksten, så du straks kan se, hvor der er huller. Du kan rette og tilpasse teksten direkte i browseren. Er et dokument særligt svært at læse, kan du bruge vores ekspert-service: så læser en uddannet person håndskriften for dig.",
       },
       {
-        question: "Was bedeuten die drei Textversionen?",
+        question: "Kan jeg stole på AI-resultatet?",
         answer:
-          "Sie erhalten drei verschiedene Fassungen: (1) Originaltreu — möglichst wörtlich, auch mit alten Schreibweisen. (2) KI-ergänzt — die KI ergänzt unleserliche Stellen sinnvoll. (3) Freie Interpretation — ein flüssig lesbarer Text in heutigem Deutsch. So können Sie selbst wählen, welche Version am besten zu Ihrem Zweck passt.",
+          "AI'en giver i de fleste tilfælde et meget godt resultat — men som al kunstig intelligens kan den lave fejl. Af og til læses et ord forkert, eller et hul fyldes med et plausibelt, men forkert ord. Derfor anbefaler vi: tjek altid resultatet selv, især ved vigtige steder. Brug ikke AI-transskriptioner som eneste grundlag for juridiske, medicinske, økonomiske eller officielle formål. Til den slags tilbyder vi vores ekspert-service, hvor en uddannet person læser og kontrollerer håndskriften.",
+      },
+      {
+        question: "Hvad betyder de tre tekstversioner?",
+        answer:
+          "Du får tre forskellige udgaver: (1) Tro mod originalen — så ordret som muligt, også med gamle stavemåder. (2) AI-suppleret — AI'en udfylder ulæselige steder fornuftigt. (3) Fri fortolkning — en flydende tekst på moderne dansk. Så kan du selv vælge den version, der passer bedst til dit formål — fx den originaltro til slægtsforskning og den frie til oplæsning.",
       },
     ],
   },
   {
-    title: "Kosten und Bezahlung",
+    title: "Pris og betaling",
     items: [
       {
-        question: "Was kostet die Transkription?",
+        question: "Hvad koster en transskription?",
         answer:
-          "Die ersten 3 Seiten sind völlig kostenlos — ohne Anmeldung, ohne Kreditkarte. Danach kaufen Sie Credits: 1 Credit = 1 Seite. Je mehr Seiten Sie auf einmal kaufen, desto günstiger wird es (ab 0,23 Euro pro Seite). Es gibt kein Abo und keine versteckten Kosten. Ihr Guthaben verfällt nicht.",
+          "De første 3 sider er helt gratis — uden oprettelse og uden kreditkort. Derefter køber du credits: 1 credit = 1 side. Jo flere sider du køber på én gang, desto billigere bliver det. Der er intet abonnement og ingen skjulte omkostninger. Dit tilgodehavende udløber ikke.",
       },
       {
-        question: "Wie bezahle ich, und ist das sicher?",
+        question: "Hvordan betaler jeg, og er det sikkert?",
         answer:
-          "Sie bezahlen bequem per Kreditkarte, PayPal, Klarna, Google Pay oder Apple Pay. Die Bezahlung wird über Stripe abgewickelt — einen der weltweit führenden Zahlungsanbieter. Ihre Zahlungsdaten werden verschlüsselt übertragen und nie auf unseren Servern gespeichert. Sie erhalten nach dem Kauf automatisch eine Rechnung per E-Mail.",
+          "Du betaler nemt med betalingskort, MobilePay, Apple Pay eller Google Pay. Betalingen håndteres af Stripe — en af verdens førende betalingsudbydere. Dine betalingsoplysninger sendes krypteret og gemmes aldrig på vores servere. Efter købet får du automatisk en kvittering på e-mail.",
       },
     ],
   },
   {
-    title: "Datenschutz und Sicherheit",
+    title: "Privatliv og sikkerhed",
     items: [
       {
-        question: "Sind meine Dokumente und Daten sicher?",
+        question: "Er mine dokumenter og data sikre?",
         answer:
-          "Ja. Alle Daten werden SSL-verschlüsselt übertragen und auf Servern in der EU gespeichert. Wir arbeiten DSGVO-konform. Ihre Dokumente werden nicht zum Trainieren der KI verwendet. Sie können Ihre Daten jederzeit vollständig löschen lassen.",
+          "Ja. Alle data sendes SSL-krypteret og gemmes på servere i EU. Vi arbejder i overensstemmelse med GDPR. Dine dokumenter bruges ikke til at træne AI'en. Du kan til enhver tid få alle dine data slettet helt.",
       },
       {
-        question: "Was passiert mit meinen Fotos nach der Transkription?",
+        question: "Hvad sker der med mine fotos efter transskriptionen?",
         answer:
-          "Ihre Fotos und Texte bleiben in Ihrem persönlichen Konto gespeichert, solange Sie möchten. Nur Sie haben Zugriff. Wenn Sie Ihr Konto löschen, werden alle Daten unwiderruflich entfernt. Wir geben Ihre Dokumente nicht an Dritte weiter.",
+          "Dine fotos og tekster bliver gemt på din personlige konto, så længe du ønsker det. Kun du har adgang. Sletter du din konto, fjernes alle data uigenkaldeligt. Vi videregiver ikke dine dokumenter til tredjepart.",
       },
     ],
   },
   {
-    title: "Funktionen",
+    title: "Funktioner",
     items: [
       {
-        question: "Kann ich den Text übersetzen lassen — zum Beispiel für Verwandte im Ausland?",
+        question: "Kan jeg få teksten oversat — fx til slægtninge i udlandet?",
         answer:
-          "Ja! Bei jeder KI-Transkription können Sie den Text direkt in über 30 Sprachen übersetzen lassen — Englisch, Französisch, Polnisch, Türkisch und viele mehr. Das ist im Preis enthalten, ohne Aufpreis. Ideal, wenn Familienmitglieder im Ausland leben.",
+          "Ja! Ved enhver AI-transskription kan du få teksten oversat til over 30 sprog — engelsk, tysk, svensk og mange flere. Det er inkluderet i prisen uden ekstra betaling. Ideelt, hvis familien bor spredt — fx efterkommere af danske udvandrere i USA, der gerne vil læse brevene på engelsk.",
       },
       {
-        question: "Kann ich mir den Text auch vorlesen lassen?",
+        question: "Kan jeg få teksten læst op?",
         answer:
-          "Ja. Sie können die Transkription mit verschiedenen Stimmen und Vorlesestilen als Audio-Datei erstellen und herunterladen. Das ist besonders schön als Geschenk für ältere Familienmitglieder, die nicht mehr gut lesen können — oder einfach zum Zuhören.",
+          "Ja. Du kan få transskriptionen lavet som lydfil med forskellige stemmer og oplæsningsstile og hente den. Det er en særlig smuk gave til ældre familiemedlemmer, der ikke længere ser så godt — eller bare til at lytte til.",
       },
     ],
   },

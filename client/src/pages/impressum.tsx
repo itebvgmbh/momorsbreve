@@ -8,8 +8,8 @@ export default function ImpressumPage() {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Impressum – MormorsBreve</title>
-        <meta name="description" content="Impressum und Anbieterkennzeichnung von MormorsBreve." />
+        <title>Kontakt &amp; oplysninger – MormorsBreve</title>
+        <meta name="description" content="Kontakt og lovpligtige virksomhedsoplysninger for MormorsBreve." />
         <link rel="canonical" href="https://mormorsbreve.dk/impressum" />
       </Helmet>
       <MarketingNav />
@@ -17,140 +17,71 @@ export default function ImpressumPage() {
       <main className="pt-24 pb-16 max-w-3xl mx-auto px-4 sm:px-6">
         <Link href="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors">
           <ArrowLeft className="h-4 w-4" />
-          Zurück zur Startseite
+          Tilbage til forsiden
         </Link>
 
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold mb-8">Impressum</h1>
+        <h1 className="font-serif text-3xl sm:text-4xl font-bold mb-8">Kontakt &amp; oplysninger</h1>
 
         <div className="prose prose-neutral dark:prose-invert max-w-none space-y-6">
           <section>
-            <h2 className="font-serif text-xl font-semibold mb-3">Angaben gemäß § 5 TMG</h2>
-            <p className="leading-relaxed">
-              ITEBV GmbH<br />
-              Zehntwerderweg 201A<br />
-              13469 Berlin
-            </p>
+            <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm">
+              <strong>Bemærk:</strong> Denne tekst er en foreløbig skabelon og udgør ikke juridisk rådgivning.
+              Felter markeret med […] skal udfyldes med virksomhedens rigtige oplysninger, og hele teksten
+              bør gennemgås af en dansk advokat eller revisor, før siden går i luften.
+            </div>
           </section>
-
           <section>
-            <h2 className="font-serif text-xl font-semibold mb-3">Vertreten durch</h2>
+            <h2 className="font-serif text-xl font-semibold mb-3">Virksomhedsoplysninger (oplysningspligt)</h2>
             <p className="leading-relaxed">
-              Stefan Tittmann, Dipl. Kfm. (FH)<br />
-              Geschäftsführer
+              [Virksomhedens navn ApS]<br />[Gadenavn og nr.]<br />[Postnr.] [By]<br />Danmark
             </p>
           </section>
-
+          <section>
+            <h2 className="font-serif text-xl font-semibold mb-3">CVR-nummer</h2>
+            <p className="leading-relaxed">
+              CVR-nr.: [8-cifret CVR-nummer]
+            </p>
+          </section>
           <section>
             <h2 className="font-serif text-xl font-semibold mb-3">Kontakt</h2>
             <p className="leading-relaxed">
-              Telefon: +49 152 51874784<br />
-              E-Mail: st@mes-beratung.de
+              Telefon: [+45 …]<br />E-mail: [kontakt@mormorsbreve.dk]
+            </p>
+            <p className="leading-relaxed">
+              I henhold til e-handelsloven oplyser vi både e-mail og telefonnummer, så du nemt kan komme i kontakt med os.
             </p>
           </section>
-
           <section>
-            <h2 className="font-serif text-xl font-semibold mb-3">Registereintrag</h2>
+            <h2 className="font-serif text-xl font-semibold mb-3">Moms (moms-registrering)</h2>
             <p className="leading-relaxed">
-              Eingetragen im Handelsregister<br />
-              Registergericht: AG Berlin Charlottenburg<br />
-              Registernummer: HRB 236012 B
+              Momsregistreret i Danmark. Moms-nr. (SE-nr.): [normalt identisk med CVR-nr.]<br />Alle priser på siden er angivet inklusive 25 % moms.
             </p>
           </section>
-
           <section>
-            <h2 className="font-serif text-xl font-semibold mb-3">Umsatzsteuer-ID</h2>
+            <h2 className="font-serif text-xl font-semibold mb-3">Ansvarlig for indholdet</h2>
             <p className="leading-relaxed">
-              Umsatzsteuer-Identifikationsnummer gemäß § 27a Umsatzsteuergesetz:<br />
-              DE348787952
+              [Navn på ansvarlig person]<br />[Virksomhedens navn ApS]
             </p>
           </section>
-
           <section>
-            <h2 className="font-serif text-xl font-semibold mb-3">Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
+            <h2 className="font-serif text-xl font-semibold mb-3">Klagemuligheder</h2>
             <p className="leading-relaxed">
-              Stefan Tittmann<br />
-              ITEBV GmbH<br />
-              Zehntwerderweg 201A<br />
-              13469 Berlin
+              Har du en klage over en vare eller tjeneste købt hos os, kan du indgive en klage til Konkurrence- og Forbrugerstyrelsens Center for Klageløsning, Carl Jacobsens Vej 35, 2500 Valby. Du kan klage via <a href="https://www.forbrug.dk" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">www.forbrug.dk</a>.
+            </p>
+            <p className="leading-relaxed">
+              Bor du i et andet EU-land, kan du klage via EU-Kommissionens online klageportal: <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">ec.europa.eu/consumers/odr</a>.
             </p>
           </section>
-
           <section>
-            <h2 className="font-serif text-xl font-semibold mb-3">EU-Streitschlichtung</h2>
+            <h2 className="font-serif text-xl font-semibold mb-3">Ansvar for indhold og links</h2>
             <p className="leading-relaxed">
-              Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:{" "}
-              <a
-                href="https://ec.europa.eu/consumers/odr/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                https://ec.europa.eu/consumers/odr/
-              </a>
-              <br />
-              Unsere E-Mail-Adresse finden Sie oben im Impressum.
+              Vi bestræber os på, at oplysningerne på siden er korrekte og opdaterede, men kan ikke gøres ansvarlige for fejl. Siden kan indeholde links til eksterne websteder, som vi ikke har kontrol over, og vi påtager os ikke ansvar for deres indhold.
             </p>
           </section>
-
           <section>
-            <h2 className="font-serif text-xl font-semibold mb-3">Verbraucherstreitbeilegung / Universalschlichtungsstelle</h2>
+            <h2 className="font-serif text-xl font-semibold mb-3">Ophavsret</h2>
             <p className="leading-relaxed">
-              Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer
-              Verbraucherschlichtungsstelle teilzunehmen.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="font-serif text-xl font-semibold mb-3">Haftung für Inhalte</h2>
-            <p className="leading-relaxed">
-              Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen
-              Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir
-              als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde
-              Informationen zu überwachen oder nach Umständen zu forschen, die auf eine
-              rechtswidrige Tätigkeit hinweisen.
-            </p>
-            <p className="leading-relaxed">
-              Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den
-              allgemeinen Gesetzen bleiben hiervon unberührt. Eine diesbezügliche Haftung ist
-              jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten Rechtsverletzung möglich.
-              Bei Bekanntwerden von entsprechenden Rechtsverletzungen werden wir diese Inhalte
-              umgehend entfernen.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="font-serif text-xl font-semibold mb-3">Haftung für Links</h2>
-            <p className="leading-relaxed">
-              Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir
-              keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine
-              Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige
-              Anbieter oder Betreiber der Seiten verantwortlich. Die verlinkten Seiten wurden zum
-              Zeitpunkt der Verlinkung auf mögliche Rechtsverstöße überprüft. Rechtswidrige
-              Inhalte waren zum Zeitpunkt der Verlinkung nicht erkennbar.
-            </p>
-            <p className="leading-relaxed">
-              Eine permanente inhaltliche Kontrolle der verlinkten Seiten ist jedoch ohne konkrete
-              Anhaltspunkte einer Rechtsverletzung nicht zumutbar. Bei Bekanntwerden von
-              Rechtsverletzungen werden wir derartige Links umgehend entfernen.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="font-serif text-xl font-semibold mb-3">Urheberrecht</h2>
-            <p className="leading-relaxed">
-              Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten
-              unterliegen dem deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung,
-              Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes
-              bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.
-              Downloads und Kopien dieser Seite sind nur für den privaten, nicht kommerziellen
-              Gebrauch gestattet.
-            </p>
-            <p className="leading-relaxed">
-              Soweit die Inhalte auf dieser Seite nicht vom Betreiber erstellt wurden, werden die
-              Urheberrechte Dritter beachtet. Insbesondere werden Inhalte Dritter als solche
-              gekennzeichnet. Sollten Sie trotzdem auf eine Urheberrechtsverletzung aufmerksam
-              werden, bitten wir um einen entsprechenden Hinweis. Bei Bekanntwerden von
-              Rechtsverletzungen werden wir derartige Inhalte umgehend entfernen.
+              Indhold, der er udarbejdet af MormorsBreve, er beskyttet af dansk ophavsret. Kopiering, bearbejdning og videredistribution ud over privat brug kræver skriftligt samtykke.
             </p>
           </section>
         </div>
@@ -160,13 +91,13 @@ export default function ImpressumPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-4">
           <Logo height="h-6" />
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <Link href="/impressum" className="hover:text-foreground transition-colors">Impressum</Link>
-            <Link href="/datenschutz" className="hover:text-foreground transition-colors">Datenschutz</Link>
-            <Link href="/agb" className="hover:text-foreground transition-colors">AGB</Link>
-            <Link href="/widerrufsbelehrung" className="hover:text-foreground transition-colors">Widerruf</Link>
+            <Link href="/impressum" className="hover:text-foreground transition-colors">Kontakt &amp; oplysninger</Link>
+            <Link href="/datenschutz" className="hover:text-foreground transition-colors">Privatlivspolitik</Link>
+            <Link href="/agb" className="hover:text-foreground transition-colors">Handelsbetingelser</Link>
+            <Link href="/widerrufsbelehrung" className="hover:text-foreground transition-colors">Fortrydelsesret</Link>
           </div>
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} ITEBV GmbH. Alle Rechte vorbehalten.
+            &copy; {new Date().getFullYear()} MormorsBreve. Alle rettigheder forbeholdes.
           </p>
         </div>
       </footer>

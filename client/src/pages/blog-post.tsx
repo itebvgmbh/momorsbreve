@@ -47,7 +47,7 @@ function ArticleJsonLd({
     },
     author: {
       "@type": "Organization",
-      name: "ITEBV GmbH",
+      name: "MormorsBreve",
       url: BASE,
     },
     mainEntityOfPage: {
@@ -166,7 +166,7 @@ export default function BlogPostPage(props: BlogPostPageProps) {
             </Link>
           </div>
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} ITEBV GmbH. Alle Rechte vorbehalten.
+            &copy; {new Date().getFullYear()} MormorsBreve. Alle rettigheder forbeholdes.
           </p>
         </div>
       </footer>

@@ -7,13 +7,14 @@ import type { User } from "@shared/schema";
 import type { HumanTranscriptionRequest } from "@shared/schema";
 import type { IStorage } from "./storage";
 
-// Firmendaten ITEBV GmbH (ohne Bankverbindung und E-Mail)
+// Virksomhedsoplysninger til faktura.
+// TODO: Udfyld med de rigtige danske oplysninger (CVR/SE-nr., adresse), før der udstedes fakturaer.
 const COMPANY = {
-  name: "ITEBV GmbH",
-  street: "Zehntwerderweg 201 A",
-  postalCode: "13469",
-  city: "Berlin",
-  vatId: "DE348787952",
+  name: "MormorsBreve",
+  street: "[Gadenavn og nr.]",
+  postalCode: "[Postnr.]",
+  city: "[By]",
+  vatId: "[CVR/SE-nr.]",
 };
 
 const LOGO_SVG_PATHS = [

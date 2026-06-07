@@ -284,7 +284,7 @@ export async function sendQuoteEmail(params: SendQuoteEmailParams): Promise<void
   });
 }
 
-const ADMIN_NOTIFICATION_EMAIL = "st@mes-beratung.de";
+const ADMIN_NOTIFICATION_EMAIL = "[admin@mormorsbreve.dk]"; // TODO: rigtig admin-e-mail
 
 export interface SupportNotificationParams {
   userName: string;

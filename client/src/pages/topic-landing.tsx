@@ -379,7 +379,7 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
             <Link href="/widerrufsbelehrung" className="hover:text-foreground transition-colors">Widerruf</Link>
           </div>
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} ITEBV GmbH. Alle Rechte vorbehalten.
+            &copy; {new Date().getFullYear()} MormorsBreve. Alle rettigheder forbeholdes.
           </p>
         </div>
       </footer>

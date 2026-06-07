@@ -314,7 +314,7 @@ export default function LandingPage() {
         <div className="absolute inset-0">
           <img
             src="/images/hero-desk.png"
-            alt="Tagebuch-Seite"
+            alt="Gammel dagbog med gotisk håndskrift på et skrivebord"
             className="w-full h-full object-cover"
             fetchPriority="high"
           />
@@ -353,7 +353,7 @@ export default function LandingPage() {
             <div className="relative">
               <img
                 src="/images/family-memories.png"
-                alt="Ältere Person blättert in einem Familien-Tagebuch mit Sütterlin-Handschrift"
+                alt="Ældre kvinde blader i en gammel familiedagbog med gotisk håndskrift"
                 className="rounded-xl shadow-lg w-full object-cover aspect-[4/3]"
                 data-testid="img-family-memories"
                 loading="lazy"
@@ -361,7 +361,7 @@ export default function LandingPage() {
               <div className="absolute -bottom-4 -right-4 w-32 h-32 sm:w-40 sm:h-40 rounded-lg overflow-hidden shadow-lg border-4 border-background hidden sm:block">
                 <img
                   src="/images/suetterlin-closeup.png"
-                  alt="Nahaufnahme einer Sütterlin-Handschrift"
+                  alt="Nærbillede af gammel dansk gotisk håndskrift"
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
@@ -425,7 +425,7 @@ export default function LandingPage() {
             <div className="order-2 md:order-1">
               <img
                 src="/images/documents-flatlay.png"
-                alt="Historische Dokumente und alte Familienbriefe auf einem Schreibtisch"
+                alt="Gamle breve, dokumenter og et familieportræt på et træbord"
                 className="rounded-xl shadow-lg w-full object-cover aspect-video"
                 data-testid="img-documents-flatlay"
                 loading="lazy"
@@ -606,7 +606,7 @@ export default function LandingPage() {
             <div>
               <img
                 src="/images/digital-transcription.png"
-                alt="Alte Handschrift wird am Computer transkribiert"
+                alt="Gammel gotisk håndskrift gøres læsbar på en tablet"
                 className="rounded-xl shadow-lg w-full object-cover aspect-[4/3]"
                 data-testid="img-digital-transcription"
                 loading="lazy"
@@ -1019,7 +1019,7 @@ export default function LandingPage() {
             <Link href="/widerrufsbelehrung" className="hover:text-foreground transition-colors">Widerruf</Link>
           </div>
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} ITEBV GmbH. Alle Rechte vorbehalten.
+            &copy; {new Date().getFullYear()} MormorsBreve. Alle rettigheder forbeholdes.
           </p>
         </div>
       </footer>
