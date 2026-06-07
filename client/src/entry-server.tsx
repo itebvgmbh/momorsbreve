@@ -2,7 +2,7 @@ import React from "react";
 import { renderToString } from "react-dom/server";
 import { Router } from "wouter";
 import { HelmetProvider, Helmet } from "react-helmet-async";
-import { I18nextProvider } from "react-i18next";
+import { I18nextProvider, useTranslation } from "react-i18next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -24,20 +24,18 @@ import { getAllSlugs } from "@/data/blog-posts";
 import { getAllTopicSlugs } from "@/data/topic-pages";
 
 function AnalysierenSSRShell() {
+  const { t } = useTranslation();
   return (
     <>
       <Helmet>
-        <title>Kostenlose Handschrift-Analyse – MormorsBreve</title>
-        <meta name="description" content="Laden Sie ein Bild oder PDF Ihrer alten Handschrift hoch – unsere KI bewertet kostenlos die Lesbarkeit und zeigt, wie gut das Dokument transkribiert werden kann." />
+        <title>{t("ssr.analyseTitle")}</title>
+        <meta name="description" content={t("ssr.analyseDescription")} />
         <link rel="canonical" href="https://mormorsbreve.dk/analysieren" />
       </Helmet>
       <div className="min-h-screen bg-background">
         <main className="max-w-4xl mx-auto p-4 sm:p-6">
-          <h1 className="font-serif text-2xl font-bold mb-1">Kostenlose KI-Analyse</h1>
-          <p className="text-muted-foreground">
-            Laden Sie ein Bild oder PDF hoch – unsere KI bewertet die Lesbarkeit und zeigt Ihnen,
-            wie gut Ihr Dokument automatisch transkribiert werden kann. Keine Anmeldung nötig.
-          </p>
+          <h1 className="font-serif text-2xl font-bold mb-1">{t("ssr.analyseH1")}</h1>
+          <p className="text-muted-foreground">{t("ssr.analyseLead")}</p>
         </main>
       </div>
     </>
@@ -45,20 +43,18 @@ function AnalysierenSSRShell() {
 }
 
 function BeispieleSSRShell() {
+  const { t } = useTranslation();
   return (
     <>
       <Helmet>
-        <title>Beispiele – Transkribierte historische Handschriften | MormorsBreve</title>
-        <meta name="description" content="Echte Beispiele transkribierter Sütterlin- und Kurrent-Handschriften: Feldpostbriefe, Tagebücher und Rezeptbücher. Testen Sie den Reader kostenlos." />
+        <title>{t("ssr.examplesTitle")}</title>
+        <meta name="description" content={t("ssr.examplesDescription")} />
         <link rel="canonical" href="https://mormorsbreve.dk/beispiele" />
       </Helmet>
       <div className="min-h-screen bg-background">
         <main className="max-w-4xl mx-auto p-4 sm:p-6">
-          <h1 className="font-serif text-2xl font-bold mb-1">Beispiel-Transkriptionen</h1>
-          <p className="text-muted-foreground">
-            Echte historische Handschriften – originalgetreu transkribiert. Probieren Sie den
-            interaktiven Reader kostenlos aus.
-          </p>
+          <h1 className="font-serif text-2xl font-bold mb-1">{t("ssr.examplesH1")}</h1>
+          <p className="text-muted-foreground">{t("ssr.examplesLead")}</p>
         </main>
       </div>
     </>

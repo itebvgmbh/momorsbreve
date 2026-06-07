@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -20,8 +21,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { Logo } from "@/components/logo";
 import { MarketingNav } from "@/components/marketing-nav";
+import { MarketingFooter } from "@/components/marketing-footer";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,7 +44,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentPreview } from "@/components/document-preview";
 import { PdfExportDialog } from "@/components/pdf-export-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { TOPIC_PAGES } from "@/data/topic-pages";
 import {
   getScriptTypeDisplayLabel,
   getTranslationLanguageLabel,
@@ -111,6 +111,7 @@ function ExamplePageNavigator({
   totalPages: number;
   onPageChange: (page: number) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-2">
       <Button
@@ -119,7 +120,7 @@ function ExamplePageNavigator({
         className="h-8 w-8"
         disabled={currentPage <= 0}
         onClick={() => onPageChange(currentPage - 1)}
-        aria-label="Vorherige Seite"
+        aria-label={t("examples.prevPage")}
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
@@ -133,7 +134,7 @@ function ExamplePageNavigator({
         <SelectContent>
           {Array.from({ length: totalPages }, (_, i) => (
             <SelectItem key={i} value={String(i)}>
-              Seite {i + 1} von {totalPages}
+              {t("examples.pageOf", { n: i + 1, total: totalPages })}
             </SelectItem>
           ))}
         </SelectContent>
@@ -144,7 +145,7 @@ function ExamplePageNavigator({
         className="h-8 w-8"
         disabled={currentPage >= totalPages - 1}
         onClick={() => onPageChange(currentPage + 1)}
-        aria-label="Nächste Seite"
+        aria-label={t("examples.nextPage")}
       >
         <ChevronRight className="h-4 w-4" />
       </Button>
@@ -159,6 +160,7 @@ function ExampleDocumentView({
   example: ExampleDocument;
   onRequestAuth: () => void;
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [currentPageIdx, setCurrentPageIdx] = useState(0);
   const [textVersion, setTextVersion] = useState<TextVersion>("original");
@@ -199,7 +201,7 @@ function ExampleDocumentView({
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "Kopiert", description: "Text in die Zwischenablage kopiert." });
+    toast({ title: t("common.copied"), description: t("common.copiedToClipboard") });
   };
 
   const startEditing = () => {
@@ -229,7 +231,7 @@ function ExampleDocumentView({
         )}
         <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
           <Badge variant="secondary" className="text-xs">
-            {example.totalPages} {example.totalPages === 1 ? "Seite" : "Seiten"}
+            {example.totalPages} {example.totalPages === 1 ? t("examples.pageOne") : t("examples.pageMany")}
           </Badge>
           {example.source && (
             <span className="flex items-center gap-1 text-xs">
@@ -252,18 +254,18 @@ function ExampleDocumentView({
 
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         <div>
-          <h3 className="font-serif text-lg font-semibold mb-3">Original</h3>
+          <h3 className="font-serif text-lg font-semibold mb-3">{t("examples.original")}</h3>
           <Card ref={originalColRef}>
             <DocumentPreview
               src={currentPage.imageUrl}
-              alt={`Original Seite ${currentPage.pageNumber}`}
+              alt={t("examples.originalAlt", { n: currentPage.pageNumber })}
             />
           </Card>
         </div>
 
         <div className="min-w-0">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <h3 className="font-serif text-lg font-semibold">Transkription</h3>
+            <h3 className="font-serif text-lg font-semibold">{t("examples.transcription")}</h3>
             {currentPage.transcription && !isEditingThis && (
               <div className="flex items-center gap-1">
                 <TooltipProvider>
@@ -278,7 +280,7 @@ function ExampleDocumentView({
                         <Copy className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Kopieren</TooltipContent>
+                    <TooltipContent>{t("common.copy")}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -291,7 +293,7 @@ function ExampleDocumentView({
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Bearbeiten</TooltipContent>
+                    <TooltipContent>{t("common.edit")}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
@@ -306,7 +308,7 @@ function ExampleDocumentView({
               >
                 <TabsList className="h-8">
                   <TabsTrigger value="de" className="text-xs px-3 h-6">
-                    Original
+                    {t("examples.original")}
                   </TabsTrigger>
                   <TabsTrigger value="translation" className="text-xs px-3 h-6">
                     <Globe className="h-3 w-3 mr-1" />
@@ -326,15 +328,15 @@ function ExampleDocumentView({
                 <TabsList className="h-8">
                   <TabsTrigger value="original" className="text-xs px-3 h-6">
                     <FileText className="h-3 w-3 mr-1" />
-                    Originaltreu
+                    {t("examples.faithful")}
                   </TabsTrigger>
                   <TabsTrigger value="completed" className="text-xs px-3 h-6">
                     <Sparkles className="h-3 w-3 mr-1" />
-                    Ergänzt
+                    {t("examples.completed")}
                   </TabsTrigger>
                   <TabsTrigger value="interpreted" className="text-xs px-3 h-6">
                     <Wand2 className="h-3 w-3 mr-1" />
-                    Interpretation
+                    {t("examples.interpretation")}
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -367,13 +369,13 @@ function ExampleDocumentView({
             {currentPage.transcription && textVersion === "completed" && currentPage.transcriptionCompleted && !isEditingThis && (
               <div className="flex items-center gap-1.5 mb-3 text-xs text-amber-600 dark:text-amber-400">
                 <Sparkles className="h-3 w-3" />
-                <span>Lücken wurden sinnvoll ergänzt</span>
+                <span>{t("examples.gapsFilled")}</span>
               </div>
             )}
             {currentPage.transcription && textVersion === "interpreted" && (interpretedText || currentPage.transcriptionCompleted) && !isEditingThis && (
               <div className="flex items-center gap-1.5 mb-3 text-xs text-amber-600 dark:text-amber-400">
                 <Wand2 className="h-3 w-3" />
-                <span>Text wurde sinngemäß interpretiert</span>
+                <span>{t("examples.interpretedNote")}</span>
               </div>
             )}
             {isEditingThis ? (
@@ -386,16 +388,16 @@ function ExampleDocumentView({
                 />
                 <div className="flex gap-2">
                   <Button size="sm" onClick={handleSave}>
-                    Speichern
+                    {t("common.save")}
                   </Button>
                   <Button size="sm" variant="outline" onClick={cancelEditing}>
-                    Abbrechen
+                    {t("common.cancel")}
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="font-serif text-sm leading-relaxed whitespace-pre-wrap">
-                {displayText || "Noch kein Text für diese Seite."}
+                {displayText || t("examples.noTextYet")}
               </div>
             )}
           </Card>
@@ -412,7 +414,7 @@ function ExampleDocumentView({
             <Button size="sm" variant="ghost" className="h-8 text-xs shrink-0" asChild>
               <a href={example.audioUrl} download>
                 <Download className="h-3.5 w-3.5 mr-1" />
-                Herunterladen
+                {t("common.download")}
               </a>
             </Button>
           </div>
@@ -422,16 +424,15 @@ function ExampleDocumentView({
       <AlertDialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Anmeldung erforderlich</AlertDialogTitle>
+            <AlertDialogTitle>{t("examples.loginRequiredTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Um Änderungen zu speichern, melden Sie sich bitte an und laden Sie Ihr eigenes Dokument hoch.
-              Dies ist nur ein Beispiel zum Ausprobieren &mdash; Ihre Bearbeitungen hier können nicht gespeichert werden.
+              {t("examples.loginRequiredBody")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Schließen</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.close")}</AlertDialogCancel>
             <AlertDialogAction onClick={() => { setShowLoginPrompt(false); onRequestAuth(); }}>
-              Anmelden
+              {t("common.login")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -452,6 +453,7 @@ function ExampleDocumentView({
 }
 
 export default function BeispielePage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
 
@@ -465,9 +467,8 @@ export default function BeispielePage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "Beispiel-Transkriptionen alter Handschriften",
-    description:
-      "Echte Beispiele: Sütterlin, Kurrent und Kanzleischrift transkribiert. Sehen Sie, wie MormorsBreve historische deutsche Handschriften in lesbaren Text verwandelt.",
+    name: t("examples.jsonLdName"),
+    description: t("examples.jsonLdDescription"),
     url: "https://mormorsbreve.dk/beispiele",
     publisher: {
       "@type": "Organization",
@@ -484,22 +485,11 @@ export default function BeispielePage() {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>
-          Beispiel-Transkriptionen: Sütterlin, Kurrent & Kanzleischrift | MormorsBreve
-        </title>
-        <meta
-          name="description"
-          content="Echte Beispiele: Sehen Sie, wie MormorsBreve Sütterlin, Kurrent und Kanzleischrift in lesbaren Text verwandelt. Patentschriften, Feldpost und historische Briefe – originalgetreu transkribiert."
-        />
+        <title>{t("examples.metaTitle")}</title>
+        <meta name="description" content={t("examples.metaDescription")} />
         <link rel="canonical" href="https://mormorsbreve.dk/beispiele" />
-        <meta
-          property="og:title"
-          content="Beispiel-Transkriptionen alter Handschriften | MormorsBreve"
-        />
-        <meta
-          property="og:description"
-          content="Sütterlin, Kurrent und Kanzleischrift – echte Beispiele zeigen, wie MormorsBreve alte Handschriften transkribiert."
-        />
+        <meta property="og:title" content={t("examples.ogTitle")} />
+        <meta property="og:description" content={t("examples.ogDescription")} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://mormorsbreve.dk/beispiele" />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
@@ -510,15 +500,13 @@ export default function BeispielePage() {
       <main className="pt-24 pb-16 max-w-5xl mx-auto px-4 sm:px-6">
         <header className="mb-14">
           <Badge variant="secondary" className="mb-4">
-            Echte Ergebnisse
+            {t("examples.badge")}
           </Badge>
           <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold mb-5">
-            Beispiel-Transkriptionen
+            {t("examples.h1")}
           </h1>
           <p className="text-muted-foreground text-lg leading-relaxed max-w-3xl">
-            Sehen Sie anhand echter Dokumente, wie MormorsBreve historische Handschriften
-            in lesbaren Text verwandelt. Nutzen Sie die Lupe, wechseln Sie zwischen
-            Textversionen und probieren Sie das Bearbeiten aus – ganz wie in der echten App.
+            {t("examples.intro")}
           </p>
         </header>
 
@@ -535,7 +523,7 @@ export default function BeispielePage() {
         {!isLoading && hasExamples && (
           <>
             {data.examples.length > 1 && (
-              <nav className="mb-14" aria-label="Beispiele">
+              <nav className="mb-14" aria-label={t("examples.navAria")}>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {data.examples.map((ex) => (
                     <a key={ex.id} href={`#beispiel-${ex.id}`} className="group">
@@ -547,7 +535,7 @@ export default function BeispielePage() {
                           {getScriptTypeDisplayLabel(ex.scriptType) && (
                             <>{getScriptTypeDisplayLabel(ex.scriptType)} &middot;{" "}</>
                           )}
-                          {ex.totalPages} {ex.totalPages === 1 ? "Seite" : "Seiten"}
+                          {ex.totalPages} {ex.totalPages === 1 ? t("examples.pageOne") : t("examples.pageMany")}
                         </p>
                       </Card>
                     </a>
@@ -573,7 +561,7 @@ export default function BeispielePage() {
           <div className="text-center py-16">
             <FileText className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
             <p className="text-muted-foreground">
-              Es sind noch keine Beispieldokumente konfiguriert.
+              {t("examples.emptyState")}
             </p>
           </div>
         )}
@@ -581,29 +569,28 @@ export default function BeispielePage() {
         <section className="mt-20 sm:mt-28 text-center">
           <Card className="p-8 sm:p-12 bg-primary/5 border-primary/20">
             <h2 className="font-serif text-2xl sm:text-3xl font-bold mb-4">
-              Ihre Handschriften transkribieren lassen
+              {t("examples.ctaTitle")}
             </h2>
             <p className="text-muted-foreground text-lg mb-6 max-w-2xl mx-auto">
-              Haben Sie Briefe, Tagebücher oder Dokumente in alter Handschrift?
-              Probieren Sie MormorsBreve kostenlos aus – die ersten 3&nbsp;Seiten sind gratis.
+              {t("examples.ctaBody")}
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               {user ? (
                 <Link href="/app/upload">
                   <Button size="lg">
-                    Jetzt hochladen
+                    {t("examples.uploadNow")}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
               ) : (
                 <Button size="lg" onClick={() => setAuthOpen(true)}>
-                  Kostenlos ausprobieren
+                  {t("examples.tryFree")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               )}
               <Link href="/blog">
                 <Button size="lg" variant="outline">
-                  Mehr im Blog erfahren
+                  {t("examples.moreBlog")}
                 </Button>
               </Link>
             </div>
@@ -611,37 +598,7 @@ export default function BeispielePage() {
         </section>
       </main>
 
-      <footer className="border-t border-border py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-4">
-          <Logo height="h-6" />
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <Link href="/blog" className="hover:text-foreground transition-colors">
-              Blog
-            </Link>
-            <Link href="/beispiele" className="hover:text-foreground transition-colors">
-              Beispiele
-            </Link>
-            {TOPIC_PAGES.map((tp) => (
-              <Link key={tp.slug} href={`/${tp.slug}`} className="hover:text-foreground transition-colors">{tp.heroTitle}</Link>
-            ))}
-            <Link href="/impressum" className="hover:text-foreground transition-colors">
-              Impressum
-            </Link>
-            <Link href="/datenschutz" className="hover:text-foreground transition-colors">
-              Datenschutz
-            </Link>
-            <Link href="/agb" className="hover:text-foreground transition-colors">
-              AGB
-            </Link>
-            <Link href="/widerrufsbelehrung" className="hover:text-foreground transition-colors">
-              Widerruf
-            </Link>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} MormorsBreve. Alle rettigheder forbeholdes.
-          </p>
-        </div>
-      </footer>
+      <MarketingFooter />
 
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
     </div>
