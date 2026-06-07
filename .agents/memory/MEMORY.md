@@ -1,0 +1,1 @@
+- [npm install corruption](npm-install-corruption.md) — fresh imports can extract packages incompletely (pdf-lib, pdfjs-dist); fix with clean reinstall.

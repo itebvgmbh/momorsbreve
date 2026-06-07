@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 
 // Nur das Symbol (Buch-Icon), Text „MormorsBreve“ wird separat daneben gerendert
-import logoSrc from "@/assets/logo-new.png";
+import logoSrc from "@/assets/logo.png";
 
 type LogoProps = {
   className?: string;
