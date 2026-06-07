@@ -47,13 +47,14 @@ export function LanguageSwitcher({ className }: { className?: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="ghost"
-          size="icon"
-          className={className}
-          aria-label={LANG_LABELS[current]}
+          variant="outline"
+          size="sm"
+          className={`gap-1.5 ${className ?? ""}`}
+          aria-label={`${LANG_LABELS[current]} – Sprog/Sprache/Language`}
           data-testid="button-language"
         >
-          <Globe className="h-5 w-5" />
+          <Globe className="h-4 w-4" />
+          <span className="text-xs font-semibold uppercase">{current}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

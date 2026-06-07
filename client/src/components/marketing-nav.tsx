@@ -123,9 +123,7 @@ export function MarketingNav({ activeLink, onLoginClick }: MarketingNavProps) {
             <div className="hidden md:block">
               <ThemeToggle />
             </div>
-            <div className="hidden md:block">
-              <LanguageSwitcher />
-            </div>
+            <LanguageSwitcher />
             {isLoading ? null : user ? (
               <Link href="/app">
                 <Button data-testid="button-dashboard">{t("nav.myPage")}</Button>
