@@ -1,8 +1,23 @@
 import type { Express } from "express";
 import { authStorage } from "./storage";
+import { storage } from "../../storage";
 import { isAuthenticated, getFirebaseAuth } from "../../firebase";
 
 export function registerAuthRoutes(app: Express): void {
+  // Speichert die bevorzugte Sprache des angemeldeten Nutzers (da/de/en),
+  // u. a. für lokalisierte E-Mails. Wird vom Client bei Sprachwechsel aufgerufen.
+  app.post("/api/auth/language", isAuthenticated, async (req: any, res) => {
+    try {
+      const uid = req.user.uid;
+      const language = String(req.body?.language ?? "");
+      await storage.setUserLanguage(uid, language);
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error setting user language:", error);
+      res.status(500).json({ message: "Failed to set language" });
+    }
+  });
+
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {
       const uid = req.user.uid;

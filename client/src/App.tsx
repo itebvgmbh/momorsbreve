@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import "@/i18n";
 import { parsePath } from "@/i18n/lang";
 import { HreflangTags } from "@/components/hreflang-tags";
-import { queryClient } from "./lib/queryClient";
+import { queryClient, apiRequest } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { CookieBanner } from "@/components/cookie-banner";
@@ -15,7 +15,7 @@ import { useAuth, AuthProvider } from "@/hooks/use-auth";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Loader2 } from "lucide-react";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { captureGclid } from "@/lib/gtag";
 import { TourProvider } from "@/hooks/use-tour";
 import { WelcomeDialog } from "@/components/tour/welcome-dialog";
@@ -190,6 +190,22 @@ function Router() {
   );
 }
 
+// Hält die am Server gespeicherte Sprache des angemeldeten Nutzers mit der
+// aktuellen UI-Sprache in Sync (für lokalisierte E-Mails). Muss innerhalb von
+// AuthProvider liegen.
+function LanguageSync() {
+  const { user } = useAuth();
+  const { i18n } = useTranslation();
+  const lastSynced = useRef<string | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    if (lastSynced.current === i18n.language) return;
+    lastSynced.current = i18n.language;
+    apiRequest("POST", "/api/auth/language", { language: i18n.language }).catch(() => {});
+  }, [user, i18n.language]);
+  return null;
+}
+
 function App() {
   const { i18n } = useTranslation();
 
@@ -206,6 +222,7 @@ function App() {
             <TooltipProvider>
               <Toaster />
               <CookieBanner />
+              <LanguageSync />
               <Router />
             </TooltipProvider>
           </ThemeProvider>

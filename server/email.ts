@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { tr, type EmailLang } from "./email-i18n";
 
 const apiKey = process.env.RESEND_API_KEY;
 const fromEmail = process.env.RESEND_FROM_EMAIL ?? "MormorsBreve <noreply@mormorsbreve.dk>";
@@ -24,19 +25,26 @@ export interface SendQuoteEmailParams {
     invoiceEmail?: string | null;
     phone?: string | null;
   } | null;
+  lang?: EmailLang;
 }
 
-function formatPriceEur(cents: number | null | undefined): string {
-  if (cents == null) return "auf Anfrage";
-  return new Intl.NumberFormat("de-DE", {
+const LOCALE_BY_LANG: Record<EmailLang, string> = {
+  da: "da-DK",
+  de: "de-DE",
+  en: "en-GB",
+};
+
+function formatPriceEur(cents: number | null | undefined, lang: EmailLang = "da"): string {
+  if (cents == null) return tr(lang, "common.onRequest");
+  return new Intl.NumberFormat(LOCALE_BY_LANG[lang], {
     style: "currency",
     currency: "EUR",
   }).format(cents / 100);
 }
 
-function formatDeadline(date: Date | null | undefined): string {
-  if (!date) return "–";
-  return new Date(date).toLocaleDateString("de-DE", {
+function formatDeadline(date: Date | null | undefined, lang: EmailLang = "da"): string {
+  if (!date) return tr(lang, "common.dash");
+  return new Date(date).toLocaleDateString(LOCALE_BY_LANG[lang], {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -47,22 +55,23 @@ const LOGO_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAHgAAABlCAMAAACx8telAAAAIGNIUk0AAHo
 
 function buildQuoteEmailHtml(params: SendQuoteEmailParams): string {
   const { firstName, quotePriceEur, quoteMessage, quoteDeadline, requestId, expert } = params;
+  const lang: EmailLang = params.lang ?? "da";
   const name = firstName || "";
-  const priceStr = formatPriceEur(quotePriceEur ?? null);
-  const deadlineStr = formatDeadline(quoteDeadline ?? undefined);
+  const priceStr = formatPriceEur(quotePriceEur ?? null, lang);
+  const deadlineStr = formatDeadline(quoteDeadline ?? undefined, lang);
   const viewUrl = `${appBaseUrl.replace(/\/$/, "")}/app/human-transcription`;
-  const expertName = expert?.companyName || expert?.legalName || expert?.contactName || "Ihr Experte";
+  const expertName = expert?.companyName || expert?.legalName || expert?.contactName || tr(lang, "common.yourExpert");
 
   const f = "Helvetica, Arial, sans-serif";
 
   return `
 <!DOCTYPE html>
-<html lang="de" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="${lang}" xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Ihr Angebot &ndash; MormorsBreve</title>
+  <title>${tr(lang, "quote.title")} &ndash; MormorsBreve</title>
   <!--[if mso]><style>table,td{font-family:Arial,sans-serif!important;}</style><![endif]-->
 </head>
 <body style="margin:0;padding:0;width:100%;background-color:#f0ebe3;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
@@ -95,19 +104,19 @@ function buildQuoteEmailHtml(params: SendQuoteEmailParams): string {
           <!-- Greeting -->
           <tr>
             <td style="padding:0 48px;">
-              <p style="margin:0 0 4px 0;font-family:${f};font-size:13px;line-height:1;color:#9a8c7a;text-transform:uppercase;letter-spacing:0.12em;">Ihr Angebot</p>
+              <p style="margin:0 0 4px 0;font-family:${f};font-size:13px;line-height:1;color:#9a8c7a;text-transform:uppercase;letter-spacing:0.12em;">${tr(lang, "quote.title")}</p>
             </td>
           </tr>
           <tr><td style="height:12px;font-size:0;line-height:0;">&nbsp;</td></tr>
           <tr>
             <td style="padding:0 48px;">
-              <h1 style="margin:0;font-family:${f};font-size:26px;font-weight:700;color:#2a1f14;line-height:1.2;">${name ? `${escapeHtml(name)}, wir haben` : "Wir haben"} ein Angebot f\u00FCr Sie.</h1>
+              <h1 style="margin:0;font-family:${f};font-size:26px;font-weight:700;color:#2a1f14;line-height:1.2;">${name ? tr(lang, "quote.headingWithName", { name: escapeHtml(name) }) : tr(lang, "quote.headingNoName")}</h1>
             </td>
           </tr>
           <tr><td style="height:20px;font-size:0;line-height:0;">&nbsp;</td></tr>
           <tr>
             <td style="padding:0 48px;">
-              <p style="margin:0;font-family:${f};font-size:15px;line-height:1.65;color:#594a3a;">Vielen Dank f\u00FCr Ihre Anfrage zur Experten-Transkription. ${escapeHtml(expertName)} hat Ihr Dokument gepr\u00FCft und das folgende Angebot f\u00FCr Sie zusammengestellt.</p>
+              <p style="margin:0;font-family:${f};font-size:15px;line-height:1.65;color:#594a3a;">${tr(lang, "quote.intro", { expertName: escapeHtml(expertName) })}</p>
             </td>
           </tr>
 
@@ -126,11 +135,11 @@ function buildQuoteEmailHtml(params: SendQuoteEmailParams): string {
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td width="50%" valign="top">
-                    <p style="margin:0 0 6px 0;font-family:${f};font-size:11px;color:#9a8c7a;text-transform:uppercase;letter-spacing:0.1em;line-height:1;">Preis</p>
+                    <p style="margin:0 0 6px 0;font-family:${f};font-size:11px;color:#9a8c7a;text-transform:uppercase;letter-spacing:0.1em;line-height:1;">${tr(lang, "quote.priceLabel")}</p>
                     <p style="margin:0;font-family:${f};font-size:28px;font-weight:700;color:#2a1f14;line-height:1.2;">${escapeHtml(priceStr)}</p>
                   </td>
                   <td width="50%" valign="top">
-                    <p style="margin:0 0 6px 0;font-family:${f};font-size:11px;color:#9a8c7a;text-transform:uppercase;letter-spacing:0.1em;line-height:1;">Lieferfrist</p>
+                    <p style="margin:0 0 6px 0;font-family:${f};font-size:11px;color:#9a8c7a;text-transform:uppercase;letter-spacing:0.1em;line-height:1;">${tr(lang, "quote.deadlineLabel")}</p>
                     <p style="margin:0;font-family:${f};font-size:18px;font-weight:600;color:#2a1f14;line-height:1.4;">${escapeHtml(deadlineStr)}</p>
                   </td>
                 </tr>
@@ -144,7 +153,7 @@ function buildQuoteEmailHtml(params: SendQuoteEmailParams): string {
           <!-- Reference -->
           <tr>
             <td style="padding:0 48px;">
-              <p style="margin:0;font-family:${f};font-size:13px;color:#9a8c7a;line-height:1.5;">Angebot&nbsp;#${requestId}</p>
+              <p style="margin:0;font-family:${f};font-size:13px;color:#9a8c7a;line-height:1.5;">${tr(lang, "quote.referenceLabel")}&nbsp;#${requestId}</p>
             </td>
           </tr>
 
@@ -154,16 +163,16 @@ function buildQuoteEmailHtml(params: SendQuoteEmailParams): string {
           <tr><td style="height:20px;font-size:0;line-height:0;">&nbsp;</td></tr>
           <tr>
             <td style="padding:0 48px;">
-              <p style="margin:0 0 6px 0;font-family:${f};font-size:11px;color:#9a8c7a;text-transform:uppercase;letter-spacing:0.1em;line-height:1;">Vertragspartner</p>
+              <p style="margin:0 0 6px 0;font-family:${f};font-size:11px;color:#9a8c7a;text-transform:uppercase;letter-spacing:0.1em;line-height:1;">${tr(lang, "quote.contractPartnerLabel")}</p>
               <p style="margin:0;font-family:${f};font-size:15px;line-height:1.6;color:#594a3a;">
                 <strong>${escapeHtml(expertName)}</strong><br>
                 ${expert.street ? `${escapeHtml(expert.street)}<br>` : ""}
                 ${expert.postalCode || expert.city ? `${escapeHtml([expert.postalCode, expert.city].filter(Boolean).join(" "))}<br>` : ""}
                 ${expert.country ? `${escapeHtml(expert.country)}<br>` : ""}
-                ${expert.invoiceEmail ? `E-Mail: ${escapeHtml(expert.invoiceEmail)}<br>` : ""}
-                ${expert.phone ? `Telefon: ${escapeHtml(expert.phone)}` : ""}
+                ${expert.invoiceEmail ? `${tr(lang, "quote.emailLabel")}: ${escapeHtml(expert.invoiceEmail)}<br>` : ""}
+                ${expert.phone ? `${tr(lang, "quote.phoneLabel")}: ${escapeHtml(expert.phone)}` : ""}
               </p>
-              <p style="margin:12px 0 0;font-family:${f};font-size:13px;line-height:1.6;color:#9a8c7a;">Bei Annahme kommt der kostenpflichtige Auftrag direkt mit diesem Experten zustande. Zahlung und Rechnung erfolgen au\u00DFerhalb von MormorsBreve.de.</p>
+              <p style="margin:12px 0 0;font-family:${f};font-size:13px;line-height:1.6;color:#9a8c7a;">${tr(lang, "quote.contractNote")}</p>
             </td>
           </tr>
           ` : ""}
@@ -181,7 +190,7 @@ function buildQuoteEmailHtml(params: SendQuoteEmailParams): string {
           <!-- Expert message -->
           <tr>
             <td style="padding:0 48px;">
-              <p style="margin:0 0 10px 0;font-family:${f};font-size:11px;color:#9a8c7a;text-transform:uppercase;letter-spacing:0.1em;line-height:1;">Nachricht unseres Experten</p>
+              <p style="margin:0 0 10px 0;font-family:${f};font-size:11px;color:#9a8c7a;text-transform:uppercase;letter-spacing:0.1em;line-height:1;">${tr(lang, "quote.expertMessageLabel")}</p>
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td style="border-left:3px solid #d4c5a9;padding:12px 0 12px 20px;">
@@ -202,7 +211,7 @@ function buildQuoteEmailHtml(params: SendQuoteEmailParams): string {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center">
                 <tr>
                   <td align="center" style="border-radius:6px;background-color:#2a1f14;">
-                    <a href="${escapeHtml(viewUrl)}" target="_blank" style="display:inline-block;padding:16px 44px;font-family:${f};font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.02em;">Angebot pr\u00FCfen &amp; annehmen</a>
+                    <a href="${escapeHtml(viewUrl)}" target="_blank" style="display:inline-block;padding:16px 44px;font-family:${f};font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.02em;">${tr(lang, "quote.ctaButton")}</a>
                   </td>
                 </tr>
               </table>
@@ -215,7 +224,7 @@ function buildQuoteEmailHtml(params: SendQuoteEmailParams): string {
           <!-- Note -->
           <tr>
             <td style="padding:0 48px;">
-              <p style="margin:0;font-family:${f};font-size:13px;line-height:1.6;color:#9a8c7a;text-align:center;">Dieses Angebot k\u00F6nnen Sie in Ihrem Konto einsehen, annehmen oder ablehnen. Bei Annahme beauftragen Sie den genannten Experten kostenpflichtig direkt.</p>
+              <p style="margin:0;font-family:${f};font-size:13px;line-height:1.6;color:#9a8c7a;text-align:center;">${tr(lang, "quote.note")}</p>
             </td>
           </tr>
 
@@ -236,7 +245,7 @@ function buildQuoteEmailHtml(params: SendQuoteEmailParams): string {
                 <a href="${escapeHtml(appBaseUrl)}" target="_blank" style="color:#7a6b56;text-decoration:none;font-weight:600;">MormorsBreve.de</a>
               </p>
               <p style="margin:0;font-family:${f};font-size:12px;color:#b5a893;line-height:1.5;">
-                Historische Handschriften lesen &amp; bewahren
+                ${tr(lang, "common.footerTagline")}
               </p>
             </td>
           </tr>
@@ -273,8 +282,9 @@ export async function sendQuoteEmail(params: SendQuoteEmailParams): Promise<void
     return;
   }
 
+  const lang: EmailLang = params.lang ?? "da";
   const html = buildQuoteEmailHtml(params);
-  const subject = "Ihr Angebot für die Experten-Transkription – MormorsBreve.de";
+  const subject = tr(lang, "quote.subject");
 
   await resend.emails.send({
     from: fromEmail,
@@ -520,7 +530,7 @@ export async function sendExpertQuoteAcceptedEmail(params: {
     <p>Ihr Angebot #${params.requestId} wurde kostenpflichtig angenommen.</p>
     <p>Vertragspartner des Kunden sind Sie bzw. Ihre Firma. Die Abrechnung erfolgt außerhalb von MormorsBreve.de direkt durch Sie.</p>
     ${params.customerName ? `<p>Kunde: ${escapeHtml(params.customerName)}</p>` : ""}
-    <p>Preis: ${escapeHtml(formatPriceEur(params.quotePriceEur))}</p>
+    <p>Preis: ${escapeHtml(formatPriceEur(params.quotePriceEur, "de"))}</p>
     <p><a href="${escapeHtml(appUrl)}">Auftrag bearbeiten</a></p>
   `;
 
@@ -538,21 +548,31 @@ export async function sendExpertResultCompletedEmail(params: {
   requestId: number;
   jobId: number;
   serviceLevel: string;
+  lang?: EmailLang;
 }): Promise<void> {
   if (!resend) return;
 
+  const lang: EmailLang = params.lang ?? "da";
   const resultUrl = `${appBaseUrl.replace(/\/$/, "")}/app/result/${params.jobId}`;
-  const label = params.serviceLevel === "ki_geprueft" ? "KI-geprüfte Transkription" : "Expertentranskription";
+  const isAi = params.serviceLevel === "ki_geprueft";
+  const label = isAi ? tr(lang, "result.labelAi") : tr(lang, "result.labelExpert");
+  const subject = isAi ? tr(lang, "result.subjectAi") : tr(lang, "result.subjectExpert");
+  const body = params.firstName
+    ? tr(lang, "result.bodyWithName", { name: escapeHtml(params.firstName), label: escapeHtml(label) })
+    : tr(lang, "result.bodyNoName", { label: escapeHtml(label) });
   const html = `
-    <p>${params.firstName ? `${escapeHtml(params.firstName)}, Ihre` : "Ihre"} ${escapeHtml(label)} ist fertig.</p>
-    <p>Sie können das Ergebnis jetzt in Ihrem Konto ansehen und herunterladen.</p>
-    <p><a href="${escapeHtml(resultUrl)}">Ergebnis öffnen</a></p>
+<!DOCTYPE html>
+<html lang="${lang}"><head><meta charset="utf-8"></head><body>
+    <p>${body}</p>
+    <p>${tr(lang, "result.bodyDownload")}</p>
+    <p><a href="${escapeHtml(resultUrl)}">${tr(lang, "result.ctaButton")}</a></p>
+</body></html>
   `;
 
   await resend.emails.send({
     from: fromEmail,
     to: params.to,
-    subject: `${label} fertig – MormorsBreve.de`,
+    subject,
     html,
   });
 }

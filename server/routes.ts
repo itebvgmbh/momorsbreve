@@ -4198,6 +4198,7 @@ export async function registerRoutes(
           quoteDeadline: deadline ?? undefined,
           requestId: id,
           expert: publicExpertAccount(expert),
+          lang: (user.language ?? "da") as any,
         } as any).catch((err) => console.error("Failed to send expert quote email:", err));
       }
 
@@ -4310,6 +4311,7 @@ export async function registerRoutes(
           requestId: request.id,
           jobId: request.jobId,
           serviceLevel: request.serviceLevel,
+          lang: (user.language ?? "da") as any,
         }).catch((err) => console.error("Failed to send expert result completed email:", err));
       }
       res.json(updated);
@@ -5624,6 +5626,7 @@ export async function registerRoutes(
           quoteMessage: quoteMessage ?? undefined,
           quoteDeadline: deadline ?? undefined,
           requestId: id,
+          lang: (user.language ?? "da") as any,
         }).catch((err) => console.error("Failed to send quote email:", err));
       }
 

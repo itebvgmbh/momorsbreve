@@ -114,6 +114,7 @@ function getExpertMissingFields(expert: Partial<ExpertAccount>): string[] {
 
 export interface IStorage {
   getUser(userId: string): Promise<User | undefined>;
+  setUserLanguage(userId: string, language: string): Promise<void>;
   getUserTourState(userId: string): Promise<TourState>;
   updateUserTourState(userId: string, partial: Partial<TourState>): Promise<TourState>;
   getUserCredits(userId: string): Promise<UserCredits | undefined>;
@@ -383,6 +384,14 @@ class DatabaseStorage implements IStorage {
   async getUser(userId: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
     return user;
+  }
+
+  async setUserLanguage(userId: string, language: string): Promise<void> {
+    const lang = ["da", "de", "en"].includes(language) ? language : "da";
+    await db
+      .update(users)
+      .set({ language: lang, updatedAt: new Date() })
+      .where(eq(users.id, userId));
   }
 
   async getUserTourState(userId: string): Promise<TourState> {

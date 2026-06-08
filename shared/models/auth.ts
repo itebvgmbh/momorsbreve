@@ -27,6 +27,8 @@ export const users = pgTable("users", {
   billingCity: varchar("billing_city"),
   billingCountry: varchar("billing_country"),
   newsletterOptIn: boolean("newsletter_opt_in").default(true),
+  // Bevorzugte Sprache des Nutzers (da/de/en) – u. a. für lokalisierte E-Mails.
+  language: varchar("language", { length: 5 }).default("da"),
   tourState: jsonb("tour_state").$type<TourState>().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
