@@ -1,5 +1,8 @@
 import React from "react";
 import { Link } from "wouter";
+import { pick } from "@/i18n/localized";
+import { BLOG_META_DE, BLOG_CONTENT_DE } from "./blog-content-de";
+import { BLOG_META_EN, BLOG_CONTENT_EN } from "./blog-content-en";
 
 const BASE = "https://mormorsbreve.dk";
 
@@ -82,9 +85,28 @@ export function getBlogPost(slug: string): BlogPostMeta | undefined {
   return BLOG_POSTS.find((p) => p.slug === slug);
 }
 
-export function getBlogPostContent(slug: string): React.ReactNode {
-  const content = BLOG_CONTENT[slug];
-  return content ?? null;
+export function getBlogPostContent(slug: string, lang?: string): React.ReactNode {
+  return (
+    pick<React.ReactNode>(
+      { da: BLOG_CONTENT[slug], de: BLOG_CONTENT_DE[slug], en: BLOG_CONTENT_EN[slug] },
+      lang,
+    ) ?? null
+  );
+}
+
+/** Liefert Titel + Beschreibung eines Beitrags in der aktiven Sprache (Fallback: Dänisch). */
+export function localizedBlogMeta(
+  post: BlogPostMeta,
+  lang?: string,
+): { title: string; description: string } {
+  const de = BLOG_META_DE[post.slug];
+  const en = BLOG_META_EN[post.slug];
+  return {
+    title: pick({ da: post.title, de: de?.title, en: en?.title }, lang) ?? post.title,
+    description:
+      pick({ da: post.description, de: de?.description, en: en?.description }, lang) ??
+      post.description,
+  };
 }
 
 const BLOG_CONTENT: Record<string, React.ReactNode> = {

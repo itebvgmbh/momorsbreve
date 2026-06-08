@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { MarketingNav } from "@/components/marketing-nav";
 import { MarketingFooter } from "@/components/marketing-footer";
 import { Card } from "@/components/ui/card";
-import { BLOG_POSTS } from "@/data/blog-posts";
+import { BLOG_POSTS, localizedBlogMeta } from "@/data/blog-posts";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -16,7 +16,7 @@ function formatDate(iso: string) {
 }
 
 export default function BlogPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -38,15 +38,17 @@ export default function BlogPage() {
         </p>
 
         <ul className="space-y-6">
-          {BLOG_POSTS.map((post) => (
+          {BLOG_POSTS.map((post) => {
+            const m = localizedBlogMeta(post, i18n.language);
+            return (
             <li key={post.slug}>
               <Link href={`/blog/${post.slug}`}>
                 <Card className="p-5 sm:p-6 hover:border-primary/40 transition-colors cursor-pointer h-full block">
                   <h2 className="font-serif text-xl font-semibold mb-2 text-foreground hover:text-primary transition-colors">
-                    {post.title}
+                    {m.title}
                   </h2>
                   <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                    {post.description}
+                    {m.description}
                   </p>
                   <time className="text-xs text-muted-foreground" dateTime={post.datePublished}>
                     {formatDate(post.datePublished)}
@@ -54,7 +56,8 @@ export default function BlogPage() {
                 </Card>
               </Link>
             </li>
-          ))}
+            );
+          })}
         </ul>
       </main>
 

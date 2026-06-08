@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   getBlogPost,
   getBlogPostContent,
+  localizedBlogMeta,
   getCanonicalUrl,
   getAllSlugs,
 } from "@/data/blog-posts";
@@ -68,11 +69,11 @@ interface BlogPostPageProps {
 }
 
 export default function BlogPostPage(props: BlogPostPageProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const params = useParams<{ slug: string }>();
   const slug = props.slug ?? params?.slug ?? "";
   const post = getBlogPost(slug);
-  const content = getBlogPostContent(slug);
+  const content = getBlogPostContent(slug, i18n.language);
   if (!post || !content) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -87,17 +88,18 @@ export default function BlogPostPage(props: BlogPostPageProps) {
   }
 
   const canonicalUrl = getCanonicalUrl(slug);
+  const meta = localizedBlogMeta(post, i18n.language);
 
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>{post.title} – MormorsBreve</title>
-        <meta name="description" content={post.description} />
+        <title>{meta.title} – MormorsBreve</title>
+        <meta name="description" content={meta.description} />
         <link rel="canonical" href={canonicalUrl} />
       </Helmet>
       <ArticleJsonLd
-        title={post.title}
-        description={post.description}
+        title={meta.title}
+        description={meta.description}
         datePublished={post.datePublished}
         url={canonicalUrl}
       />
@@ -116,7 +118,7 @@ export default function BlogPostPage(props: BlogPostPageProps) {
         <article>
           <header className="mb-8">
             <h1 className="font-serif text-3xl sm:text-4xl font-bold mb-3">
-              {post.title}
+              {meta.title}
             </h1>
             <time className="text-sm text-muted-foreground" dateTime={post.datePublished}>
               {formatDate(post.datePublished)}
