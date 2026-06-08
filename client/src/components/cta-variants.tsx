@@ -88,6 +88,7 @@ interface CtaProps {
 
 // ---------- Variante 0: Original ----------
 function CtaOriginal({ scriptType, claiming, onAction }: CtaProps) {
+  const { t } = useTranslation();
   return (
     <div className="relative overflow-hidden rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-amber-50/80 dark:from-primary/20 dark:via-primary/10 dark:to-amber-950/30 p-6 sm:p-8 shadow-lg shadow-primary/5 animate-in fade-in slide-in-from-bottom-3 duration-500">
       <div className="absolute -top-12 -right-12 w-40 h-40 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
@@ -95,13 +96,13 @@ function CtaOriginal({ scriptType, claiming, onAction }: CtaProps) {
       <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-5">
         <div className="flex-1 space-y-2">
           <p className="text-sm font-medium text-primary/80">
-            Erkannte Schrift: <strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>
+            {t("ctaab.recognizedScriptLabel")} <strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>
           </p>
           <h3 className="font-serif text-xl sm:text-2xl font-bold leading-tight">
-            Jetzt kostenlos transkribieren lassen
+            {t("ctaab.originalHeadline")}
           </h3>
           <p className="text-sm text-muted-foreground max-w-md">
-            Unsere KI wandelt Ihre Handschrift in lesbaren Text um. Kurze Anmeldung nötig – Sie erhalten <strong className="text-foreground">3 Seiten gratis</strong>.
+            {t("ctaab.originalDescriptionPre")}<strong className="text-foreground">{t("ctaab.originalDescriptionStrong")}</strong>{t("ctaab.originalDescriptionPost")}
           </p>
         </div>
         <Button
@@ -111,7 +112,7 @@ function CtaOriginal({ scriptType, claiming, onAction }: CtaProps) {
           disabled={claiming}
         >
           {claiming ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Sparkles className="h-5 w-5 mr-2" />}
-          Jetzt starten – gratis
+          {t("ctaab.originalButton")}
         </Button>
       </div>
     </div>
@@ -120,6 +121,7 @@ function CtaOriginal({ scriptType, claiming, onAction }: CtaProps) {
 
 // ---------- Variante 1: Fortschritt + Social Proof ----------
 function CtaProgressSocialProof({ scriptType, quality, claiming, onAction }: CtaProps) {
+  const { t } = useTranslation();
   const score = quality ? Math.round((quality.readability + quality.confidence) / 2) : null;
   return (
     <div className="relative overflow-hidden rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-amber-50/80 dark:from-primary/20 dark:via-primary/10 dark:to-amber-950/30 p-6 sm:p-8 shadow-lg shadow-primary/5 animate-in fade-in slide-in-from-bottom-3 duration-500">
@@ -131,30 +133,30 @@ function CtaProgressSocialProof({ scriptType, quality, claiming, onAction }: Cta
           <div className="flex-1 h-2.5 bg-muted rounded-full overflow-hidden">
             <div className="h-full w-[80%] bg-primary rounded-full transition-all duration-1000" />
           </div>
-          <span className="text-sm font-semibold text-primary whitespace-nowrap">80% geschafft</span>
+          <span className="text-sm font-semibold text-primary whitespace-nowrap">{t("ctaab.progressDone", { percent: 80 })}</span>
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
           <div className="flex-1 space-y-2">
             <h3 className="font-serif text-xl sm:text-2xl font-bold leading-tight">
-              Ihr Dokument ist bereit zur Transkription
+              {t("ctaab.progressHeadline")}
             </h3>
             <p className="text-sm text-muted-foreground max-w-md">
               {score !== null && score >= 70 ? (
-                <>Qualität: <strong className="text-foreground">{score}%</strong> – perfekt für unsere KI. </>
+                <>{t("ctaab.progressQualityPre")}<strong className="text-foreground">{t("ctaab.progressQualityScore", { score })}</strong>{t("ctaab.progressQualityPost")}</>
               ) : (
-                <>Erkannte Schrift: <strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>. </>
+                <>{t("ctaab.progressScriptPre")}<strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>{t("ctaab.progressScriptPost")}</>
               )}
-              Nur noch ein Klick bis zum vollständigen Text.
+              {t("ctaab.progressOneClick")}
             </p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1">
               <div className="flex items-center gap-2">
                 <Gift className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="text-xs text-muted-foreground"><strong className="text-foreground">3 Seiten komplett gratis</strong> – keine Kreditkarte</span>
+                <span className="text-xs text-muted-foreground"><strong className="text-foreground">{t("ctaab.progressFreePagesStrong")}</strong> {t("ctaab.progressFreePagesRest")}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-xs text-muted-foreground">Bereits <strong className="text-foreground">12.400+</strong> Seiten transkribiert</span>
+                <span className="text-xs text-muted-foreground">{t("ctaab.progressSocialProofPre")}<strong className="text-foreground">12.400+</strong>{t("ctaab.progressSocialProofPost")}</span>
               </div>
             </div>
           </div>
@@ -165,7 +167,7 @@ function CtaProgressSocialProof({ scriptType, quality, claiming, onAction }: Cta
             disabled={claiming}
           >
             {claiming ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Sparkles className="h-5 w-5 mr-2" />}
-            Vollständigen Text erhalten
+            {t("ctaab.progressButton")}
           </Button>
         </div>
       </div>
@@ -175,9 +177,10 @@ function CtaProgressSocialProof({ scriptType, quality, claiming, onAction }: Cta
 
 // ---------- Variante 2: Blurred Content Reveal ----------
 function CtaBlurredReveal({ transcriptionSnippet, claiming, onAction }: CtaProps) {
+  const { t } = useTranslation();
   const snippet = transcriptionSnippet || "";
   const visible = snippet.slice(0, 100);
-  const blurred = snippet.slice(100, 500) || "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam...";
+  const blurred = snippet.slice(100, 500) || t("ctaab.blurredFallback");
 
   return (
     <Card className="relative overflow-hidden p-0 animate-in fade-in slide-in-from-bottom-3 duration-500">
@@ -196,10 +199,10 @@ function CtaBlurredReveal({ transcriptionSnippet, claiming, onAction }: CtaProps
               <Lock className="h-6 w-6 text-primary" />
             </div>
             <h3 className="font-serif text-lg sm:text-xl font-bold mb-2">
-              Vollständige Transkription freischalten
+              {t("ctaab.blurredHeadline")}
             </h3>
             <p className="text-xs text-muted-foreground mb-4">
-              Kostenlos – <strong className="text-foreground">3 Seiten gratis</strong>, keine Kreditkarte nötig
+              {t("ctaab.blurredSublinePre")}<strong className="text-foreground">{t("ctaab.blurredSublineStrong")}</strong>{t("ctaab.blurredSublinePost")}
             </p>
             <Button
               size="lg"
@@ -208,7 +211,7 @@ function CtaBlurredReveal({ transcriptionSnippet, claiming, onAction }: CtaProps
               disabled={claiming}
             >
               {claiming ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Sparkles className="h-5 w-5 mr-2" />}
-              Text freischalten
+              {t("ctaab.blurredButton")}
             </Button>
           </div>
         </div>
@@ -219,6 +222,7 @@ function CtaBlurredReveal({ transcriptionSnippet, claiming, onAction }: CtaProps
 
 // ---------- Variante 3: Benefit-Headline + Trust-Badges ----------
 function CtaBenefitTrust({ scriptType, quality, claiming, onAction }: CtaProps) {
+  const { t } = useTranslation();
   const score = quality ? Math.round((quality.readability + quality.confidence) / 2) : null;
   return (
     <div className="relative overflow-hidden rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-amber-50/80 dark:from-primary/20 dark:via-primary/10 dark:to-amber-950/30 p-6 sm:p-8 shadow-lg shadow-primary/5 animate-in fade-in slide-in-from-bottom-3 duration-500">
@@ -227,29 +231,29 @@ function CtaBenefitTrust({ scriptType, quality, claiming, onAction }: CtaProps) 
       <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-5">
         <div className="flex-1 space-y-3">
           <h3 className="font-serif text-xl sm:text-2xl font-bold leading-tight">
-            Lesen Sie, was Ihre Vorfahren geschrieben haben
+            {t("ctaab.benefitHeadline")}
           </h3>
           <p className="text-sm text-muted-foreground max-w-md">
-            Unsere KI hat{" "}
+            {t("ctaab.benefitDescriptionPre")}
             {score !== null ? (
-              <><strong className="text-foreground">{score}%</strong> der </>
+              <><strong className="text-foreground">{t("ctaab.benefitDescriptionScore", { score })}</strong>{t("ctaab.benefitDescriptionOf")}</>
             ) : (
-              <>die </>
+              <>{t("ctaab.benefitDescriptionThe")}</>
             )}
-            {getScriptTypeDisplayLabel(scriptType)}-Schrift erkannt – Ihr Ergebnis ist nur einen Klick entfernt.
+            {t("ctaab.benefitDescriptionRest", { label: getScriptTypeDisplayLabel(scriptType) })}
           </p>
           <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <CreditCard className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>Keine Kreditkarte</span>
+              <span>{t("ctaab.benefitNoCreditCard")}</span>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>Anmeldung in 10 Sekunden</span>
+              <span>{t("ctaab.benefitSignup10s")}</span>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Gift className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>3 Seiten komplett gratis</span>
+              <span>{t("ctaab.benefitFreePages")}</span>
             </div>
           </div>
         </div>
@@ -260,7 +264,7 @@ function CtaBenefitTrust({ scriptType, quality, claiming, onAction }: CtaProps) 
           disabled={claiming}
         >
           {claiming ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Sparkles className="h-5 w-5 mr-2" />}
-          Mein Ergebnis anzeigen
+          {t("ctaab.benefitButton")}
         </Button>
       </div>
     </div>
@@ -269,6 +273,7 @@ function CtaBenefitTrust({ scriptType, quality, claiming, onAction }: CtaProps) 
 
 // ---------- Variante 4: Personalisierte CTA ----------
 function CtaPersonalized({ scriptType, quality, claiming, onAction }: CtaProps) {
+  const { t } = useTranslation();
   const score = quality ? Math.round((quality.readability + quality.confidence) / 2) : null;
   const isHighQuality = score !== null && score >= 70;
 
@@ -282,26 +287,26 @@ function CtaPersonalized({ scriptType, quality, claiming, onAction }: CtaProps) 
             <>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-xs font-medium">
                 <CheckCircle className="h-3.5 w-3.5" />
-                Hervorragende Qualität erkannt
+                {t("ctaab.personalizedHighBadge")}
               </div>
               <h3 className="font-serif text-xl sm:text-2xl font-bold leading-tight">
-                Ihr {getScriptTypeDisplayLabel(scriptType)}-Dokument ist optimal lesbar
+                {t("ctaab.personalizedHighHeadline", { label: getScriptTypeDisplayLabel(scriptType) })}
               </h3>
               <p className="text-sm text-muted-foreground max-w-md">
-                Bei dieser Qualität (<strong className="text-foreground">{score}%</strong>) liefert unsere KI besonders präzise Ergebnisse. Starten Sie jetzt – <strong className="text-foreground">3 Seiten gratis</strong>.
+                {t("ctaab.personalizedHighDescriptionPre")}<strong className="text-foreground">{t("ctaab.personalizedHighDescriptionScore", { score })}</strong>{t("ctaab.personalizedHighDescriptionMid")}<strong className="text-foreground">{t("ctaab.personalizedHighDescriptionStrong")}</strong>{t("ctaab.personalizedHighDescriptionPost")}
               </p>
             </>
           ) : (
             <>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-medium">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                Spezialisiert auf schwierige Handschriften
+                {t("ctaab.personalizedLowBadge")}
               </div>
               <h3 className="font-serif text-xl sm:text-2xl font-bold leading-tight">
-                Auch bei schwierigerer Schrift – unsere KI schafft das
+                {t("ctaab.personalizedLowHeadline")}
               </h3>
               <p className="text-sm text-muted-foreground max-w-md">
-                Wir haben bereits tausende {getScriptTypeDisplayLabel(scriptType)}-Dokumente erfolgreich transkribiert. Testen Sie es – <strong className="text-foreground">3 Seiten gratis</strong>.
+                {t("ctaab.personalizedLowDescriptionPre", { label: getScriptTypeDisplayLabel(scriptType) })}<strong className="text-foreground">{t("ctaab.personalizedLowDescriptionStrong")}</strong>{t("ctaab.personalizedLowDescriptionPost")}
               </p>
             </>
           )}
@@ -313,7 +318,7 @@ function CtaPersonalized({ scriptType, quality, claiming, onAction }: CtaProps) 
           disabled={claiming}
         >
           {claiming ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Sparkles className="h-5 w-5 mr-2" />}
-          Meine Transkription abrufen
+          {t("ctaab.personalizedButton")}
         </Button>
       </div>
     </div>
@@ -322,13 +327,14 @@ function CtaPersonalized({ scriptType, quality, claiming, onAction }: CtaProps) 
 
 // ---------- Variante 5: Zwei-Stufen Micro-Commitment ----------
 function CtaMicroCommitment({ claiming, onAction }: CtaProps) {
+  const { t } = useTranslation();
   return (
     <div className="relative overflow-hidden rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-amber-50/80 dark:from-primary/20 dark:via-primary/10 dark:to-amber-950/30 p-6 sm:p-8 shadow-lg shadow-primary/5 animate-in fade-in slide-in-from-bottom-3 duration-500">
       <div className="absolute -top-12 -right-12 w-40 h-40 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
       <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-amber-300/10 rounded-full blur-2xl pointer-events-none" />
       <div className="relative space-y-5">
         <h3 className="font-serif text-xl sm:text-2xl font-bold leading-tight text-center sm:text-left">
-          Wie möchten Sie Ihre Transkription erhalten?
+          {t("ctaab.microHeadline")}
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -338,10 +344,10 @@ function CtaMicroCommitment({ claiming, onAction }: CtaProps) {
             className="relative p-5 rounded-xl border-2 border-primary bg-primary/5 text-left hover:bg-primary/10 transition-all hover:shadow-md disabled:opacity-50 group"
           >
             <Sparkles className="h-5 w-5 text-primary mb-2" />
-            <p className="font-semibold text-base">KI-Transkription</p>
-            <p className="text-xs text-muted-foreground mt-1">Sofortergebnis, 3 Seiten gratis</p>
+            <p className="font-semibold text-base">{t("ctaab.microAiTitle")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("ctaab.microAiSubtitle")}</p>
             <span className="inline-flex items-center gap-1 mt-3 text-xs font-medium text-primary">
-              Beliebteste Wahl
+              {t("ctaab.microAiTag")}
               <span className="transition-transform group-hover:translate-x-0.5">→</span>
             </span>
             {claiming && <Loader2 className="absolute top-5 right-5 h-4 w-4 animate-spin text-primary" />}
@@ -353,17 +359,17 @@ function CtaMicroCommitment({ claiming, onAction }: CtaProps) {
             className="p-5 rounded-xl border text-left hover:bg-muted/50 transition-all hover:shadow-md disabled:opacity-50 group"
           >
             <UserCheck className="h-5 w-5 text-muted-foreground mb-2" />
-            <p className="font-semibold text-base">Experten-Transkription</p>
-            <p className="text-xs text-muted-foreground mt-1">Von Hand geprüft, ab 4,90 €</p>
+            <p className="font-semibold text-base">{t("ctaab.microExpertTitle")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("ctaab.microExpertSubtitle")}</p>
             <span className="inline-flex items-center gap-1 mt-3 text-xs font-medium text-muted-foreground">
-              Höchste Genauigkeit
+              {t("ctaab.microExpertTag")}
               <span className="transition-transform group-hover:translate-x-0.5">→</span>
             </span>
           </button>
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
-          Kostenlose Anmeldung in 10 Sekunden – keine Kreditkarte nötig
+          {t("ctaab.microFooter")}
         </p>
       </div>
     </div>
@@ -384,7 +390,8 @@ function getSnippetOrPlaceholder(snippet: string | null, placeholder: string = P
 
 // ---------- Variante 6: Vorschau + Inline-CTA (einfachste Integration) ----------
 function CtaPreviewInline({ scriptType, transcriptionSnippet, claiming, onAction }: CtaProps) {
-  const snippet = getSnippetOrPlaceholder(transcriptionSnippet);
+  const { t } = useTranslation();
+  const snippet = getSnippetOrPlaceholder(transcriptionSnippet, t("ctaab.placeholderSnippet"));
   const visible = snippet.slice(0, 220);
 
   return (
@@ -392,7 +399,7 @@ function CtaPreviewInline({ scriptType, transcriptionSnippet, claiming, onAction
       <div className="p-5 sm:p-6 pb-3">
         <h2 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
-          Transkriptionsvorschau
+          {t("ctaab.previewTitle")}
         </h2>
         <div className="relative">
           <p className="font-mono text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
@@ -406,12 +413,12 @@ function CtaPreviewInline({ scriptType, transcriptionSnippet, claiming, onAction
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="flex-1 space-y-1">
             <p className="text-sm font-semibold text-foreground">
-              Vollständigen Text jetzt freischalten
+              {t("ctaab.inlineHeadline")}
             </p>
             <p className="text-xs text-muted-foreground">
-              Erkannte Schrift: <strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>
+              {t("ctaab.inlineScriptLabel")} <strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>
               {" · "}
-              <span className="text-emerald-700 dark:text-emerald-400 font-medium">3 Seiten gratis</span>, keine Kreditkarte
+              <span className="text-emerald-700 dark:text-emerald-400 font-medium">{t("ctaab.inlineFreePages")}</span>{t("ctaab.inlineNoCreditCard")}
             </p>
           </div>
           <Button
@@ -421,7 +428,7 @@ function CtaPreviewInline({ scriptType, transcriptionSnippet, claiming, onAction
             disabled={claiming}
           >
             {claiming ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Sparkles className="h-5 w-5 mr-2" />}
-            Vollständigen Text erhalten
+            {t("ctaab.inlineButton")}
           </Button>
         </div>
       </div>
@@ -431,19 +438,20 @@ function CtaPreviewInline({ scriptType, transcriptionSnippet, claiming, onAction
 
 // ---------- Variante 7: Lock-Overlay mit sichtbarem Snippet-Anriss ----------
 function CtaPreviewLocked({ scriptType, transcriptionSnippet, claiming, onAction }: CtaProps) {
-  const snippet = getSnippetOrPlaceholder(transcriptionSnippet);
+  const { t } = useTranslation();
+  const snippet = getSnippetOrPlaceholder(transcriptionSnippet, t("ctaab.placeholderSnippet"));
   const visible = snippet.slice(0, 140);
-  const blurred = snippet.slice(140, 600) || "weitere Zeilen werden nach der Anmeldung sichtbar…";
+  const blurred = snippet.slice(140, 600) || t("ctaab.lockedBlurredFallback");
 
   return (
     <Card className="relative overflow-hidden border-2 border-primary/30 shadow-lg shadow-primary/5 animate-in fade-in slide-in-from-bottom-3 duration-500">
       <div className="p-5 sm:p-6 pb-2 flex items-center justify-between">
         <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
-          Transkriptionsvorschau
+          {t("ctaab.previewTitle")}
         </h2>
         <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
-          <Eye className="h-3.5 w-3.5" /> Anriss
+          <Eye className="h-3.5 w-3.5" /> {t("ctaab.lockedTeaserBadge")}
         </span>
       </div>
 
@@ -464,11 +472,11 @@ function CtaPreviewLocked({ scriptType, transcriptionSnippet, claiming, onAction
                 <Lock className="h-4.5 w-4.5 text-primary" />
               </div>
               <p className="font-serif text-base sm:text-lg font-bold">
-                Sehen Sie den vollständigen Text
+                {t("ctaab.lockedHeadline")}
               </p>
             </div>
             <p className="text-xs text-muted-foreground mb-3">
-              {getScriptTypeDisplayLabel(scriptType)} erkannt · <strong className="text-foreground">3 Seiten gratis</strong> · keine Kreditkarte
+              {getScriptTypeDisplayLabel(scriptType)}{t("ctaab.lockedScriptPre")}<strong className="text-foreground">{t("ctaab.lockedScriptStrong")}</strong>{t("ctaab.lockedScriptPost")}
             </p>
             <Button
               size="lg"
@@ -477,7 +485,7 @@ function CtaPreviewLocked({ scriptType, transcriptionSnippet, claiming, onAction
               disabled={claiming}
             >
               {claiming ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Sparkles className="h-5 w-5 mr-2" />}
-              Jetzt freischalten – gratis
+              {t("ctaab.lockedButton")}
             </Button>
           </div>
         </div>
@@ -488,7 +496,8 @@ function CtaPreviewLocked({ scriptType, transcriptionSnippet, claiming, onAction
 
 // ---------- Variante 8: Snippet + Fortschritt + CTA ----------
 function CtaPreviewProgress({ scriptType, quality, transcriptionSnippet, claiming, onAction }: CtaProps) {
-  const snippet = getSnippetOrPlaceholder(transcriptionSnippet);
+  const { t } = useTranslation();
+  const snippet = getSnippetOrPlaceholder(transcriptionSnippet, t("ctaab.placeholderSnippet"));
   const visible = snippet.slice(0, 200);
   const score = quality ? Math.round((quality.readability + quality.confidence) / 2) : null;
 
@@ -501,11 +510,11 @@ function CtaPreviewProgress({ scriptType, quality, transcriptionSnippet, claimin
             <div className="h-full w-[80%] bg-primary rounded-full transition-all duration-1000" />
           </div>
           <span className="text-xs font-semibold text-primary whitespace-nowrap">
-            Schritt 4 von 5
+            {t("ctaab.progressStep")}
           </span>
         </div>
         <h2 className="font-serif text-lg sm:text-xl font-bold leading-tight">
-          Ihre Vorschau ist fertig – ein Klick zum vollständigen Text
+          {t("ctaab.progressPreviewHeadline")}
         </h2>
       </div>
 
@@ -514,7 +523,7 @@ function CtaPreviewProgress({ scriptType, quality, transcriptionSnippet, claimin
         <div className="flex items-center gap-2 mb-3">
           <FileText className="h-4 w-4 text-muted-foreground" />
           <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-            Transkriptionsvorschau
+            {t("ctaab.progressPreviewLabel")}
           </span>
         </div>
         <div className="relative">
@@ -531,15 +540,15 @@ function CtaPreviewProgress({ scriptType, quality, transcriptionSnippet, claimin
           <div className="flex-1 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-              {score !== null ? `${score}% Qualität` : "Bereit"}
+              {score !== null ? t("ctaab.progressQualityChip", { score }) : t("ctaab.progressReady")}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Gift className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-              <strong className="text-foreground">3 Seiten gratis</strong>
+              <strong className="text-foreground">{t("ctaab.progressFreePagesChip")}</strong>
             </span>
             <span className="inline-flex items-center gap-1.5">
               <CreditCard className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-              Keine Kreditkarte
+              {t("ctaab.progressNoCreditCard")}
             </span>
           </div>
           <Button
@@ -549,7 +558,7 @@ function CtaPreviewProgress({ scriptType, quality, transcriptionSnippet, claimin
             disabled={claiming}
           >
             {claiming ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Sparkles className="h-5 w-5 mr-2" />}
-            Vollständigen Text laden
+            {t("ctaab.progressLoadButton")}
           </Button>
         </div>
       </div>
@@ -643,7 +652,8 @@ function CtaPreviewSplit({ scriptType, quality, transcriptionSnippet, claiming, 
 
 // ---------- Variante 10: Snippet mit Action-Footer (Sticky-Look) ----------
 function CtaPreviewActionFooter({ scriptType, quality, transcriptionSnippet, claiming, onAction }: CtaProps) {
-  const snippet = getSnippetOrPlaceholder(transcriptionSnippet);
+  const { t } = useTranslation();
+  const snippet = getSnippetOrPlaceholder(transcriptionSnippet, t("ctaab.placeholderSnippet"));
   const visible = snippet.slice(0, 240);
   const score = quality ? Math.round((quality.readability + quality.confidence) / 2) : null;
 
@@ -653,12 +663,12 @@ function CtaPreviewActionFooter({ scriptType, quality, transcriptionSnippet, cla
       <div className="px-5 sm:px-6 pt-5 pb-3 flex items-center justify-between gap-3">
         <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
-          Transkriptionsvorschau
+          {t("ctaab.footerLabel")}
         </h2>
         {score !== null && (
           <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 px-2.5 py-1 rounded-full">
             <CheckCircle className="h-3.5 w-3.5" />
-            {score}% Qualität
+            {t("ctaab.footerQualityChip", { score })}
           </span>
         )}
       </div>
@@ -674,15 +684,15 @@ function CtaPreviewActionFooter({ scriptType, quality, transcriptionSnippet, cla
       {/* Auffälliger Action-Footer */}
       <div className="relative bg-primary text-primary-foreground px-5 sm:px-6 py-4">
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider rounded-full shadow-md border-2 border-card">
-          Nur noch ein Klick
+          {t("ctaab.footerOneClickBadge")}
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="flex-1 space-y-0.5">
             <p className="text-sm font-semibold">
-              Vollständigen Text aus {getScriptTypeDisplayLabel(scriptType)} freischalten
+              {t("ctaab.footerHeadline", { label: getScriptTypeDisplayLabel(scriptType) })}
             </p>
             <p className="text-xs text-primary-foreground/80">
-              3 Seiten kostenlos · keine Kreditkarte · 10-Sekunden-Anmeldung
+              {t("ctaab.footerSubline")}
             </p>
           </div>
           <Button
@@ -697,7 +707,7 @@ function CtaPreviewActionFooter({ scriptType, quality, transcriptionSnippet, cla
             ) : (
               <Sparkles className="h-5 w-5 mr-2 text-primary" />
             )}
-            Jetzt freischalten
+            {t("ctaab.footerButton")}
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
@@ -778,6 +788,7 @@ function QualityMiniMetrics({ quality }: { quality: QualityDetails }) {
 
 // ---------- Variante 11: Zusammenfassung + Qualität komplett integriert ----------
 function CtaSummaryFull({ scriptType, quality, claiming, onAction }: CtaProps) {
+  const { t } = useTranslation();
   return (
     <Card className="relative overflow-hidden border-2 border-primary/30 shadow-lg shadow-primary/5 animate-in fade-in slide-in-from-bottom-3 duration-500">
       {/* Qualitäts-Header */}
@@ -786,7 +797,7 @@ function CtaSummaryFull({ scriptType, quality, claiming, onAction }: CtaProps) {
           <div className="flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-primary" />
             <span className="text-xs uppercase tracking-wider text-primary font-semibold">
-              Analyse-Ergebnis
+              {t("ctaab.analysisResult")}
             </span>
           </div>
           {quality && <QualityBadgeInline quality={quality} />}
@@ -802,7 +813,7 @@ function CtaSummaryFull({ scriptType, quality, claiming, onAction }: CtaProps) {
         {quality && <QualityMiniMetrics quality={quality} />}
 
         <p className="text-xs text-muted-foreground">
-          Erkannte Schrift: <strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>
+          {t("ctaab.summaryFullScriptLabel")} <strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>
         </p>
       </div>
 
@@ -811,12 +822,10 @@ function CtaSummaryFull({ scriptType, quality, claiming, onAction }: CtaProps) {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="flex-1 space-y-1">
             <h3 className="font-serif text-lg font-bold leading-tight">
-              Vollständige Transkription erhalten
+              {t("ctaab.summaryFullHeadline")}
             </h3>
             <p className="text-xs text-muted-foreground">
-              Unsere KI hat Ihr Dokument erkannt. Melden Sie sich an und erhalten Sie den kompletten Text
-              {" – "}
-              <strong className="text-foreground">3 Seiten gratis</strong>, keine Kreditkarte.
+              {t("ctaab.summaryFullDescriptionPre")}<strong className="text-foreground">{t("ctaab.summaryFullDescriptionStrong")}</strong>{t("ctaab.summaryFullDescriptionPost")}
             </p>
           </div>
           <Button
@@ -826,7 +835,7 @@ function CtaSummaryFull({ scriptType, quality, claiming, onAction }: CtaProps) {
             disabled={claiming}
           >
             {claiming ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Sparkles className="h-5 w-5 mr-2" />}
-            Text jetzt freischalten
+            {t("ctaab.summaryFullButton")}
           </Button>
         </div>
       </div>
@@ -836,6 +845,7 @@ function CtaSummaryFull({ scriptType, quality, claiming, onAction }: CtaProps) {
 
 // ---------- Variante 12: Zusammenfassung + Split-CTA (wie V9-Layout) ----------
 function CtaSummarySplit({ scriptType, quality, claiming, onAction }: CtaProps) {
+  const { t } = useTranslation();
   return (
     <Card
       className="relative overflow-hidden border-2 border-primary/30 shadow-lg shadow-primary/5 animate-in fade-in slide-in-from-bottom-3 duration-500"
@@ -846,23 +856,23 @@ function CtaSummarySplit({ scriptType, quality, claiming, onAction }: CtaProps) 
           <div className="absolute -top-8 -right-8 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
           <div className="relative space-y-3">
             <h3 className="font-serif text-lg font-bold leading-tight">
-              Vollständigen Text erhalten
+              {t("ctaab.summarySplitHeadline")}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Unsere KI hat Ihr Dokument erkannt und kann den Text vollständig transkribieren.
+              {t("ctaab.summarySplitDescription")}
             </p>
             <ul className="space-y-1.5 text-xs text-muted-foreground">
               <li className="flex items-start gap-1.5">
                 <Gift className="h-3.5 w-3.5 mt-0.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span><strong className="text-foreground">3 Seiten gratis</strong> bei Anmeldung</span>
+                <span><strong className="text-foreground">{t("ctaab.summarySplitFreePagesStrong")}</strong> {t("ctaab.summarySplitFreePagesRest")}</span>
               </li>
               <li className="flex items-start gap-1.5">
                 <Clock className="h-3.5 w-3.5 mt-0.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>Anmeldung in 10 Sekunden</span>
+                <span>{t("ctaab.summarySplitSignup10s")}</span>
               </li>
               <li className="flex items-start gap-1.5">
                 <CreditCard className="h-3.5 w-3.5 mt-0.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>Keine Kreditkarte nötig</span>
+                <span>{t("ctaab.summarySplitNoCreditCard")}</span>
               </li>
             </ul>
             <Button
@@ -872,7 +882,7 @@ function CtaSummarySplit({ scriptType, quality, claiming, onAction }: CtaProps) 
               disabled={claiming}
             >
               {claiming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-              Vollständigen Text laden
+              {t("ctaab.summarySplitButton")}
             </Button>
           </div>
         </div>
@@ -883,7 +893,7 @@ function CtaSummarySplit({ scriptType, quality, claiming, onAction }: CtaProps) 
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-primary" />
               <span className="text-xs uppercase tracking-wider text-primary font-semibold">
-                Analyse-Ergebnis
+                {t("ctaab.analysisResult")}
               </span>
             </div>
             {quality && <QualityBadgeInline quality={quality} />}
@@ -899,7 +909,7 @@ function CtaSummarySplit({ scriptType, quality, claiming, onAction }: CtaProps) 
           {quality && <QualityMiniMetrics quality={quality} />}
 
           <p className="text-xs text-muted-foreground pt-2 border-t border-border/60">
-            Erkannte Schrift: <strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>
+            {t("ctaab.summarySplitScriptLabel")} <strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>
           </p>
         </div>
       </div>
@@ -909,6 +919,7 @@ function CtaSummarySplit({ scriptType, quality, claiming, onAction }: CtaProps) 
 
 // ---------- Variante 13: Zusammenfassung kompakt + Action-Footer ----------
 function CtaSummaryCompact({ scriptType, quality, claiming, onAction }: CtaProps) {
+  const { t } = useTranslation();
   return (
     <Card className="relative overflow-hidden border-2 border-primary/30 shadow-xl shadow-primary/10 animate-in fade-in slide-in-from-bottom-3 duration-500">
       {/* Kompakter Header mit Qualität */}
@@ -916,7 +927,7 @@ function CtaSummaryCompact({ scriptType, quality, claiming, onAction }: CtaProps
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-primary" />
-            Ihr Dokument wurde analysiert
+            {t("ctaab.summaryCompactHeadline")}
           </h2>
           {quality && <QualityBadgeInline quality={quality} />}
         </div>
@@ -930,12 +941,12 @@ function CtaSummaryCompact({ scriptType, quality, claiming, onAction }: CtaProps
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
           <span>
-            Schrift: <strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>
+            {t("ctaab.summaryCompactScriptLabel")} <strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>
           </span>
           {quality && (
             <>
               <span className="flex items-center gap-1">
-                Lesbarkeit:
+                {t("ctaab.summaryCompactReadability")}
                 <span className="flex gap-0.5 ml-0.5">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <Star
@@ -950,7 +961,7 @@ function CtaSummaryCompact({ scriptType, quality, claiming, onAction }: CtaProps
                 </span>
               </span>
               <span>
-                Erkennung: <strong className="text-foreground">{quality.confidence}%</strong>
+                {t("ctaab.summaryCompactRecognition")} <strong className="text-foreground">{quality.confidence}%</strong>
               </span>
             </>
           )}
@@ -960,15 +971,15 @@ function CtaSummaryCompact({ scriptType, quality, claiming, onAction }: CtaProps
       {/* Action-Footer */}
       <div className="relative bg-primary text-primary-foreground px-5 sm:px-6 py-4">
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider rounded-full shadow-md border-2 border-card">
-          Bereit zur Transkription
+          {t("ctaab.summaryCompactReadyBadge")}
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="flex-1 space-y-0.5">
             <p className="text-sm font-semibold">
-              Jetzt den vollständigen Text freischalten
+              {t("ctaab.summaryCompactHeadlineFooter")}
             </p>
             <p className="text-xs text-primary-foreground/80">
-              3 Seiten kostenlos · keine Kreditkarte · 10-Sekunden-Anmeldung
+              {t("ctaab.summaryCompactSubline")}
             </p>
           </div>
           <Button
@@ -983,7 +994,7 @@ function CtaSummaryCompact({ scriptType, quality, claiming, onAction }: CtaProps
             ) : (
               <Sparkles className="h-5 w-5 mr-2 text-primary" />
             )}
-            Text freischalten
+            {t("ctaab.summaryCompactButton")}
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
