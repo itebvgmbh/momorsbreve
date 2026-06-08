@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTour } from "@/hooks/use-tour";
 import { tourOrder, tours, type TourId } from "@/data/tours";
+import { loc } from "@/i18n/localized";
 import { cn } from "@/lib/utils";
 
 export function HelpMenu() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { startTour, state } = useTour();
 
   const handleStart = (id: TourId) => {
@@ -53,7 +54,7 @@ export function HelpMenu() {
               data-testid={`menu-tour-${id}`}
             >
               <div className="flex w-full items-center justify-between gap-2">
-                <span className="font-medium text-sm">{tour.shortLabel}</span>
+                <span className="font-medium text-sm">{loc(tour.shortLabel, i18n.language)}</span>
                 {isCompleted && (
                   <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
                     {t("tourHelp.seen")}
@@ -66,7 +67,7 @@ export function HelpMenu() {
                   isCompleted ? "text-muted-foreground/70" : "text-muted-foreground"
                 )}
               >
-                {tour.description}
+                {loc(tour.description, i18n.language)}
               </span>
             </DropdownMenuItem>
           );

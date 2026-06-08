@@ -13,22 +13,24 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { FAQ_CATEGORIES, FAQ_ITEMS } from "@/data/faq-items";
-
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: FAQ_ITEMS.map((item) => ({
-    "@type": "Question",
-    name: item.question,
-    acceptedAnswer: {
-      "@type": "Answer",
-      text: item.answer,
-    },
-  })),
-};
+import { loc } from "@/i18n/localized";
 
 export default function FaqPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ_ITEMS.map((item) => ({
+      "@type": "Question",
+      name: loc(item.question, i18n.language),
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: loc(item.answer, i18n.language),
+      },
+    })),
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -72,15 +74,15 @@ export default function FaqPage() {
               <Accordion type="multiple" className="w-full">
                 {category.items.map((item, idx) => (
                   <AccordionItem
-                    key={item.question}
+                    key={`${category.title}-${idx}`}
                     value={`${category.title}-${idx}`}
                     data-testid={`faq-item-${category.title.toLowerCase().replace(/\s/g, "-")}-${idx}`}
                   >
                     <AccordionTrigger className="text-left text-base sm:text-lg font-semibold py-5 hover:no-underline">
-                      {item.question}
+                      {loc(item.question, i18n.language)}
                     </AccordionTrigger>
                     <AccordionContent className="text-base text-muted-foreground leading-relaxed pb-5">
-                      {item.answer}
+                      {loc(item.answer, i18n.language)}
                     </AccordionContent>
                   </AccordionItem>
                 ))}

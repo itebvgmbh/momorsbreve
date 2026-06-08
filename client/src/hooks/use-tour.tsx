@@ -18,7 +18,9 @@ import {
 } from "driver.js";
 import "driver.js/dist/driver.css";
 import "@/lib/tour-styles.css";
+import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import { loc } from "@/i18n/localized";
 import { useAuth } from "@/hooks/use-auth";
 import type { TourState } from "@shared/models/auth";
 import {
@@ -51,21 +53,21 @@ function elementInDom(selector: string | undefined): boolean {
   return el.offsetWidth > 0 || el.offsetHeight > 0;
 }
 
-function buildDriveStep(step: TourStep): DriveStep {
+function buildDriveStep(step: TourStep, lang: string): DriveStep {
   const isInteractive = !!step.advanceOn;
   const buttons: AllowedButtons[] = isInteractive
     ? ["previous", "close"]
     : ["next", "previous", "close"];
 
   const popover: DriveStep["popover"] = {
-    title: step.title,
-    description: step.description,
+    title: loc(step.title, lang),
+    description: loc(step.description, lang),
     side: step.side,
     align: step.align,
     showButtons: buttons,
-    nextBtnText: step.nextBtnText ?? "Weiter",
-    prevBtnText: step.prevBtnText ?? "Zurück",
-    doneBtnText: step.doneBtnText ?? "Fertig",
+    nextBtnText: step.nextBtnText ? loc(step.nextBtnText, lang) : "Weiter",
+    prevBtnText: step.prevBtnText ? loc(step.prevBtnText, lang) : "Zurück",
+    doneBtnText: step.doneBtnText ? loc(step.doneBtnText, lang) : "Fertig",
   };
 
   return {
@@ -84,6 +86,7 @@ function buildDriveStep(step: TourStep): DriveStep {
 
 export function TourProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
+  const { i18n } = useTranslation();
   const [location, navigate] = useLocation();
   const qc = useQueryClient();
   const driverRef = useRef<Driver | null>(null);
@@ -169,11 +172,11 @@ export function TourProvider({ children }: { children: ReactNode }) {
       if (inst.getActiveIndex() !== stepIndex) return;
       const def = tours[tourId];
       if (!def) return;
-      const freshSteps = def.steps.map(buildDriveStep);
+      const freshSteps = def.steps.map((s) => buildDriveStep(s, i18n.language));
       inst.setConfig({ ...inst.getConfig(), steps: freshSteps });
       inst.drive(stepIndex);
     },
-    []
+    [i18n.language]
   );
 
   /**
@@ -324,7 +327,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
         ? { ...tours[id]!, steps: overrideDef.steps }
         : tours[id];
       if (!def) return;
-      const steps = def.steps.map(buildDriveStep);
+      const steps = def.steps.map((s) => buildDriveStep(s, i18n.language));
 
       const config: Config = {
         steps,
@@ -417,6 +420,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
       clearAllListeners,
       clearElementWatch,
       endTour,
+      i18n.language,
       installAdvanceListener,
       markCompleted,
       markDismissed,

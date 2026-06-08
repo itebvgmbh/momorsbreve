@@ -9,6 +9,7 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { TOPIC_PAGES } from "@/data/topic-pages";
+import { loc } from "@/i18n/localized";
 import { baseForLang, isLang, type Lang } from "@/i18n/lang";
 import { Menu, ChevronDown } from "lucide-react";
 
@@ -72,7 +73,7 @@ export function MarketingNav({ activeLink, onLoginClick }: MarketingNavProps) {
                     <p className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider mb-1">{t("nav.topics")}</p>
                     {TOPIC_PAGES.map((tp) => (
                       <Link key={tp.slug} href={`/${tp.slug}`} className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2 block" onClick={() => setMobileMenuOpen(false)}>
-                        {tp.heroTitle}
+                        {loc(tp.heroTitle, i18n.language)}
                       </Link>
                     ))}
                   </div>
@@ -112,7 +113,7 @@ export function MarketingNav({ activeLink, onLoginClick }: MarketingNavProps) {
                 <div className="bg-popover border border-border rounded-lg shadow-lg py-1.5 min-w-[260px]">
                   {TOPIC_PAGES.map((tp) => (
                     <Link key={tp.slug} href={`/${tp.slug}`} className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-                      {tp.heroTitle}
+                      {loc(tp.heroTitle, i18n.language)}
                     </Link>
                   ))}
                 </div>

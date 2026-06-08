@@ -2,13 +2,14 @@ import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/logo";
 import { TOPIC_PAGES } from "@/data/topic-pages";
+import { loc } from "@/i18n/localized";
 
 /**
  * Geteilter Footer für die öffentlichen Marketing-Seiten – übersetzt (da/de/en).
  * Ersetzt die zuvor pro Seite duplizierten Footer-Blöcke.
  */
 export function MarketingFooter() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const linkClass = "hover:text-foreground transition-colors";
 
   return (
@@ -20,7 +21,7 @@ export function MarketingFooter() {
           <Link href="/beispiele" className={linkClass}>{t("footer.examples")}</Link>
           {TOPIC_PAGES.map((tp) => (
             <Link key={tp.slug} href={`/${tp.slug}`} className={linkClass}>
-              {tp.heroTitle}
+              {loc(tp.heroTitle, i18n.language)}
             </Link>
           ))}
           <Link href="/impressum" className={linkClass}>{t("footer.imprint")}</Link>

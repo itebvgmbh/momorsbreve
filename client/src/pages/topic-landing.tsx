@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { getTopicPage } from "@/data/topic-pages";
 import { getBlogPost } from "@/data/blog-posts";
+import { loc } from "@/i18n/localized";
 import { setPendingFile } from "@/lib/pending-file";
 import { useLocation } from "wouter";
 
@@ -32,7 +33,7 @@ interface TopicLandingPageProps {
 }
 
 export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const page = getTopicPage(slug);
   const { user } = useAuth();
   const [dragOver, setDragOver] = useState(false);
@@ -63,8 +64,8 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: page.title,
-    description: page.description,
+    name: loc(page.title, i18n.language),
+    description: loc(page.description, i18n.language),
     url: canonicalUrl,
     publisher: {
       "@type": "Organization",
@@ -80,18 +81,18 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>{page.title}</title>
-        <meta name="description" content={page.description} />
+        <title>{loc(page.title, i18n.language)}</title>
+        <meta name="description" content={loc(page.description, i18n.language)} />
         <link rel="canonical" href={canonicalUrl} />
-        <meta property="og:title" content={page.heroTitle} />
-        <meta property="og:description" content={page.description} />
+        <meta property="og:title" content={loc(page.heroTitle, i18n.language)} />
+        <meta property="og:description" content={loc(page.description, i18n.language)} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={canonicalUrl} />
         <meta property="og:locale" content="de_DE" />
         {page.heroImage && <meta property="og:image" content={`${BASE}${page.heroImage}`} />}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={page.heroTitle} />
-        <meta name="twitter:description" content={page.description} />
+        <meta name="twitter:title" content={loc(page.heroTitle, i18n.language)} />
+        <meta name="twitter:description" content={loc(page.description, i18n.language)} />
         {page.heroImage && <meta name="twitter:image" content={`${BASE}${page.heroImage}`} />}
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
@@ -104,7 +105,7 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
             <div className="absolute inset-0">
               <img
                 src={page.heroImage}
-                alt={page.heroImageAlt ?? ""}
+                alt={page.heroImageAlt ? loc(page.heroImageAlt, i18n.language) : ""}
                 className="w-full h-full object-cover scale-105 blur-[2px]"
                 fetchPriority="high"
               />
@@ -120,16 +121,16 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
               {t("topic.heroBadge")}
             </Badge>
             <h1 className={`font-serif text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-6 ${page.heroImage ? "text-white" : ""}`}>
-              {page.heroTitle}
+              {loc(page.heroTitle, i18n.language)}
             </h1>
             <p className={`text-lg sm:text-xl mb-8 leading-relaxed max-w-xl ${page.heroImage ? "text-white/80" : "text-muted-foreground"}`}>
-              {page.heroSubtitle}
+              {loc(page.heroSubtitle, i18n.language)}
             </p>
 
             {user ? (
               <Link href="/app/upload">
                 <Button size="lg" className="font-semibold">
-                  {page.ctaText}
+                  {loc(page.ctaText, i18n.language)}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -196,7 +197,7 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
 
       {page.historySections.map((section, idx) => (
         <section
-          key={section.heading}
+          key={loc(section.heading, i18n.language)}
           className={`py-16 sm:py-20 ${idx % 2 === 0 ? "bg-card" : ""}`}
         >
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -206,10 +207,10 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
                   {idx === 0 ? t("topic.sectionHistory") : idx === 1 ? t("topic.sectionScript") : t("topic.sectionResearch")}
                 </Badge>
                 <h2 className="font-serif text-2xl sm:text-3xl font-bold mb-4">
-                  {section.heading}
+                  {loc(section.heading, i18n.language)}
                 </h2>
                 <p className="text-muted-foreground text-lg leading-relaxed">
-                  {section.text}
+                  {loc(section.text, i18n.language)}
                 </p>
               </div>
               <div className={`hidden md:flex items-start justify-center ${idx % 2 !== 0 ? "md:order-1" : ""}`}>
@@ -233,12 +234,15 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
                 {t("topic.scriptTypesTitle")}
               </h2>
               <ul className="space-y-3">
-                {page.scriptTypes.map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-muted-foreground">
+                {page.scriptTypes.map((item) => {
+                  const label = loc(item, i18n.language);
+                  return (
+                  <li key={label} className="flex items-center gap-3 text-muted-foreground">
                     <Check className="h-5 w-5 text-primary shrink-0" />
-                    {item}
+                    {label}
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             </div>
             <div>
@@ -332,7 +336,7 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
           </p>
           <Link href={user ? "/app/upload" : "/analysieren"}>
             <Button size="lg" className="font-semibold">
-              {page.ctaText}
+              {loc(page.ctaText, i18n.language)}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
