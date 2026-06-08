@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation, Trans } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
@@ -312,26 +314,50 @@ function formatDateTime(iso: string): string {
 
 // ─── Chart Configs ─────────────────────────────────────────────────────────
 
-const combinedRevenueRegChartConfig = {
-  grossEur: { label: "Brutto", color: "hsl(24, 75%, 50%)" },
-  netEur: { label: "Netto", color: "hsl(24, 60%, 70%)" },
-  count: { label: "Registrierungen", color: "hsl(142, 55%, 45%)" },
-  adCostCents: { label: "Ad-Kosten", color: "hsl(0, 70%, 55%)" },
-  adClicks: { label: "Klicks", color: "hsl(210, 70%, 55%)" },
-  adConversions: { label: "Conversions", color: "hsl(270, 60%, 55%)" },
-  adImpressions: { label: "Impressionen", color: "hsl(220, 15%, 55%)" },
-  netProfit: { label: "Netto-Gewinn", color: "hsl(160, 70%, 40%)" },
-} satisfies ChartConfig;
+const SERIES_COLORS = {
+  grossEur: "hsl(24, 75%, 50%)",
+  netEur: "hsl(24, 60%, 70%)",
+  count: "hsl(142, 55%, 45%)",
+  adCostCents: "hsl(0, 70%, 55%)",
+  adClicks: "hsl(210, 70%, 55%)",
+  adConversions: "hsl(270, 60%, 55%)",
+  adImpressions: "hsl(220, 15%, 55%)",
+  netProfit: "hsl(160, 70%, 40%)",
+} as const;
 
-type SeriesKey = keyof typeof combinedRevenueRegChartConfig;
+const SERIES_LABEL_KEYS: Record<SeriesKey, string> = {
+  grossEur: "adminDashboard.seriesGross",
+  netEur: "adminDashboard.seriesNet",
+  count: "adminDashboard.seriesRegistrations",
+  adCostCents: "adminDashboard.seriesAdCost",
+  adClicks: "adminDashboard.seriesClicks",
+  adConversions: "adminDashboard.seriesConversions",
+  adImpressions: "adminDashboard.seriesImpressions",
+  netProfit: "adminDashboard.seriesNetProfit",
+};
+
+type SeriesKey = keyof typeof SERIES_COLORS;
+
+function buildRevenueRegChartConfig(t: TFunction): ChartConfig {
+  return {
+    grossEur: { label: t(SERIES_LABEL_KEYS.grossEur), color: SERIES_COLORS.grossEur },
+    netEur: { label: t(SERIES_LABEL_KEYS.netEur), color: SERIES_COLORS.netEur },
+    count: { label: t(SERIES_LABEL_KEYS.count), color: SERIES_COLORS.count },
+    adCostCents: { label: t(SERIES_LABEL_KEYS.adCostCents), color: SERIES_COLORS.adCostCents },
+    adClicks: { label: t(SERIES_LABEL_KEYS.adClicks), color: SERIES_COLORS.adClicks },
+    adConversions: { label: t(SERIES_LABEL_KEYS.adConversions), color: SERIES_COLORS.adConversions },
+    adImpressions: { label: t(SERIES_LABEL_KEYS.adImpressions), color: SERIES_COLORS.adImpressions },
+    netProfit: { label: t(SERIES_LABEL_KEYS.netProfit), color: SERIES_COLORS.netProfit },
+  } satisfies ChartConfig;
+}
 
 const DEFAULT_ACTIVE_SERIES = new Set<SeriesKey>([
   "grossEur", "netEur", "count", "adCostCents", "adClicks", "adConversions", "netProfit",
 ]);
 
-const TYPE_LABELS: Record<string, string> = {
-  credit_purchase: "Credits",
-  specialist_order: "Spezialist",
+const TYPE_LABEL_KEYS: Record<string, string> = {
+  credit_purchase: "adminDashboard.invoiceTypeCredits",
+  specialist_order: "adminDashboard.invoiceTypeSpecialist",
 };
 
 // ─── Aggregation Helpers ───────────────────────────────────────────────────
@@ -461,15 +487,16 @@ function CtaTileFooter({
   inRotation,
   onRotationChange,
 }: CtaTileFooterProps) {
+  const { t } = useTranslation();
   return (
     <div className="mt-2 space-y-1.5">
       <div className="flex items-center justify-between gap-1">
-        <span className="text-[10px] tabular-nums text-muted-foreground" title="Impressionen → Claims">
+        <span className="text-[10px] tabular-nums text-muted-foreground" title={t("adminDashboard.ctaImpressionsToClaims")}>
           {impressions.toLocaleString("de-DE")} → {claims.toLocaleString("de-DE")}
         </span>
         <span
           className={`text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded ${conversionBadgeClasses(conversionRate)}`}
-          title="Conversion-Rate (Claims / Impressionen)"
+          title={t("adminDashboard.ctaConversionRateHint")}
         >
           {formatConversion(conversionRate)}
         </span>
@@ -485,7 +512,7 @@ function CtaTileFooter({
           className="h-3.5 w-3.5"
           data-testid={`cta-rotation-checkbox-${variantId}`}
         />
-        <span className="text-[10px] font-medium text-muted-foreground">In Rotation</span>
+        <span className="text-[10px] font-medium text-muted-foreground">{t("adminDashboard.inRotation")}</span>
       </label>
     </div>
   );
@@ -510,15 +537,16 @@ function HeroTileFooter({
   inRotation,
   onRotationChange,
 }: HeroTileFooterProps) {
+  const { t } = useTranslation();
   return (
     <div className="mt-2 space-y-1.5">
       <div className="flex items-center justify-between gap-1">
-        <span className="text-[10px] tabular-nums text-muted-foreground" title="Impressionen → Uploads">
+        <span className="text-[10px] tabular-nums text-muted-foreground" title={t("adminDashboard.heroImpressionsToUploads")}>
           {impressions.toLocaleString("de-DE")} → {conversions.toLocaleString("de-DE")}
         </span>
         <span
           className={`text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded ${conversionBadgeClasses(conversionRate)}`}
-          title="Upload-Rate (Uploads / Impressionen)"
+          title={t("adminDashboard.heroUploadRateHint")}
         >
           {formatConversion(conversionRate)}
         </span>
@@ -534,7 +562,7 @@ function HeroTileFooter({
           className="h-3.5 w-3.5"
           data-testid={`hero-rotation-checkbox-${variantId}`}
         />
-        <span className="text-[10px] font-medium text-muted-foreground">In Rotation</span>
+        <span className="text-[10px] font-medium text-muted-foreground">{t("adminDashboard.inRotation")}</span>
       </label>
     </div>
   );
@@ -543,6 +571,7 @@ function HeroTileFooter({
 // ─── Main Component ────────────────────────────────────────────────────────
 
 export default function AdminDashboardPage() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -612,8 +641,8 @@ export default function AdminDashboardPage() {
     },
     onError: (err: Error) => {
       toast({
-        title: "Fehler",
-        description: err.message || "Einstellung konnte nicht gespeichert werden",
+        title: t("adminDashboard.toastErrorTitle"),
+        description: err.message || t("adminDashboard.toastSettingSaveFailed"),
         variant: "destructive",
       });
     },
@@ -641,12 +670,12 @@ export default function AdminDashboardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/cta-stats"] });
       setResetDialogOpen(false);
-      toast({ title: "Zähler zurückgesetzt", description: "Impressionen und Claims auf 0." });
+      toast({ title: t("adminDashboard.toastCountersResetTitle"), description: t("adminDashboard.toastCtaCountersResetDesc") });
     },
     onError: (err: Error) => {
       toast({
-        title: "Fehler",
-        description: err.message || "Zurücksetzen fehlgeschlagen",
+        title: t("adminDashboard.toastErrorTitle"),
+        description: err.message || t("adminDashboard.toastResetFailed"),
         variant: "destructive",
       });
     },
@@ -724,12 +753,12 @@ export default function AdminDashboardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/hero-stats"] });
       setHeroResetDialogOpen(false);
-      toast({ title: "Zähler zurückgesetzt", description: "Impressionen und Uploads auf 0." });
+      toast({ title: t("adminDashboard.toastCountersResetTitle"), description: t("adminDashboard.toastHeroCountersResetDesc") });
     },
     onError: (err: Error) => {
       toast({
-        title: "Fehler",
-        description: err.message || "Zurücksetzen fehlgeschlagen",
+        title: t("adminDashboard.toastErrorTitle"),
+        description: err.message || t("adminDashboard.toastResetFailed"),
         variant: "destructive",
       });
     },
@@ -783,10 +812,10 @@ export default function AdminDashboardPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/adwords"] });
-      toast({ title: "CSV importiert", description: data.message });
+      toast({ title: t("adminDashboard.toastCsvImportedTitle"), description: data.message });
     },
     onError: (err: Error) => {
-      toast({ title: "Import fehlgeschlagen", description: err.message, variant: "destructive" });
+      toast({ title: t("adminDashboard.toastImportFailedTitle"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -801,6 +830,8 @@ export default function AdminDashboardPage() {
     reader.readAsText(file);
     if (csvInputRef.current) csvInputRef.current.value = "";
   };
+
+  const combinedRevenueRegChartConfig = useMemo(() => buildRevenueRegChartConfig(t), [t]);
 
   const combinedChartData = useMemo(() => {
     if (!data || userStatsQuery.isLoading) return [];
@@ -822,9 +853,9 @@ export default function AdminDashboardPage() {
       <div className="flex flex-wrap items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/app")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Zurück
+          {t("adminDashboard.back")}
         </Button>
-        <h1 className="font-serif text-xl font-bold">Umsatz-Dashboard</h1>
+        <h1 className="font-serif text-xl font-bold">{t("adminDashboard.pageTitle")}</h1>
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => setShowAdminInvoices((v) => !v)}
@@ -835,7 +866,7 @@ export default function AdminDashboardPage() {
             }`}
           >
             {showAdminInvoices ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-            Admin-Rechnungen
+            {t("adminDashboard.adminInvoices")}
           </button>
           {!isLoading && !isError && (
             <Button
@@ -844,7 +875,7 @@ export default function AdminDashboardPage() {
               onClick={() => { refetch(); userStatsQuery.refetch(); heatmapQuery.refetch(); adwordsQuery.refetch(); }}
               disabled={isFetching || userStatsQuery.isFetching}
             >
-              {isFetching || userStatsQuery.isFetching ? "Aktualisiere…" : "Aktualisieren"}
+              {isFetching || userStatsQuery.isFetching ? t("adminDashboard.refreshing") : t("adminDashboard.refresh")}
             </Button>
           )}
         </div>
@@ -853,14 +884,14 @@ export default function AdminDashboardPage() {
       {isError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Daten konnten nicht geladen werden</AlertTitle>
+          <AlertTitle>{t("adminDashboard.loadErrorTitle")}</AlertTitle>
           <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-sm">
               {(error as Error)?.message ||
-                "Unbekannter Fehler. Prüfen Sie, ob Sie als Admin angemeldet sind."}
+                t("adminDashboard.loadErrorBody")}
             </span>
             <Button variant="secondary" size="sm" onClick={() => refetch()}>
-              Erneut versuchen
+              {t("adminDashboard.retry")}
             </Button>
           </AlertDescription>
         </Alert>
@@ -868,18 +899,18 @@ export default function AdminDashboardPage() {
 
       <Tabs defaultValue="revenue" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="revenue">Umsatz</TabsTrigger>
-          <TabsTrigger value="users">Nutzer</TabsTrigger>
+          <TabsTrigger value="revenue">{t("adminDashboard.tabRevenue")}</TabsTrigger>
+          <TabsTrigger value="users">{t("adminDashboard.tabUsers")}</TabsTrigger>
         </TabsList>
 
         {/* ═══ Tab: Umsatz ═══ */}
         <TabsContent value="revenue" className="space-y-6">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard icon={Euro} label="Heute" data={data?.today} isLoading={isLoading} />
-            <KpiCard icon={CalendarDays} label="Letzte 7 Tage" data={data?.thisWeek} isLoading={isLoading} />
-            <KpiCard icon={CalendarRange} label="Letzte 30 Tage" data={data?.thisMonth} isLoading={isLoading} />
-            <KpiCard icon={Wallet} label="Gesamt" data={data?.allTime} isLoading={isLoading} />
+            <KpiCard icon={Euro} label={t("adminDashboard.kpiToday")} data={data?.today} isLoading={isLoading} />
+            <KpiCard icon={CalendarDays} label={t("adminDashboard.kpiLast7Days")} data={data?.thisWeek} isLoading={isLoading} />
+            <KpiCard icon={CalendarRange} label={t("adminDashboard.kpiLast30Days")} data={data?.thisMonth} isLoading={isLoading} />
+            <KpiCard icon={Wallet} label={t("adminDashboard.kpiTotal")} data={data?.allTime} isLoading={isLoading} />
           </div>
 
           {/* Purchase Distribution */}
@@ -892,15 +923,16 @@ export default function AdminDashboardPage() {
           <Card className="p-4 sm:p-6">
             <div className="flex items-center gap-2 mb-2">
               <Megaphone className="h-5 w-5 text-muted-foreground" />
-              <h2 className="font-semibold">CTA-Varianten (Analyse-Seite)</h2>
+              <h2 className="font-semibold">{t("adminDashboard.ctaCardTitle")}</h2>
             </div>
             <p className="text-sm text-muted-foreground mb-2">
-              Klick auf eine Kachel ändert die <strong className="text-foreground">Standard-Variante</strong>{" "}
-              (wird ausgespielt, wenn die Rotation aus ist).
+              <Trans
+                i18nKey="adminDashboard.ctaCardIntro"
+                components={{ strong: <strong className="text-foreground" /> }}
+              />
             </p>
             <p className="text-sm text-muted-foreground mb-4">
-              Varianten mit 🔥 ersetzen die separate „Transkriptionsvorschau"-Karte
-              und integrieren den CTA direkt in die Vorschau – weniger Scrollen, klarerer nächster Schritt.
+              {t("adminDashboard.ctaCardHotNote")}
             </p>
 
             {/* Rotation-Steuerung */}
@@ -911,7 +943,7 @@ export default function AdminDashboardPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <label htmlFor="cta-rotation-toggle" className="font-medium text-sm cursor-pointer">
-                        A/B-Rotation aktiv
+                        {t("adminDashboard.abRotationActive")}
                       </label>
                       <Switch
                         id="cta-rotation-toggle"
@@ -922,8 +954,7 @@ export default function AdminDashboardPage() {
                       />
                     </div>
                     <p className="text-xs text-muted-foreground mt-1 max-w-xl">
-                      Wenn aktiv, wird jede neue Analyse zufällig einer der unten markierten
-                      Varianten zugewiesen. Wenn aus, gilt die zuletzt angeklickte Standard-Variante (V{activeCtaVariant}).
+                      {t("adminDashboard.ctaRotationHint", { variant: activeCtaVariant })}
                     </p>
                   </div>
                 </div>
@@ -935,7 +966,7 @@ export default function AdminDashboardPage() {
                   data-testid="cta-stats-reset-button"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
-                  Alle Zähler zurücksetzen
+                  {t("adminDashboard.resetAllCounters")}
                 </Button>
               </div>
               {rotationEnabled && rotationVariants.size < 2 && (
@@ -943,15 +974,13 @@ export default function AdminDashboardPage() {
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle className="text-sm">
                     {rotationVariants.size === 0
-                      ? "Keine Variante in der Rotation"
-                      : "Nur eine Variante in der Rotation"}
+                      ? t("adminDashboard.noVariantInRotation")
+                      : t("adminDashboard.onlyOneVariantInRotation")}
                   </AlertTitle>
                   <AlertDescription className="text-xs">
                     {rotationVariants.size === 0
-                      ? "Solange keine Variante ausgewählt ist, fällt das System auf die Standard-Variante (V" +
-                        activeCtaVariant +
-                        ") zurück. Markieren Sie mindestens zwei Varianten unten als „In Rotation\u201c."
-                      : "Für einen echten A/B-Test sollten mindestens zwei Varianten markiert sein."}
+                      ? t("adminDashboard.ctaNoVariantBody", { variant: activeCtaVariant })
+                      : t("adminDashboard.abTestNeedsTwoBody")}
                   </AlertDescription>
                 </Alert>
               )}
@@ -960,7 +989,7 @@ export default function AdminDashboardPage() {
             {/* Gruppe 1: Klassische CTA-Karten (Vorschau separat) */}
             <div className="mb-4">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Klassisch – CTA als eigene Karte unter der Vorschau
+                {t("adminDashboard.ctaGroupClassic")}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                 {(Object.entries(CTA_VARIANT_LABELS) as [string, string][])
@@ -1009,7 +1038,7 @@ export default function AdminDashboardPage() {
             {/* Gruppe 2: Vorschau + CTA in EINER Karte (gegen Abspringen) */}
             <div className="mb-4">
               <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-2">
-                🔥 Integriert – Vorschau + CTA in einer Karte (weniger Bouncen)
+                {t("adminDashboard.ctaGroupIntegrated")}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                 {(Object.entries(CTA_VARIANT_LABELS) as [string, string][])
@@ -1039,7 +1068,7 @@ export default function AdminDashboardPage() {
                       >
                         {isLive && (
                           <span className="absolute -top-2 -right-2 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-emerald-500 text-white rounded-full shadow-sm">
-                            Live
+                            {t("adminDashboard.liveBadge")}
                           </span>
                         )}
                         <div className="flex items-center gap-1.5 mb-1">
@@ -1064,7 +1093,7 @@ export default function AdminDashboardPage() {
             {/* Gruppe 3: Nur Zusammenfassung – KEIN Textauszug (gegen Gratis-Leser) */}
             <div>
               <p className="text-[10px] font-semibold text-purple-700 dark:text-purple-400 uppercase tracking-wider mb-2">
-                🧠 Nur Zusammenfassung – kein Textauszug (gegen Gratis-Leser)
+                {t("adminDashboard.ctaGroupSummaryOnly")}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-2">
                 {(Object.entries(CTA_VARIANT_LABELS) as [string, string][])
@@ -1094,7 +1123,7 @@ export default function AdminDashboardPage() {
                       >
                         {isLive && (
                           <span className="absolute -top-2 -right-2 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-emerald-500 text-white rounded-full shadow-sm">
-                            Live
+                            {t("adminDashboard.liveBadge")}
                           </span>
                         )}
                         <div className="flex items-center gap-1.5 mb-1">
@@ -1119,17 +1148,17 @@ export default function AdminDashboardPage() {
             <div className="mt-6 pt-6 border-t">
               <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Vorschau – Variante {activeCtaVariant}: {CTA_VARIANT_LABELS[activeCtaVariant]}
+                  {t("adminDashboard.previewVariant", { variant: activeCtaVariant, label: CTA_VARIANT_LABELS[activeCtaVariant] })}
                 </p>
                 <div className="flex gap-2">
                   {ctaVariantEmbedsPreview(activeCtaVariant) && !ctaVariantEmbedsQuality(activeCtaVariant) && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-1 rounded-full">
-                      Vorschau integriert
+                      {t("adminDashboard.previewIntegratedBadge")}
                     </span>
                   )}
                   {ctaVariantEmbedsQuality(activeCtaVariant) && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-700 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/40 px-2 py-1 rounded-full">
-                      Nur Zusammenfassung · kein Textauszug
+                      {t("adminDashboard.previewSummaryOnlyBadge")}
                     </span>
                   )}
                 </div>
@@ -1140,13 +1169,13 @@ export default function AdminDashboardPage() {
                   <div className="rounded-lg border bg-card p-5">
                     <h3 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2">
                       <FileText className="h-5 w-5 text-primary" />
-                      Transkriptionsvorschau
+                      {t("adminDashboard.transcriptionPreviewHeading")}
                     </h3>
                     <p className="font-mono text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
                       Frankfurt, 22.07.2025{"\n\n"}Aktenzeichen{"\n"}71846958-8{"\n"}(bitte stets angeben)
                     </p>
                     <p className="mt-3 text-xs text-muted-foreground border-t pt-3">
-                      Melden Sie sich kostenlos an, um die vollständige Transkription zu erhalten.
+                      {t("adminDashboard.transcriptionPreviewPrompt")}
                     </p>
                   </div>
                 )}
@@ -1169,16 +1198,14 @@ export default function AdminDashboardPage() {
             >
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Alle CTA-Zähler zurücksetzen?</AlertDialogTitle>
+                  <AlertDialogTitle>{t("adminDashboard.ctaResetDialogTitle")}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Setzt Impressionen und Claims aller Varianten auf 0. Die Rotation-Einstellungen
-                    (Toggle und Variantenauswahl) bleiben erhalten. Dieser Schritt kann nicht
-                    rückgängig gemacht werden.
+                    {t("adminDashboard.ctaResetDialogBody")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel disabled={resetStatsMutation.isPending}>
-                    Abbrechen
+                    {t("common.cancel")}
                   </AlertDialogCancel>
                   <AlertDialogAction
                     onClick={(e) => {
@@ -1192,10 +1219,10 @@ export default function AdminDashboardPage() {
                     {resetStatsMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Setze zurück…
+                        {t("adminDashboard.resetting")}
                       </>
                     ) : (
-                      "Zurücksetzen"
+                      t("adminDashboard.reset")
                     )}
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -1207,12 +1234,13 @@ export default function AdminDashboardPage() {
           <Card className="p-4 sm:p-6">
             <div className="flex items-center gap-2 mb-2">
               <Megaphone className="h-5 w-5 text-muted-foreground" />
-              <h2 className="font-semibold">Hero-Varianten (Startseite)</h2>
+              <h2 className="font-semibold">{t("adminDashboard.heroCardTitle")}</h2>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Klick auf eine Kachel ändert die <strong className="text-foreground">Standard-Variante</strong> des
-              Homepage-Heros (wird ausgespielt, wenn die Rotation aus ist). Gezählt werden Impressionen und
-              <strong className="text-foreground"> Uploads</strong> (erster Funnel-Schritt: Besucher wählt im Hero eine Datei).
+              <Trans
+                i18nKey="adminDashboard.heroCardIntro"
+                components={{ strong: <strong className="text-foreground" /> }}
+              />
             </p>
 
             {/* Rotation-Steuerung */}
@@ -1223,7 +1251,7 @@ export default function AdminDashboardPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <label htmlFor="hero-rotation-toggle" className="font-medium text-sm cursor-pointer">
-                        A/B-Rotation aktiv
+                        {t("adminDashboard.abRotationActive")}
                       </label>
                       <Switch
                         id="hero-rotation-toggle"
@@ -1234,8 +1262,7 @@ export default function AdminDashboardPage() {
                       />
                     </div>
                     <p className="text-xs text-muted-foreground mt-1 max-w-xl">
-                      Wenn aktiv, wird jeder neue Besucher zufällig einer der unten markierten Varianten zugewiesen
-                      (sticky pro Session). Wenn aus, gilt die zuletzt angeklickte Standard-Variante (V{activeHeroVariant}).
+                      {t("adminDashboard.heroRotationHint", { variant: activeHeroVariant })}
                     </p>
                   </div>
                 </div>
@@ -1247,7 +1274,7 @@ export default function AdminDashboardPage() {
                   data-testid="hero-stats-reset-button"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
-                  Alle Zähler zurücksetzen
+                  {t("adminDashboard.resetAllCounters")}
                 </Button>
               </div>
               {heroRotationEnabled && heroRotationVariants.size < 2 && (
@@ -1255,13 +1282,13 @@ export default function AdminDashboardPage() {
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle className="text-sm">
                     {heroRotationVariants.size === 0
-                      ? "Keine Variante in der Rotation"
-                      : "Nur eine Variante in der Rotation"}
+                      ? t("adminDashboard.noVariantInRotation")
+                      : t("adminDashboard.onlyOneVariantInRotation")}
                   </AlertTitle>
                   <AlertDescription className="text-xs">
                     {heroRotationVariants.size === 0
-                      ? `Solange keine Variante ausgewählt ist, fällt das System auf die Standard-Variante (V${activeHeroVariant}) zurück. Markieren Sie mindestens zwei Varianten unten als „In Rotation".`
-                      : "Für einen echten A/B-Test sollten mindestens zwei Varianten markiert sein."}
+                      ? t("adminDashboard.heroNoVariantBody", { variant: activeHeroVariant })
+                      : t("adminDashboard.abTestNeedsTwoBody")}
                   </AlertDescription>
                 </Alert>
               )}
@@ -1314,7 +1341,7 @@ export default function AdminDashboardPage() {
             {/* Live-Vorschau */}
             <div className="mt-6 pt-6 border-t">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                Vorschau – Variante {activeHeroVariant}: {HERO_VARIANT_LABELS[activeHeroVariant]}
+                {t("adminDashboard.previewVariant", { variant: activeHeroVariant, label: HERO_VARIANT_LABELS[activeHeroVariant] })}
               </p>
               <p className="text-xs text-muted-foreground mb-3 italic">{HERO_VARIANT_HYPOTHESES[activeHeroVariant]}</p>
               <div className="relative rounded-lg overflow-hidden border border-dashed border-border">
@@ -1343,14 +1370,13 @@ export default function AdminDashboardPage() {
             >
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Alle Hero-Zähler zurücksetzen?</AlertDialogTitle>
+                  <AlertDialogTitle>{t("adminDashboard.heroResetDialogTitle")}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Setzt Impressionen und Uploads aller Hero-Varianten auf 0. Die Rotation-Einstellungen
-                    (Toggle und Variantenauswahl) bleiben erhalten. Dieser Schritt kann nicht rückgängig gemacht werden.
+                    {t("adminDashboard.heroResetDialogBody")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel disabled={heroResetStatsMutation.isPending}>Abbrechen</AlertDialogCancel>
+                  <AlertDialogCancel disabled={heroResetStatsMutation.isPending}>{t("common.cancel")}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={(e) => {
                       e.preventDefault();
@@ -1363,10 +1389,10 @@ export default function AdminDashboardPage() {
                     {heroResetStatsMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Setze zurück…
+                        {t("adminDashboard.resetting")}
                       </>
                     ) : (
-                      "Zurücksetzen"
+                      t("adminDashboard.reset")
                     )}
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -1378,7 +1404,7 @@ export default function AdminDashboardPage() {
           <Card className="p-4 sm:p-6">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <TrendingUp className="h-5 w-5 text-muted-foreground shrink-0" />
-              <h2 className="font-semibold">Umsatz, Registrierungen & AdWords</h2>
+              <h2 className="font-semibold">{t("adminDashboard.revenueRegAdwordsTitle")}</h2>
               <div className="ml-auto flex items-center gap-2">
                 <input
                   ref={csvInputRef}
@@ -1394,7 +1420,7 @@ export default function AdminDashboardPage() {
                   disabled={uploadCsvMutation.isPending}
                 >
                   <Upload className="h-3.5 w-3.5 mr-1.5" />
-                  {uploadCsvMutation.isPending ? "Importiere…" : "AdWords CSV"}
+                  {uploadCsvMutation.isPending ? t("adminDashboard.importing") : t("adminDashboard.adwordsCsv")}
                 </Button>
                 {combinedChartData.length > 0 && (
                   <span className="text-xs text-muted-foreground">
@@ -1432,11 +1458,11 @@ export default function AdminDashboardPage() {
               <Skeleton className="h-[380px] w-full rounded-lg" />
             ) : isError ? (
               <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">
-                Diagramm nicht verfügbar
+                {t("adminDashboard.chartUnavailable")}
               </div>
             ) : combinedChartData.length === 0 ? (
               <div className="h-[200px] flex flex-col items-center justify-center gap-2 text-center text-muted-foreground px-4">
-                <p>Keine Zeitreihen-Daten vorhanden.</p>
+                <p>{t("adminDashboard.noTimeSeriesData")}</p>
               </div>
             ) : (
               <ChartContainer
@@ -1567,9 +1593,9 @@ export default function AdminDashboardPage() {
           <Card className="p-4 sm:p-6">
             <div className="flex items-center gap-2 mb-4">
               <History className="h-5 w-5 text-muted-foreground" />
-              <h2 className="font-semibold">Rechnungs-Historie</h2>
+              <h2 className="font-semibold">{t("adminDashboard.invoiceHistoryTitle")}</h2>
               <span className="text-xs text-muted-foreground">
-                (neueste zuerst, bis zu 150 Einträge)
+                {t("adminDashboard.invoiceHistoryHint")}
               </span>
             </div>
             {isLoading ? (
@@ -1579,20 +1605,20 @@ export default function AdminDashboardPage() {
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : isError ? (
-              <p className="text-sm text-muted-foreground">Tabelle nicht verfügbar</p>
+              <p className="text-sm text-muted-foreground">{t("adminDashboard.tableUnavailable")}</p>
             ) : !data?.recentInvoices?.length ? (
               <p className="text-sm text-muted-foreground py-6 text-center">
-                Noch keine Rechnungen in der Datenbank.
+                {t("adminDashboard.noInvoicesYet")}
               </p>
             ) : (
               <ScrollArea className="h-[min(480px,50vh)] rounded-md border">
                 <div className="min-w-[640px]">
                   <div className="grid grid-cols-[120px_1fr_100px_100px_140px] gap-2 px-3 py-2 bg-muted/50 border-b text-xs font-medium text-muted-foreground">
-                    <span>Datum</span>
-                    <span>Rechnung / Beschreibung</span>
-                    <span className="text-right">Brutto</span>
-                    <span className="text-right">Netto</span>
-                    <span>Typ</span>
+                    <span>{t("adminDashboard.colDate")}</span>
+                    <span>{t("adminDashboard.colInvoiceDescription")}</span>
+                    <span className="text-right">{t("adminDashboard.colGross")}</span>
+                    <span className="text-right">{t("adminDashboard.colNet")}</span>
+                    <span>{t("adminDashboard.colType")}</span>
                   </div>
                   <div className="divide-y">
                     {data.recentInvoices.map((inv) => (
@@ -1617,7 +1643,7 @@ export default function AdminDashboardPage() {
                           {formatEur(inv.netAmountEur)}
                         </span>
                         <Badge variant="outline" className="justify-self-start text-[10px]">
-                          {TYPE_LABELS[inv.type] ?? inv.type}
+                          {TYPE_LABEL_KEYS[inv.type] ? t(TYPE_LABEL_KEYS[inv.type]) : inv.type}
                         </Badge>
                       </div>
                     ))}
@@ -1655,6 +1681,7 @@ function KpiCard({
   data: RevenuePeriod | undefined;
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Card className="p-4">
       <div className="flex items-center gap-2 mb-3">
@@ -1675,10 +1702,10 @@ function KpiCard({
           </p>
           <div className="flex items-center justify-between mt-1">
             <span className="text-xs text-muted-foreground">
-              Netto: {formatEur(data.netEur)}
+              {t("adminDashboard.kpiNet", { value: formatEur(data.netEur) })}
             </span>
             <span className="text-xs text-muted-foreground">
-              {data.count} {data.count === 1 ? "Position" : "Positionen"}
+              {data.count} {data.count === 1 ? t("adminDashboard.positionOne") : t("adminDashboard.positionMany")}
             </span>
           </div>
         </>
@@ -1700,6 +1727,7 @@ function PurchaseDistributionCards({
   data: PurchaseDistribution | undefined;
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   const total = data ? data.noPurchase + data.onePurchase + data.twoPlusPurchases : 0;
   const pct = (n: number) => (total > 0 ? ((n / total) * 100).toFixed(1) : "0.0");
 
@@ -1710,14 +1738,14 @@ function PurchaseDistributionCards({
           <div className="p-2 rounded-lg bg-muted">
             <Users className="h-4 w-4 text-muted-foreground" />
           </div>
-          <span className="text-sm text-muted-foreground">Nie gekauft</span>
+          <span className="text-sm text-muted-foreground">{t("adminDashboard.neverPurchased")}</span>
         </div>
         {isLoading ? (
           <Skeleton className="h-8 w-20" />
         ) : data ? (
           <>
             <p className="text-2xl font-bold tracking-tight">{data.noPurchase}</p>
-            <p className="text-xs text-muted-foreground mt-1">{pct(data.noPurchase)} % aller Nutzer</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("adminDashboard.pctOfAllUsers", { pct: pct(data.noPurchase) })}</p>
           </>
         ) : (
           <p className="text-2xl font-bold tracking-tight text-muted-foreground">–</p>
@@ -1729,14 +1757,14 @@ function PurchaseDistributionCards({
           <div className="p-2 rounded-lg bg-blue-500/10">
             <ShoppingCart className="h-4 w-4 text-blue-600" />
           </div>
-          <span className="text-sm text-muted-foreground">1x gekauft</span>
+          <span className="text-sm text-muted-foreground">{t("adminDashboard.purchasedOnce")}</span>
         </div>
         {isLoading ? (
           <Skeleton className="h-8 w-20" />
         ) : data ? (
           <>
             <p className="text-2xl font-bold tracking-tight">{data.onePurchase}</p>
-            <p className="text-xs text-muted-foreground mt-1">{pct(data.onePurchase)} % aller Nutzer</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("adminDashboard.pctOfAllUsers", { pct: pct(data.onePurchase) })}</p>
           </>
         ) : (
           <p className="text-2xl font-bold tracking-tight text-muted-foreground">–</p>
@@ -1748,14 +1776,14 @@ function PurchaseDistributionCards({
           <div className="p-2 rounded-lg bg-green-500/10">
             <ShoppingCart className="h-4 w-4 text-green-600" />
           </div>
-          <span className="text-sm text-muted-foreground">2+ gekauft</span>
+          <span className="text-sm text-muted-foreground">{t("adminDashboard.purchasedTwoPlus")}</span>
         </div>
         {isLoading ? (
           <Skeleton className="h-8 w-20" />
         ) : data ? (
           <>
             <p className="text-2xl font-bold tracking-tight">{data.twoPlusPurchases}</p>
-            <p className="text-xs text-muted-foreground mt-1">{pct(data.twoPlusPurchases)} % aller Nutzer</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("adminDashboard.pctOfAllUsers", { pct: pct(data.twoPlusPurchases) })}</p>
           </>
         ) : (
           <p className="text-2xl font-bold tracking-tight text-muted-foreground">–</p>
@@ -1767,10 +1795,10 @@ function PurchaseDistributionCards({
 
 // ─── Revenue vs. AdWords Costs Table ────────────────────────────────────────
 
-const TIME_INTERVAL_LABELS: Record<string, string> = {
-  day: "Tag",
-  week: "Woche",
-  month: "Monat",
+const TIME_INTERVAL_LABEL_KEYS: Record<string, string> = {
+  day: "adminDashboard.intervalDay",
+  week: "adminDashboard.intervalWeek",
+  month: "adminDashboard.intervalMonth",
 };
 
 function RevenueVsCostsTable({
@@ -1784,6 +1812,7 @@ function RevenueVsCostsTable({
   timeInterval: "day" | "week" | "month";
   onTimeIntervalChange: (v: "day" | "week" | "month") => void;
 }) {
+  const { t } = useTranslation();
   const rows = useMemo(() => {
     return [...chartData]
       .filter((p) => p.grossEur > 0 || p.adCostCents > 0 || p.count > 0)
@@ -1804,7 +1833,7 @@ function RevenueVsCostsTable({
     <Card className="p-4 sm:p-6">
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <Euro className="h-5 w-5 text-muted-foreground" />
-        <h2 className="font-semibold">Umsatz vs. AdWords-Kosten</h2>
+        <h2 className="font-semibold">{t("adminDashboard.revenueVsCostsTitle")}</h2>
         <div className="ml-auto flex items-center gap-1">
           {(["day", "week", "month"] as const).map((interval) => (
             <button
@@ -1816,7 +1845,7 @@ function RevenueVsCostsTable({
                   : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
               }`}
             >
-              {TIME_INTERVAL_LABELS[interval]}
+              {t(TIME_INTERVAL_LABEL_KEYS[interval])}
             </button>
           ))}
         </div>
@@ -1824,16 +1853,16 @@ function RevenueVsCostsTable({
       <ScrollArea className="h-[min(400px,45vh)] rounded-md border">
         <div className="min-w-[800px]">
           <div className="grid grid-cols-[90px_80px_80px_90px_60px_60px_60px_70px_70px_70px] gap-2 px-3 py-2 bg-muted/50 border-b text-xs font-medium text-muted-foreground sticky top-0 z-10">
-            <span>Datum</span>
-            <span className="text-right">Brutto</span>
-            <span className="text-right">Ad-Kosten</span>
-            <span className="text-right">Netto-Gewinn</span>
-            <span className="text-right">Klicks</span>
-            <span className="text-right">Reg.</span>
-            <span className="text-right">Käufe</span>
-            <span className="text-right" title="Registrierungen / Klicks">Reg/Klick</span>
-            <span className="text-right" title="Brutto-Umsatz / Registrierungen">€/Reg</span>
-            <span className="text-right" title="Registrierungen / zahlende Kunden">Reg/Kauf</span>
+            <span>{t("adminDashboard.colDate")}</span>
+            <span className="text-right">{t("adminDashboard.colGross")}</span>
+            <span className="text-right">{t("adminDashboard.colAdCost")}</span>
+            <span className="text-right">{t("adminDashboard.colNetProfit")}</span>
+            <span className="text-right">{t("adminDashboard.colClicks")}</span>
+            <span className="text-right">{t("adminDashboard.colReg")}</span>
+            <span className="text-right">{t("adminDashboard.colPurchases")}</span>
+            <span className="text-right" title={t("adminDashboard.colRegPerClickHint")}>{t("adminDashboard.colRegPerClick")}</span>
+            <span className="text-right" title={t("adminDashboard.colRevPerRegHint")}>{t("adminDashboard.colRevPerReg")}</span>
+            <span className="text-right" title={t("adminDashboard.colRegPerPurchaseHint")}>{t("adminDashboard.colRegPerPurchase")}</span>
           </div>
           <div className="divide-y">
             {rows.map((r) => {
@@ -1878,8 +1907,6 @@ function RevenueVsCostsTable({
 
 // ─── Paying-User Registration Heatmap ──────────────────────────────────────
 
-const DOW_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-
 function PayingUserHeatmap({
   data,
   isLoading,
@@ -1889,6 +1916,16 @@ function PayingUserHeatmap({
   isLoading: boolean;
   isError: boolean;
 }) {
+  const { t } = useTranslation();
+  const DOW_LABELS = [
+    t("adminDashboard.dowMon"),
+    t("adminDashboard.dowTue"),
+    t("adminDashboard.dowWed"),
+    t("adminDashboard.dowThu"),
+    t("adminDashboard.dowFri"),
+    t("adminDashboard.dowSat"),
+    t("adminDashboard.dowSun"),
+  ];
   const { grid, revenueGrid, maxCount, daySummaries } = useMemo(() => {
     const g: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
     const rg: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
@@ -1932,26 +1969,26 @@ function PayingUserHeatmap({
     <Card className="p-4 sm:p-6">
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <CalendarClock className="h-5 w-5 text-muted-foreground shrink-0" />
-        <h2 className="font-semibold">Registrierungs-Zeitpunkt zahlender Nutzer</h2>
+        <h2 className="font-semibold">{t("adminDashboard.heatmapTitle")}</h2>
         {totalPaying > 0 && (
           <span className="text-xs text-muted-foreground ml-auto">
-            {totalPaying} zahlende{totalPaying === 1 ? "r" : ""} Nutzer insgesamt
+            {t("adminDashboard.heatmapTotalPaying", { count: totalPaying })}
           </span>
         )}
       </div>
       <p className="text-sm text-muted-foreground mb-4">
-        An welchem Wochentag und zu welcher Uhrzeit (MEZ) haben sich die Nutzer registriert, die tatsächlich etwas gekauft haben?
+        {t("adminDashboard.heatmapDescription")}
       </p>
 
       {isLoading ? (
         <Skeleton className="h-[220px] w-full rounded-lg" />
       ) : isError ? (
         <div className="h-[150px] flex items-center justify-center text-sm text-muted-foreground">
-          Heatmap nicht verfügbar
+          {t("adminDashboard.heatmapUnavailable")}
         </div>
       ) : maxCount === 0 ? (
         <div className="h-[150px] flex items-center justify-center text-sm text-muted-foreground">
-          Noch keine zahlenden Nutzer vorhanden.
+          {t("adminDashboard.noPayingUsersYet")}
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -1963,7 +2000,7 @@ function PayingUserHeatmap({
                   {h}
                 </div>
               ))}
-              <div className="text-[10px] text-muted-foreground text-center font-medium">Gesamt</div>
+              <div className="text-[10px] text-muted-foreground text-center font-medium">{t("adminDashboard.total")}</div>
 
               {grid.map((row, dow) => (
                 <React.Fragment key={dow}>
@@ -1976,7 +2013,7 @@ function PayingUserHeatmap({
                       <div
                         key={hour}
                         className={`aspect-square rounded-sm flex flex-col items-center justify-center text-[9px] font-medium leading-tight transition-colors ${cellColor(count)}`}
-                        title={`${DOW_LABELS[dow]} ${hour}:00 – ${hour}:59 Uhr: ${count} Nutzer · ${formatEur(rev)}`}
+                        title={t("adminDashboard.heatmapCellTitle", { day: DOW_LABELS[dow], hour, count, revenue: formatEur(rev) })}
                       >
                         {count > 0 && <span>{count}</span>}
                         {rev > 0 && <span className="opacity-70 text-[7px]">({fmtCentsShort(rev)})</span>}
@@ -1985,14 +2022,14 @@ function PayingUserHeatmap({
                   })}
                   <div className="flex flex-col items-center justify-center text-[10px] font-medium bg-muted/30 rounded-sm px-1">
                     <span>{fmtCentsShort(daySummaries[dow].totalRevenueCents) || "–"}</span>
-                    <span className="text-[8px] text-muted-foreground">({daySummaries[dow].totalCount} Nutzer)</span>
+                    <span className="text-[8px] text-muted-foreground">{t("adminDashboard.heatmapDaySummaryUsers", { count: daySummaries[dow].totalCount })}</span>
                   </div>
                 </React.Fragment>
               ))}
             </div>
 
             <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground">
-              <span>Weniger</span>
+              <span>{t("adminDashboard.legendLess")}</span>
               <div className="flex gap-[2px]">
                 <div className="w-3 h-3 rounded-sm bg-muted/40" />
                 <div className="w-3 h-3 rounded-sm bg-emerald-300/60" />
@@ -2000,7 +2037,7 @@ function PayingUserHeatmap({
                 <div className="w-3 h-3 rounded-sm bg-emerald-500" />
                 <div className="w-3 h-3 rounded-sm bg-emerald-600" />
               </div>
-              <span>Mehr</span>
+              <span>{t("adminDashboard.legendMore")}</span>
             </div>
           </div>
         </div>
@@ -2017,6 +2054,7 @@ interface AbuseStats {
 }
 
 function AbuseStatsCard() {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery<AbuseStats>({
     queryKey: ["/api/admin/abuse-stats"],
     staleTime: 60_000,
@@ -2028,7 +2066,7 @@ function AbuseStatsCard() {
         <div className="p-2 rounded-lg bg-red-500/10">
           <ShieldAlert className="h-4 w-4 text-red-600 dark:text-red-400" />
         </div>
-        <span className="text-sm text-muted-foreground">Credit-Farming blockiert</span>
+        <span className="text-sm text-muted-foreground">{t("adminDashboard.creditFarmingBlocked")}</span>
       </div>
       {isLoading ? (
         <Skeleton className="h-8 w-20" />
@@ -2036,8 +2074,8 @@ function AbuseStatsCard() {
         <>
           <p className="text-2xl font-bold tracking-tight">{data.totalBlocked}</p>
           <p className="text-xs text-muted-foreground mt-1">
-            {data.totalBlocked === 1 ? "Versuch" : "Versuche"} geblockt
-            {data.affectedEmails > 0 && ` · ${data.affectedEmails} ${data.affectedEmails === 1 ? "E-Mail betroffen" : "E-Mails betroffen"}`}
+            {t("adminDashboard.attemptsBlocked", { count: data.totalBlocked })}
+            {data.affectedEmails > 0 && ` · ${t("adminDashboard.emailsAffected", { count: data.affectedEmails })}`}
           </p>
         </>
       ) : (
@@ -2058,6 +2096,7 @@ function UserListTable({
   isLoading: boolean;
   isError: boolean;
 }) {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -2094,15 +2133,15 @@ function UserListTable({
     onSuccess: (data) => {
       setLastResendSyncResult(data);
       toast({
-        title: "Resend-Segment synchronisiert",
-        description: `${data.addedToSegment} Kontakte im Segment · ${data.failed} fehlgeschlagen`,
+        title: t("adminDashboard.toastResendSyncedTitle"),
+        description: t("adminDashboard.toastResendSyncedDesc", { added: data.addedToSegment, failed: data.failed }),
         variant: data.failed > 0 ? "destructive" : "default",
       });
     },
     onError: (err: any) => {
       toast({
-        title: "Resend-Sync fehlgeschlagen",
-        description: err?.message ?? "Unbekannter Fehler",
+        title: t("adminDashboard.toastResendSyncFailedTitle"),
+        description: err?.message ?? t("adminDashboard.unknownError"),
         variant: "destructive",
       });
     },
@@ -2121,11 +2160,11 @@ function UserListTable({
     onSuccess: (data) => {
       setLastSendResult(data);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/marketing/sends"] });
-      const parts = [`${data.sent} versendet`];
-      if (data.failed > 0) parts.push(`${data.failed} fehlgeschlagen`);
-      if (data.skipped > 0) parts.push(`${data.skipped} übersprungen`);
+      const parts = [t("adminDashboard.sendPartSent", { count: data.sent })];
+      if (data.failed > 0) parts.push(t("adminDashboard.sendPartFailed", { count: data.failed }));
+      if (data.skipped > 0) parts.push(t("adminDashboard.sendPartSkipped", { count: data.skipped }));
       toast({
-        title: data.sent > 0 ? "Versand abgeschlossen" : "Kein Versand",
+        title: data.sent > 0 ? t("adminDashboard.toastSendDoneTitle") : t("adminDashboard.toastNoSendTitle"),
         description: parts.join(" · "),
         variant: data.failed > 0 || (data.sent === 0 && data.skipped > 0) ? "destructive" : "default",
       });
@@ -2136,8 +2175,8 @@ function UserListTable({
     },
     onError: (err: any) => {
       toast({
-        title: "Fehler beim Versand",
-        description: err?.message ?? "Unbekannter Fehler",
+        title: t("adminDashboard.toastSendErrorTitle"),
+        description: err?.message ?? t("adminDashboard.unknownError"),
         variant: "destructive",
       });
     },
@@ -2149,14 +2188,14 @@ function UserListTable({
       return res.json();
     },
     onSuccess: (data: { conversationId: number }) => {
-      toast({ title: "Nachricht gesendet", description: `Konversation #${data.conversationId} erstellt.` });
+      toast({ title: t("adminDashboard.toastMessageSentTitle"), description: t("adminDashboard.toastMessageSentDesc", { id: data.conversationId }) });
       setMessageTarget(null);
       setMsgSubject("");
       setMsgContent("");
       queryClient.invalidateQueries({ queryKey: ["/api/admin/messages"] });
     },
     onError: () => {
-      toast({ title: "Fehler", description: "Nachricht konnte nicht gesendet werden.", variant: "destructive" });
+      toast({ title: t("adminDashboard.toastErrorTitle"), description: t("adminDashboard.toastMessageSendFailed"), variant: "destructive" });
     },
   });
 
@@ -2169,8 +2208,8 @@ function UserListTable({
     },
     onSuccess: (data) => {
       toast({
-        title: "Credit-Stand aktualisiert",
-        description: `${data.creditsBefore} → ${data.creditsAfter} Credits`,
+        title: t("adminDashboard.toastCreditsUpdatedTitle"),
+        description: t("adminDashboard.toastCreditsUpdatedDesc", { before: data.creditsBefore, after: data.creditsAfter }),
       });
       setCreditTarget(null);
       setCreditValue("");
@@ -2178,8 +2217,8 @@ function UserListTable({
     },
     onError: (err: any) => {
       toast({
-        title: "Credits konnten nicht gesetzt werden",
-        description: err?.message ?? "Unbekannter Fehler",
+        title: t("adminDashboard.toastCreditsFailedTitle"),
+        description: err?.message ?? t("adminDashboard.unknownError"),
         variant: "destructive",
       });
     },
@@ -2297,7 +2336,7 @@ function UserListTable({
       <Card className="p-4 sm:p-6">
         <div className="flex items-center gap-2 mb-4">
           <Users className="h-5 w-5 text-muted-foreground" />
-          <h2 className="font-semibold">Alle Nutzer</h2>
+          <h2 className="font-semibold">{t("adminDashboard.allUsers")}</h2>
         </div>
         <div className="space-y-2">
           <Skeleton className="h-10 w-full" />
@@ -2312,7 +2351,7 @@ function UserListTable({
   if (isError) {
     return (
       <Card className="p-4 sm:p-6">
-        <p className="text-sm text-muted-foreground">Nutzerdaten konnten nicht geladen werden.</p>
+        <p className="text-sm text-muted-foreground">{t("adminDashboard.userDataLoadError")}</p>
       </Card>
     );
   }
@@ -2322,9 +2361,9 @@ function UserListTable({
       <Card className="p-4 sm:p-6">
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <Users className="h-5 w-5 text-muted-foreground" />
-          <h2 className="font-semibold">Alle Nutzer</h2>
+          <h2 className="font-semibold">{t("adminDashboard.allUsers")}</h2>
           <span className="text-xs text-muted-foreground">
-            ({sorted.length} Nutzer)
+            {t("adminDashboard.userCount", { count: sorted.length })}
           </span>
           <div className="ml-auto flex items-center gap-2">
             <Button
@@ -2336,23 +2375,23 @@ function UserListTable({
               }}
             >
               <Mail className="h-4 w-4 mr-2" />
-              Resend-Segment syncen
+              {t("adminDashboard.syncResendSegment")}
             </Button>
             {selectedIds.size > 0 && (
               <>
                 <span className="text-xs text-muted-foreground">
-                  {selectedIds.size} ausgewählt
+                  {t("adminDashboard.selectedCount", { count: selectedIds.size })}
                 </span>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setSelectedIds(new Set())}
                 >
-                  Auswahl aufheben
+                  {t("adminDashboard.clearSelection")}
                 </Button>
                 <Button size="sm" onClick={() => openMailDialog()}>
                   <MailPlus className="h-4 w-4 mr-2" />
-                  Vorlage senden
+                  {t("adminDashboard.sendTemplate")}
                 </Button>
               </>
             )}
@@ -2366,37 +2405,37 @@ function UserListTable({
                 <Checkbox
                   checked={allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false}
                   onCheckedChange={(v) => toggleAllVisible(v === true)}
-                  aria-label="Alle sichtbaren auswählen"
+                  aria-label={t("adminDashboard.selectAllVisible")}
                 />
               </span>
               <button className="flex items-center text-left hover:text-foreground transition-colors" onClick={() => handleSort("email")}>
-                E-Mail <SortIcon field="email" />
+                {t("adminDashboard.colEmail")} <SortIcon field="email" />
               </button>
               <button className="flex items-center text-left hover:text-foreground transition-colors" onClick={() => handleSort("name")}>
-                Name <SortIcon field="name" />
+                {t("adminDashboard.colName")} <SortIcon field="name" />
               </button>
               <button className="flex items-center text-right justify-end hover:text-foreground transition-colors" onClick={() => handleSort("credits")}>
-                Credits <SortIcon field="credits" />
+                {t("adminDashboard.colCredits")} <SortIcon field="credits" />
               </button>
               <button className="flex items-center text-right justify-end hover:text-foreground transition-colors" onClick={() => handleSort("totalPurchasedCredits")}>
-                Gekauft <SortIcon field="totalPurchasedCredits" />
+                {t("adminDashboard.colPurchased")} <SortIcon field="totalPurchasedCredits" />
               </button>
-              <button className="flex items-center justify-center hover:text-foreground transition-colors" onClick={() => handleSort("newsletterOptIn")} title="Newsletter">
-                NL <SortIcon field="newsletterOptIn" />
+              <button className="flex items-center justify-center hover:text-foreground transition-colors" onClick={() => handleSort("newsletterOptIn")} title={t("adminDashboard.colNewsletterHint")}>
+                {t("adminDashboard.colNewsletter")} <SortIcon field="newsletterOptIn" />
               </button>
               <button className="flex items-center text-left hover:text-foreground transition-colors" onClick={() => handleSort("createdAt")}>
-                Anmeldung <SortIcon field="createdAt" />
+                {t("adminDashboard.colSignup")} <SortIcon field="createdAt" />
               </button>
               <button className="flex items-center text-left hover:text-foreground transition-colors" onClick={() => handleSort("updatedAt")}>
-                Letzter Login <SortIcon field="updatedAt" />
+                {t("adminDashboard.colLastLogin")} <SortIcon field="updatedAt" />
               </button>
               <button className="flex items-center text-right justify-end hover:text-foreground transition-colors" onClick={() => handleSort("purchaseCount")}>
-                Käufe <SortIcon field="purchaseCount" />
+                {t("adminDashboard.colPurchasesCount")} <SortIcon field="purchaseCount" />
               </button>
-              <button className="flex items-center text-right justify-end hover:text-foreground transition-colors" onClick={() => handleSort("audioCount")} title="Anzahl erzeugter Audiodateien">
-                Audio <SortIcon field="audioCount" />
+              <button className="flex items-center text-right justify-end hover:text-foreground transition-colors" onClick={() => handleSort("audioCount")} title={t("adminDashboard.colAudioHint")}>
+                {t("adminDashboard.colAudio")} <SortIcon field="audioCount" />
               </button>
-              <span className="text-center">Aktion</span>
+              <span className="text-center">{t("adminDashboard.colAction")}</span>
             </div>
             <div className="divide-y">
               {sorted.map((u) => (
@@ -2408,7 +2447,7 @@ function UserListTable({
                     <Checkbox
                       checked={selectedIds.has(u.id)}
                       onCheckedChange={(v) => toggleUser(u.id, v === true)}
-                      aria-label={`${u.email ?? u.id} auswählen`}
+                      aria-label={t("adminDashboard.selectUserAria", { user: u.email ?? u.id })}
                     />
                   </span>
                   <span className="truncate">{u.email ?? "–"}</span>
@@ -2418,7 +2457,7 @@ function UserListTable({
                   <span className="text-right tabular-nums font-medium">{u.credits}</span>
                   <span className="text-right tabular-nums text-muted-foreground">{u.totalPurchasedCredits}</span>
                   <span className="flex justify-center">
-                    <span className={`inline-block w-2 h-2 rounded-full ${u.newsletterOptIn ? "bg-green-500" : "bg-muted-foreground/30"}`} title={u.newsletterOptIn ? "Ja" : "Nein"} />
+                    <span className={`inline-block w-2 h-2 rounded-full ${u.newsletterOptIn ? "bg-green-500" : "bg-muted-foreground/30"}`} title={u.newsletterOptIn ? t("adminDashboard.yes") : t("adminDashboard.no")} />
                   </span>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
                     {formatDateTime(u.createdAt)}
@@ -2432,14 +2471,14 @@ function UserListTable({
                   </span>
                   <div className="flex items-center justify-center gap-1">
                     <button
-                      title="Credit-Stand setzen"
+                      title={t("adminDashboard.setCreditsAction")}
                       className="p-1 rounded hover:bg-muted transition-colors"
                       onClick={() => openCreditDialog(u)}
                     >
                       <Wallet className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
                     </button>
                     <button
-                      title={u.audioCount > 0 ? "Audiodateien anzeigen" : "Keine Audiodateien"}
+                      title={u.audioCount > 0 ? t("adminDashboard.showAudioFiles") : t("adminDashboard.noAudioFiles")}
                       className="p-1 rounded hover:bg-muted transition-colors disabled:opacity-40"
                       disabled={u.audioCount === 0}
                       onClick={() => setAudioTarget(u)}
@@ -2447,7 +2486,7 @@ function UserListTable({
                       <Headphones className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
                     </button>
                     <button
-                      title="Vorlage per E-Mail senden"
+                      title={t("adminDashboard.sendTemplateEmail")}
                       className="p-1 rounded hover:bg-muted transition-colors disabled:opacity-40"
                       disabled={!u.email}
                       onClick={() => openMailDialog(u)}
@@ -2455,14 +2494,14 @@ function UserListTable({
                       <MailPlus className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
                     </button>
                     <button
-                      title="Interne Nachricht senden"
+                      title={t("adminDashboard.sendInternalMessage")}
                       className="p-1 rounded hover:bg-muted transition-colors"
                       onClick={() => { setMessageTarget(u); setMsgSubject(""); setMsgContent(""); }}
                     >
                       <Mail className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
                     </button>
                     <button
-                      title="Konversationen anzeigen"
+                      title={t("adminDashboard.showConversations")}
                       className="p-1 rounded hover:bg-muted transition-colors"
                       onClick={() => navigate(`/app/admin/support?user=${u.id}`)}
                     >
@@ -2488,15 +2527,14 @@ function UserListTable({
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Credit-Stand setzen</DialogTitle>
+            <DialogTitle>{t("adminDashboard.setCreditsTitle")}</DialogTitle>
             <DialogDescription>
-              {creditTarget?.email ?? creditTarget?.id ?? "Nutzer"} · aktuell{" "}
-              {creditTarget?.credits ?? 0} Credits
+              {t("adminDashboard.setCreditsSubtitle", { user: creditTarget?.email ?? creditTarget?.id ?? t("adminDashboard.userFallback"), credits: creditTarget?.credits ?? 0 })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2 py-2">
-            <Label htmlFor="admin-credit-value">Neuer Credit-Stand</Label>
+            <Label htmlFor="admin-credit-value">{t("adminDashboard.newCreditBalance")}</Label>
             <Input
               id="admin-credit-value"
               type="number"
@@ -2507,7 +2545,7 @@ function UserListTable({
               placeholder="0"
             />
             <p className="text-xs text-muted-foreground">
-              Der vorhandene Stand wird direkt auf diesen Wert gesetzt, nicht addiert.
+              {t("adminDashboard.creditSetNotAdded")}
             </p>
           </div>
 
@@ -2520,7 +2558,7 @@ function UserListTable({
               }}
               disabled={setCreditsMutation.isPending}
             >
-              Abbrechen
+              {t("common.cancel")}
             </Button>
             <Button
               disabled={!canSubmitCredits}
@@ -2535,7 +2573,7 @@ function UserListTable({
               {setCreditsMutation.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              Speichern
+              {t("common.save")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2553,28 +2591,28 @@ function UserListTable({
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Resend-Marketing-Segment synchronisieren</DialogTitle>
+            <DialogTitle>{t("adminDashboard.resendSyncTitle")}</DialogTitle>
             <DialogDescription>
-              Synchronisiert alle Nutzer mit Newsletter-Opt-In und Anmeldung ab dem Stichtag in ein Resend Segment.
+              {t("adminDashboard.resendSyncDescription")}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="resend-segment-id">Resend Segment-ID</Label>
+              <Label htmlFor="resend-segment-id">{t("adminDashboard.resendSegmentIdLabel")}</Label>
               <Input
                 id="resend-segment-id"
                 value={resendSegmentId}
                 onChange={(e) => setResendSegmentId(e.target.value)}
-                placeholder="Leer lassen, wenn RESEND_MARKETING_SEGMENT_ID gesetzt ist"
+                placeholder={t("adminDashboard.resendSegmentIdPlaceholder")}
               />
               <p className="text-xs text-muted-foreground">
-                Resend nennt Audiences inzwischen Segments. Die ID findest du im Resend Dashboard beim Segment.
+                {t("adminDashboard.resendSegmentIdHint")}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="resend-registered-after">Angemeldet ab</Label>
+              <Label htmlFor="resend-registered-after">{t("adminDashboard.resendRegisteredAfterLabel")}</Label>
               <Input
                 id="resend-registered-after"
                 value={resendRegisteredAfter}
@@ -2585,13 +2623,17 @@ function UserListTable({
 
             {lastResendSyncResult && (
               <Alert>
-                <AlertTitle>Sync-Ergebnis</AlertTitle>
+                <AlertTitle>{t("adminDashboard.resendSyncResultTitle")}</AlertTitle>
                 <AlertDescription>
                   <div className="text-xs space-y-1 mt-1">
                     <div>
-                      {lastResendSyncResult.totalEligible} passend · {lastResendSyncResult.created} neu ·{" "}
-                      {lastResendSyncResult.updated} aktualisiert · {lastResendSyncResult.addedToSegment} im Segment ·{" "}
-                      {lastResendSyncResult.failed} fehlgeschlagen
+                      {t("adminDashboard.resendSyncResultLine", {
+                        eligible: lastResendSyncResult.totalEligible,
+                        created: lastResendSyncResult.created,
+                        updated: lastResendSyncResult.updated,
+                        added: lastResendSyncResult.addedToSegment,
+                        failed: lastResendSyncResult.failed,
+                      })}
                     </div>
                     {lastResendSyncResult.errors.length > 0 && (
                       <ScrollArea className="h-24 mt-2 rounded border p-2 bg-background">
@@ -2617,7 +2659,7 @@ function UserListTable({
               onClick={() => setResendSyncOpen(false)}
               disabled={resendSegmentSyncMutation.isPending}
             >
-              Schließen
+              {t("common.close")}
             </Button>
             <Button
               disabled={
@@ -2634,12 +2676,12 @@ function UserListTable({
               {resendSegmentSyncMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Synchronisiere…
+                  {t("adminDashboard.synchronizing")}
                 </>
               ) : (
                 <>
                   <Mail className="h-4 w-4 mr-2" />
-                  Sync starten
+                  {t("adminDashboard.startSync")}
                 </>
               )}
             </Button>
@@ -2662,21 +2704,20 @@ function UserListTable({
       >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>E-Mail-Vorlage an Nutzer senden</DialogTitle>
+            <DialogTitle>{t("adminDashboard.sendTemplateDialogTitle")}</DialogTitle>
             <DialogDescription>
-              {selectedUsers.length} {selectedUsers.length === 1 ? "Nutzer" : "Nutzer"} ausgewählt. Der Versand wird im Marketing-Log
-              protokolliert und zählt zum 48h-Cooldown dieses Nutzers.
+              {t("adminDashboard.sendTemplateDialogDesc", { count: selectedUsers.length })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             {/* Empfängerliste */}
             <div className="space-y-2">
-              <Label>Empfänger</Label>
+              <Label>{t("adminDashboard.recipients")}</Label>
               <ScrollArea className="h-32 rounded-md border p-2">
                 <div className="space-y-1 text-xs">
                   {selectedUsers.length === 0 ? (
-                    <p className="text-muted-foreground">Keine Nutzer ausgewählt.</p>
+                    <p className="text-muted-foreground">{t("adminDashboard.noUsersSelected")}</p>
                   ) : (
                     selectedUsers.map((u) => (
                       <div
@@ -2684,7 +2725,7 @@ function UserListTable({
                         className="flex items-center justify-between gap-2"
                       >
                         <span className="truncate">
-                          {u.email ?? "(keine E-Mail)"}
+                          {u.email ?? t("adminDashboard.noEmailParens")}
                           {(u.firstName || u.lastName) && (
                             <span className="text-muted-foreground ml-2">
                               {[u.firstName, u.lastName].filter(Boolean).join(" ")}
@@ -2693,14 +2734,14 @@ function UserListTable({
                         </span>
                         <div className="flex items-center gap-1">
                           {!u.newsletterOptIn && (
-                            <span className="text-amber-600" title="Kein Newsletter-Opt-In">
+                            <span className="text-amber-600" title={t("adminDashboard.noNewsletterOptIn")}>
                               <AlertTriangle className="h-3 w-3" />
                             </span>
                           )}
                           <button
                             className="text-muted-foreground hover:text-destructive"
                             onClick={() => toggleUser(u.id, false)}
-                            title="Entfernen"
+                            title={t("adminDashboard.remove")}
                           >
                             <XCircle className="h-3.5 w-3.5" />
                           </button>
@@ -2716,11 +2757,11 @@ function UserListTable({
                   <AlertDescription className="text-xs">
                     {selectedWithoutOptIn > 0 && (
                       <div>
-                        {selectedWithoutOptIn} Nutzer ohne Newsletter-Opt-In werden standardmäßig übersprungen.
+                        {t("adminDashboard.usersWithoutOptInSkipped", { count: selectedWithoutOptIn })}
                       </div>
                     )}
                     {selectedWithoutEmail > 0 && (
-                      <div>{selectedWithoutEmail} Nutzer ohne E-Mail werden übersprungen.</div>
+                      <div>{t("adminDashboard.usersWithoutEmailSkipped", { count: selectedWithoutEmail })}</div>
                     )}
                   </AlertDescription>
                 </Alert>
@@ -2729,21 +2770,21 @@ function UserListTable({
 
             {/* Template-Auswahl */}
             <div className="space-y-2">
-              <Label htmlFor="tpl-select">Vorlage</Label>
+              <Label htmlFor="tpl-select">{t("adminDashboard.template")}</Label>
               <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
                 <SelectTrigger id="tpl-select">
                   <SelectValue
                     placeholder={
-                      templatesQuery.isLoading ? "Lade Vorlagen…" : "Vorlage auswählen…"
+                      templatesQuery.isLoading ? t("adminDashboard.loadingTemplates") : t("adminDashboard.selectTemplate")
                     }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {(templatesQuery.data ?? []).map((t) => (
-                    <SelectItem key={t.id} value={String(t.id)}>
-                      {t.name}
+                  {(templatesQuery.data ?? []).map((tpl) => (
+                    <SelectItem key={tpl.id} value={String(tpl.id)}>
+                      {tpl.name}
                       <span className="text-muted-foreground ml-2 text-xs">
-                        — {t.subject}
+                        — {tpl.subject}
                       </span>
                     </SelectItem>
                   ))}
@@ -2751,14 +2792,17 @@ function UserListTable({
               </Select>
               {templatesQuery.data?.length === 0 && !templatesQuery.isLoading && (
                 <p className="text-xs text-muted-foreground">
-                  Noch keine Vorlagen angelegt. Erstelle eine unter{" "}
-                  <button
-                    className="underline"
-                    onClick={() => navigate("/app/admin/marketing")}
-                  >
-                    Admin › Marketing
-                  </button>
-                  .
+                  <Trans
+                    i18nKey="adminDashboard.noTemplatesHint"
+                    components={{
+                      marketingLink: (
+                        <button
+                          className="underline"
+                          onClick={() => navigate("/app/admin/marketing")}
+                        />
+                      ),
+                    }}
+                  />
                 </p>
               )}
             </div>
@@ -2773,10 +2817,10 @@ function UserListTable({
                 />
                 <div className="grid gap-0.5 leading-none">
                   <label htmlFor="ignore-cooldown" className="text-sm font-medium cursor-pointer">
-                    48h-Cooldown ignorieren
+                    {t("adminDashboard.ignoreCooldown")}
                   </label>
                   <p className="text-xs text-muted-foreground">
-                    Sendet auch dann, wenn der Nutzer kürzlich schon eine Marketing-Mail bekommen hat.
+                    {t("adminDashboard.ignoreCooldownHint")}
                   </p>
                 </div>
               </div>
@@ -2788,10 +2832,10 @@ function UserListTable({
                 />
                 <div className="grid gap-0.5 leading-none">
                   <label htmlFor="ignore-optin" className="text-sm font-medium cursor-pointer">
-                    Opt-In ignorieren <span className="text-destructive">(rechtlich heikel)</span>
+                    {t("adminDashboard.ignoreOptIn")} <span className="text-destructive">{t("adminDashboard.legallySensitive")}</span>
                   </label>
                   <p className="text-xs text-muted-foreground">
-                    Nur für transaktionale/dringende Nachrichten. Marketing ohne Einwilligung ist unzulässig.
+                    {t("adminDashboard.ignoreOptInHint")}
                   </p>
                 </div>
               </div>
@@ -2802,13 +2846,12 @@ function UserListTable({
               <Alert>
                 <AlertTitle className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  Ergebnis
+                  {t("adminDashboard.resultTitle")}
                 </AlertTitle>
                 <AlertDescription>
                   <div className="text-xs space-y-1 mt-1">
                     <div>
-                      {lastSendResult.sent} versendet · {lastSendResult.skipped} übersprungen ·{" "}
-                      {lastSendResult.failed} fehlgeschlagen
+                      {t("adminDashboard.sendResultLine", { sent: lastSendResult.sent, skipped: lastSendResult.skipped, failed: lastSendResult.failed })}
                     </div>
                     {lastSendResult.perUser.some((r) => r.status !== "sent") && (
                       <ScrollArea className="h-24 mt-2 rounded border p-2 bg-background">
@@ -2837,7 +2880,7 @@ function UserListTable({
               onClick={() => setMailDialogOpen(false)}
               disabled={sendTemplateMutation.isPending}
             >
-              Schließen
+              {t("common.close")}
             </Button>
             <Button
               disabled={
@@ -2861,7 +2904,7 @@ function UserListTable({
               ) : (
                 <Send className="h-4 w-4 mr-2" />
               )}
-              An {selectedUsers.length} Nutzer senden
+              {t("adminDashboard.sendToUsers", { count: selectedUsers.length })}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2871,9 +2914,9 @@ function UserListTable({
       <Dialog open={messageTarget !== null} onOpenChange={(open) => { if (!open) setMessageTarget(null); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Nachricht an Nutzer senden</DialogTitle>
+            <DialogTitle>{t("adminDashboard.sendMessageTitle")}</DialogTitle>
             <DialogDescription>
-              {messageTarget?.email ?? "Unbekannt"}{" "}
+              {messageTarget?.email ?? t("adminDashboard.unknown")}{" "}
               {messageTarget?.firstName || messageTarget?.lastName
                 ? `(${[messageTarget.firstName, messageTarget.lastName].filter(Boolean).join(" ")})`
                 : ""}
@@ -2881,20 +2924,20 @@ function UserListTable({
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="msg-subject">Betreff</Label>
+              <Label htmlFor="msg-subject">{t("adminDashboard.subject")}</Label>
               <Input
                 id="msg-subject"
-                placeholder="Betreff der Nachricht…"
+                placeholder={t("adminDashboard.subjectPlaceholder")}
                 value={msgSubject}
                 onChange={(e) => setMsgSubject(e.target.value)}
                 maxLength={200}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="msg-content">Nachricht</Label>
+              <Label htmlFor="msg-content">{t("adminDashboard.message")}</Label>
               <Textarea
                 id="msg-content"
-                placeholder="Ihre Nachricht an den Nutzer…"
+                placeholder={t("adminDashboard.messagePlaceholder")}
                 value={msgContent}
                 onChange={(e) => setMsgContent(e.target.value)}
                 rows={5}
@@ -2903,7 +2946,7 @@ function UserListTable({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMessageTarget(null)}>
-              Abbrechen
+              {t("common.cancel")}
             </Button>
             <Button
               disabled={!msgSubject.trim() || !msgContent.trim() || sendMessageMutation.isPending}
@@ -2921,7 +2964,7 @@ function UserListTable({
               ) : (
                 <Send className="h-4 w-4 mr-2" />
               )}
-              Senden
+              {t("adminDashboard.send")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2950,19 +2993,19 @@ function formatAudioDateTime(iso: string): string {
   });
 }
 
-function getVersionLabel(version: string): string {
+function getVersionLabel(version: string, t: TFunction): string {
   switch (version) {
-    case "original": return "Original";
-    case "completed": return "Vervollständigt";
-    case "interpreted": return "Interpretiert";
+    case "original": return t("adminDashboard.versionOriginal");
+    case "completed": return t("adminDashboard.versionCompleted");
+    case "interpreted": return t("adminDashboard.versionInterpreted");
     default: return version;
   }
 }
 
-function getPagesLabel(pages: number[] | "all"): string {
-  if (pages === "all") return "Alle Seiten";
-  if (Array.isArray(pages) && pages.length === 1) return `Seite ${pages[0]}`;
-  if (Array.isArray(pages)) return `${pages.length} Seiten`;
+function getPagesLabel(pages: number[] | "all", t: TFunction): string {
+  if (pages === "all") return t("adminDashboard.allPages");
+  if (Array.isArray(pages) && pages.length === 1) return t("adminDashboard.singlePage", { page: pages[0] });
+  if (Array.isArray(pages)) return t("adminDashboard.multiplePages", { count: pages.length });
   return "";
 }
 
@@ -2973,6 +3016,7 @@ function UserAudioDialog({
   user: UserListItem | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const open = user !== null;
   const userId = user?.id ?? null;
 
@@ -2990,7 +3034,7 @@ function UserAudioDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Headphones className="h-5 w-5 text-muted-foreground" />
-            Audiodateien
+            {t("adminDashboard.audioFiles")}
             {user && (
               <span className="text-sm font-normal text-muted-foreground">
                 · {user.email ?? user.id}
@@ -2999,7 +3043,7 @@ function UserAudioDialog({
           </DialogTitle>
           <DialogDescription>
             {user
-              ? `${user.audioCount} ${user.audioCount === 1 ? "erzeugte Audiodatei" : "erzeugte Audiodateien"}`
+              ? t("adminDashboard.generatedAudioCount", { count: user.audioCount })
               : ""}
           </DialogDescription>
         </DialogHeader>
@@ -3015,14 +3059,14 @@ function UserAudioDialog({
             ) : isError ? (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Fehler</AlertTitle>
+                <AlertTitle>{t("adminDashboard.toastErrorTitle")}</AlertTitle>
                 <AlertDescription>
-                  Audiodateien konnten nicht geladen werden.
+                  {t("adminDashboard.audioLoadError")}
                 </AlertDescription>
               </Alert>
             ) : generations.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">
-                Keine Audiodateien vorhanden.
+                {t("adminDashboard.noAudioFilesAvailable")}
               </p>
             ) : (
               generations.map((g) => {
@@ -3036,12 +3080,12 @@ function UserAudioDialog({
                   >
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       <Badge variant="outline">{g.voice}</Badge>
-                      <Badge variant="secondary">{getVersionLabel(g.version)}</Badge>
+                      <Badge variant="secondary">{getVersionLabel(g.version, t)}</Badge>
                       <Badge variant="outline">{g.lang}</Badge>
-                      <Badge variant="outline">{getPagesLabel(g.pages)}</Badge>
+                      <Badge variant="outline">{getPagesLabel(g.pages, t)}</Badge>
                       {g.creditsUsed > 0 && (
                         <Badge variant="outline" className="text-amber-600">
-                          {g.creditsUsed} Credits
+                          {t("adminDashboard.creditsBadge", { count: g.creditsUsed })}
                         </Badge>
                       )}
                       <span className="ml-auto text-muted-foreground whitespace-nowrap">
@@ -3069,22 +3113,22 @@ function UserAudioDialog({
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center justify-center h-9 px-3 rounded-md border text-xs hover:bg-muted transition-colors"
-                          title="Herunterladen"
+                          title={t("common.download")}
                         >
                           <Download className="h-3.5 w-3.5 mr-1" />
-                          Download
+                          {t("common.download")}
                         </a>
                       </div>
                     ) : (
                       <p className="text-xs text-destructive">
-                        Keine Audio-URL verfügbar
+                        {t("adminDashboard.noAudioUrl")}
                       </p>
                     )}
 
                     <div className="text-[10px] text-muted-foreground font-mono">
-                      Job #{g.jobId} · Generation #{g.id}
+                      {t("adminDashboard.jobGenerationInfo", { jobId: g.jobId, generationId: g.id })}
                       {g.jobScriptType ? ` · ${g.jobScriptType}` : ""}
-                      {g.jobTotalPages ? ` · ${g.jobTotalPages} S.` : ""}
+                      {g.jobTotalPages ? ` · ${t("adminDashboard.pagesAbbrev", { count: g.jobTotalPages })}` : ""}
                     </div>
                   </div>
                 );
@@ -3095,7 +3139,7 @@ function UserAudioDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Schließen
+            {t("common.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

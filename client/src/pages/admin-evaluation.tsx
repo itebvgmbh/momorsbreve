@@ -1,4 +1,6 @@
 import React, { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient, getAuthHeaders } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -79,10 +81,10 @@ function getModelsForProvider(provider: Provider) {
   return provider === "google" ? GEMINI_MODELS : ANTHROPIC_MODELS;
 }
 
-function getDefaultModelLabel(provider: Provider) {
+function getDefaultModelLabel(provider: Provider, t: TFunction) {
   return provider === "google"
-    ? "Standard (gemini-2.5-flash)"
-    : "Standard (claude-opus-4-6)";
+    ? t("adminEvaluation.defaultModelGemini")
+    : t("adminEvaluation.defaultModelAnthropic");
 }
 
 interface EvaluationDocument {
@@ -138,6 +140,7 @@ function formatDate(s: string | null | undefined): string {
 }
 
 export default function AdminEvaluationPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
   const [testSingleDoc, setTestSingleDoc] = useState<EvaluationDocument | null>(
@@ -179,10 +182,10 @@ export default function AdminEvaluationPage() {
       apiRequest("DELETE", `/api/admin/eval/documents/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/eval/documents"] });
-      toast({ title: "Dokument gelöscht" });
+      toast({ title: t("adminEvaluation.toastDocDeleted") });
     },
     onError: (e: Error) => {
-      toast({ title: "Fehler", description: e.message, variant: "destructive" });
+      toast({ title: t("adminEvaluation.error"), description: e.message, variant: "destructive" });
     },
   });
 
@@ -192,10 +195,10 @@ export default function AdminEvaluationPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/eval/runs"] });
       if (selectedRunId) setSelectedRunId(null);
-      toast({ title: "Run gelöscht" });
+      toast({ title: t("adminEvaluation.toastRunDeleted") });
     },
     onError: (e: Error) => {
-      toast({ title: "Fehler", description: e.message, variant: "destructive" });
+      toast({ title: t("adminEvaluation.error"), description: e.message, variant: "destructive" });
     },
   });
 
@@ -204,19 +207,18 @@ export default function AdminEvaluationPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-serif font-bold flex items-center gap-2">
           <FlaskConical className="h-6 w-6" />
-          Transkriptions-Evaluation
+          {t("adminEvaluation.pageTitle")}
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Ground-Truth-Dokumente verwalten, Testruns starten und Ergebnisse
-          vergleichen.
+          {t("adminEvaluation.pageSubtitle")}
         </p>
       </div>
 
       <Tabs defaultValue="documents">
         <TabsList className="grid w-full grid-cols-3 max-w-md">
-          <TabsTrigger value="documents">Testdokumente</TabsTrigger>
-          <TabsTrigger value="run">Testrun starten</TabsTrigger>
-          <TabsTrigger value="dashboard">Ergebnisse</TabsTrigger>
+          <TabsTrigger value="documents">{t("adminEvaluation.tabDocuments")}</TabsTrigger>
+          <TabsTrigger value="run">{t("adminEvaluation.tabRun")}</TabsTrigger>
+          <TabsTrigger value="dashboard">{t("adminEvaluation.tabResults")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="documents" className="mt-6">
@@ -278,6 +280,7 @@ function DocumentsTab({
     notes: string;
   }
 
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [scriptType, setScriptType] = useState<string>("auto");
@@ -302,7 +305,7 @@ function DocumentsTab({
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
-      if (!allValid) throw new Error("Alle Einträge müssen Name und Ground Truth haben");
+      if (!allValid) throw new Error(t("adminEvaluation.errAllEntriesNeedNameAndGt"));
       const fd = new FormData();
       for (const entry of entries) {
         fd.append("files", entry.file);
@@ -321,18 +324,18 @@ function DocumentsTab({
         headers: authHeaders,
       });
       if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || "Upload fehlgeschlagen");
+        const errText = await res.text();
+        throw new Error(errText || t("adminEvaluation.errUploadFailed"));
       }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/eval/documents"] });
       setEntries([]);
-      toast({ title: `${entries.length} Dokument(e) hochgeladen` });
+      toast({ title: t("adminEvaluation.toastDocsUploaded", { count: entries.length }) });
     },
     onError: (e: Error) => {
-      toast({ title: "Fehler", description: e.message, variant: "destructive" });
+      toast({ title: t("adminEvaluation.error"), description: e.message, variant: "destructive" });
     },
   });
 
@@ -376,7 +379,7 @@ function DocumentsTab({
   return (
     <div className="space-y-6">
       <Card className="p-4">
-        <h3 className="font-medium mb-4">Testdokumente hochladen</h3>
+        <h3 className="font-medium mb-4">{t("adminEvaluation.uploadHeading")}</h3>
         <div
           className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors"
           onDragOver={(e) => e.preventDefault()}
@@ -393,7 +396,7 @@ function DocumentsTab({
           />
           <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">
-            Bilder oder PDFs hier ablegen oder klicken (mehrere möglich)
+            {t("adminEvaluation.dropzoneHint")}
           </p>
         </div>
 
@@ -401,7 +404,7 @@ function DocumentsTab({
           <>
             <div className="grid gap-4 mt-4 sm:grid-cols-2">
               <div>
-                <Label>Skripttyp (für alle)</Label>
+                <Label>{t("adminEvaluation.scriptTypeForAll")}</Label>
                 <Select value={scriptType} onValueChange={setScriptType}>
                   <SelectTrigger>
                     <SelectValue />
@@ -416,15 +419,15 @@ function DocumentsTab({
                 </Select>
               </div>
               <div>
-                <Label>Schwierigkeit (für alle)</Label>
+                <Label>{t("adminEvaluation.difficultyForAll")}</Label>
                 <Select value={difficulty} onValueChange={setDifficulty}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="easy">Einfach</SelectItem>
-                    <SelectItem value="medium">Mittel</SelectItem>
-                    <SelectItem value="hard">Schwer</SelectItem>
+                    <SelectItem value="easy">{t("adminEvaluation.difficultyEasy")}</SelectItem>
+                    <SelectItem value="medium">{t("adminEvaluation.difficultyMedium")}</SelectItem>
+                    <SelectItem value="hard">{t("adminEvaluation.difficultyHard")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -455,38 +458,38 @@ function DocumentsTab({
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
-                      <Label className="text-xs">Name</Label>
+                      <Label className="text-xs">{t("adminEvaluation.entryNameLabel")}</Label>
                       <Input
                         value={entry.name}
                         onChange={(e) =>
                           updateEntry(idx, { name: e.target.value })
                         }
-                        placeholder="z.B. suetterlin-001"
+                        placeholder={t("adminEvaluation.entryNamePlaceholder")}
                         className="h-8 text-sm"
                       />
                     </div>
                     <div>
-                      <Label className="text-xs">Anmerkungen (optional)</Label>
+                      <Label className="text-xs">{t("adminEvaluation.entryNotesLabel")}</Label>
                       <Input
                         value={entry.notes}
                         onChange={(e) =>
                           updateEntry(idx, { notes: e.target.value })
                         }
-                        placeholder="z.B. Quelle"
+                        placeholder={t("adminEvaluation.entryNotesPlaceholder")}
                         className="h-8 text-sm"
                       />
                     </div>
                   </div>
                   <div className="mt-2">
                     <Label className="text-xs">
-                      Ground Truth (korrekte Transkription)
+                      {t("adminEvaluation.groundTruthLabel")}
                     </Label>
                     <Textarea
                       value={entry.groundTruth}
                       onChange={(e) =>
                         updateEntry(idx, { groundTruth: e.target.value })
                       }
-                      placeholder="Korrekte Transkription eingeben..."
+                      placeholder={t("adminEvaluation.groundTruthPlaceholder")}
                       rows={3}
                       className="mt-1 text-sm"
                     />
@@ -503,16 +506,14 @@ function DocumentsTab({
                 {uploadMutation.isPending && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
-                {entries.length === 1
-                  ? "1 Dokument hochladen"
-                  : `${entries.length} Dokumente hochladen`}
+                {t("adminEvaluation.uploadButton", { count: entries.length })}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setEntries([])}
               >
-                Alle entfernen
+                {t("adminEvaluation.removeAll")}
               </Button>
             </div>
           </>
@@ -520,20 +521,20 @@ function DocumentsTab({
       </Card>
 
       <Card className="p-4">
-        <h3 className="font-medium mb-4">Testdokumente ({documents.length})</h3>
+        <h3 className="font-medium mb-4">{t("adminEvaluation.testDocsHeading", { count: documents.length })}</h3>
         {documents.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">
-            Noch keine Testdokumente. Lade das erste oben hoch.
+            {t("adminEvaluation.noTestDocs")}
           </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Typ</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Skript</TableHead>
-                <TableHead>GT-Länge</TableHead>
-                <TableHead className="text-right">Aktionen</TableHead>
+                <TableHead>{t("adminEvaluation.colType")}</TableHead>
+                <TableHead>{t("adminEvaluation.colName")}</TableHead>
+                <TableHead>{t("adminEvaluation.colScript")}</TableHead>
+                <TableHead>{t("adminEvaluation.colGtLength")}</TableHead>
+                <TableHead className="text-right">{t("adminEvaluation.colActions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -548,14 +549,14 @@ function DocumentsTab({
                   </TableCell>
                   <TableCell className="font-medium">{doc.name}</TableCell>
                   <TableCell>{documentTypeLabels[doc.scriptType as DocumentType] ?? doc.scriptType}</TableCell>
-                  <TableCell>{doc.groundTruth.length} Zeichen</TableCell>
+                  <TableCell>{t("adminEvaluation.charsCount", { count: doc.groundTruth.length })}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => onTest(doc)}
                     >
-                      Testen
+                      {t("adminEvaluation.testButton")}
                     </Button>
                     <Button
                       variant="ghost"
@@ -597,6 +598,7 @@ function RunConfigTab({
   documents: EvaluationDocument[];
   runs: EvaluationRun[];
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [provider, setProvider] = useState<Provider>("anthropic");
@@ -681,10 +683,10 @@ function RunConfigTab({
       setPreprocessBinarize(false);
       setSelectedDocIds(new Set());
       setSelectedPageIds(new Set());
-      toast({ title: "Testrun gestartet" });
+      toast({ title: t("adminEvaluation.toastRunStarted") });
     },
     onError: (e: Error) => {
-      toast({ title: "Fehler", description: e.message, variant: "destructive" });
+      toast({ title: t("adminEvaluation.error"), description: e.message, variant: "destructive" });
     },
   });
 
@@ -714,18 +716,18 @@ function RunConfigTab({
   return (
     <div className="space-y-6">
       <Card className="p-4">
-        <h3 className="font-medium mb-4">Neuen Testrun starten</h3>
+        <h3 className="font-medium mb-4">{t("adminEvaluation.newRunHeading")}</h3>
         <div className="space-y-4">
           <div>
-            <Label>Name des Runs</Label>
+            <Label>{t("adminEvaluation.runNameLabel")}</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="z.B. v2-suetterlin-prompt-test"
+              placeholder={t("adminEvaluation.runNamePlaceholder")}
             />
           </div>
           <div>
-            <Label>Skripttyp</Label>
+            <Label>{t("adminEvaluation.scriptTypeLabel")}</Label>
             <Select value={scriptType} onValueChange={setScriptType}>
               <SelectTrigger>
                 <SelectValue />
@@ -741,7 +743,7 @@ function RunConfigTab({
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Provider</Label>
+              <Label>{t("adminEvaluation.providerLabel")}</Label>
               <Select
                 value={provider}
                 onValueChange={(v) => {
@@ -753,19 +755,19 @@ function RunConfigTab({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                  <SelectItem value="google">Google (Gemini)</SelectItem>
+                  <SelectItem value="anthropic">{t("adminEvaluation.providerAnthropic")}</SelectItem>
+                  <SelectItem value="google">{t("adminEvaluation.providerGoogle")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Model</Label>
+              <Label>{t("adminEvaluation.modelLabel")}</Label>
               <Select value={model || "__default__"} onValueChange={(v) => setModel(v === "__default__" ? "" : v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder={getDefaultModelLabel(provider)} />
+                  <SelectValue placeholder={getDefaultModelLabel(provider, t)} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__default__">{getDefaultModelLabel(provider)}</SelectItem>
+                  <SelectItem value="__default__">{getDefaultModelLabel(provider, t)}</SelectItem>
                   {getModelsForProvider(provider).map((m) => (
                     <SelectItem key={m.value} value={m.value}>
                       {m.label}
@@ -777,7 +779,7 @@ function RunConfigTab({
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Max Tokens</Label>
+              <Label>{t("adminEvaluation.maxTokensLabel")}</Label>
               <Input
                 type="number"
                 value={maxTokens}
@@ -788,7 +790,7 @@ function RunConfigTab({
               />
             </div>
             <div>
-              <Label>Thinking Budget</Label>
+              <Label>{t("adminEvaluation.thinkingBudgetLabel")}</Label>
               <Input
                 type="number"
                 value={thinkingBudget}
@@ -800,7 +802,7 @@ function RunConfigTab({
             </div>
           </div>
           <div>
-            <Label>Bild-Preprocessing (nur für Bilder, nicht PDF)</Label>
+            <Label>{t("adminEvaluation.preprocessingLabel")}</Label>
             <div className="flex items-center gap-4 mt-2 mb-3">
               <div className="flex items-center gap-2">
                 <Switch
@@ -809,7 +811,7 @@ function RunConfigTab({
                   onCheckedChange={setPreprocessAuto}
                 />
                 <label htmlFor="prep-auto" className="text-sm cursor-pointer font-medium">
-                  Regelbasiert (Auto) – für Tests ein-/ausschaltbar
+                  {t("adminEvaluation.preprocessAutoToggle")}
                 </label>
               </div>
             </div>
@@ -821,7 +823,7 @@ function RunConfigTab({
                     checked={preprocessContrast}
                     onCheckedChange={(c) => setPreprocessContrast(!!c)}
                   />
-                  <label htmlFor="prep-contrast" className="text-sm cursor-pointer">Kontrast</label>
+                  <label htmlFor="prep-contrast" className="text-sm cursor-pointer">{t("adminEvaluation.prepContrast")}</label>
                 </div>
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -829,7 +831,7 @@ function RunConfigTab({
                     checked={preprocessSharpen}
                     onCheckedChange={(c) => setPreprocessSharpen(!!c)}
                   />
-                  <label htmlFor="prep-sharpen" className="text-sm cursor-pointer">Schärfen</label>
+                  <label htmlFor="prep-sharpen" className="text-sm cursor-pointer">{t("adminEvaluation.prepSharpen")}</label>
                 </div>
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -837,7 +839,7 @@ function RunConfigTab({
                     checked={preprocessBinarize}
                     onCheckedChange={(c) => setPreprocessBinarize(!!c)}
                   />
-                  <label htmlFor="prep-binarize" className="text-sm cursor-pointer">Binarisierung</label>
+                  <label htmlFor="prep-binarize" className="text-sm cursor-pointer">{t("adminEvaluation.prepBinarize")}</label>
                 </div>
               </div>
             )}
@@ -846,26 +848,26 @@ function RunConfigTab({
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="flex items-center gap-2">
                 <ChevronDown className="h-4 w-4" />
-                Erweiterte Einstellungen (Custom Prompts)
+                {t("adminEvaluation.advancedSettings")}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-4">
               <div>
-                <Label>System-Prompt (optional)</Label>
+                <Label>{t("adminEvaluation.systemPromptLabel")}</Label>
                 <Textarea
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
-                  placeholder="Überschreibt den Standard-System-Prompt pro Skripttyp"
+                  placeholder={t("adminEvaluation.systemPromptPlaceholder")}
                   rows={4}
                   className="mt-1 font-mono text-sm"
                 />
               </div>
               <div>
-                <Label>Task-Prompt (optional)</Label>
+                <Label>{t("adminEvaluation.taskPromptLabel")}</Label>
                 <Textarea
                   value={taskPrompt}
                   onChange={(e) => setTaskPrompt(e.target.value)}
-                  placeholder="Überschreibt den Standard-Task-Prompt pro Skripttyp"
+                  placeholder={t("adminEvaluation.taskPromptPlaceholder")}
                   rows={4}
                   className="mt-1 font-mono text-sm"
                 />
@@ -874,28 +876,28 @@ function RunConfigTab({
           </Collapsible>
 
           <div>
-            <Label>Datenquelle</Label>
+            <Label>{t("adminEvaluation.dataSourceLabel")}</Label>
             <Select value={dataSource} onValueChange={(v) => setDataSource(v as DataSource)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="eval_documents">Testdokumente (mit Ground Truth)</SelectItem>
-                <SelectItem value="production">Produktions-Transkriptionen (Claude als Referenz)</SelectItem>
+                <SelectItem value="eval_documents">{t("adminEvaluation.dataSourceEvalDocs")}</SelectItem>
+                <SelectItem value="production">{t("adminEvaluation.dataSourceProduction")}</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">
               {dataSource === "production"
-                ? "Die bestehende Claude-Transkription wird als Referenz für CER/WER verwendet."
-                : "Manuell erstellte Ground-Truth-Texte werden als Referenz verwendet."}
+                ? t("adminEvaluation.dataSourceHintProduction")
+                : t("adminEvaluation.dataSourceHintEvalDocs")}
             </p>
           </div>
 
           {dataSource === "eval_documents" ? (
             <div>
-              <Label>Dokumente</Label>
+              <Label>{t("adminEvaluation.documentsLabel")}</Label>
               <p className="text-sm text-muted-foreground mb-2">
-                Leer = alle. Sonst: ausgewählte Dokumente.
+                {t("adminEvaluation.documentsHint")}
               </p>
               <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-2">
                 {documents.map((doc) => (
@@ -918,21 +920,23 @@ function RunConfigTab({
                 ))}
                 {documents.length === 0 && (
                   <p className="text-sm text-muted-foreground py-2">
-                    Keine Testdokumente. Zuerst im Tab „Testdokumente“ hochladen.
+                    {t("adminEvaluation.noDocsUploadFirst")}
                   </p>
                 )}
               </div>
             </div>
           ) : (
             <div>
-              <Label>Produktions-Transkriptionen</Label>
+              <Label>{t("adminEvaluation.productionTranscriptionsLabel")}</Label>
               <p className="text-sm text-muted-foreground mb-2">
-                Leer = alle. ({selectedPageIds.size > 0 ? `${selectedPageIds.size} ausgewählt` : `${productionPages.length} verfügbar`})
+                {selectedPageIds.size > 0
+                  ? t("adminEvaluation.productionHintSelected", { count: selectedPageIds.size })
+                  : t("adminEvaluation.productionHintAvailable", { count: productionPages.length })}
               </p>
               {prodPagesLoading ? (
                 <div className="flex items-center gap-2 py-4">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm text-muted-foreground">Lade Transkriptionen...</span>
+                  <span className="text-sm text-muted-foreground">{t("adminEvaluation.loadingTranscriptions")}</span>
                 </div>
               ) : (
                 <div className="max-h-64 overflow-y-auto border rounded-md p-2 space-y-1">
@@ -949,7 +953,7 @@ function RunConfigTab({
                         />
                       </span>
                       <span className="text-sm truncate flex-1">
-                        Job {p.jobId} / Seite {p.pageNumber}
+                        {t("adminEvaluation.jobPageLabel", { job: p.jobId, page: p.pageNumber })}
                       </span>
                       <Badge variant="outline" className="text-xs shrink-0">
                         {p.scriptType}
@@ -961,7 +965,7 @@ function RunConfigTab({
                   ))}
                   {productionPages.length === 0 && (
                     <p className="text-sm text-muted-foreground py-2">
-                      Keine abgeschlossenen Transkriptionen vorhanden.
+                      {t("adminEvaluation.noCompletedTranscriptions")}
                     </p>
                   )}
                 </div>
@@ -979,11 +983,11 @@ function RunConfigTab({
             {createRunMutation.isPending && (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             )}
-            Run starten
+            {t("adminEvaluation.startRunButton")}
           </Button>
           {runningCount > 0 && (
             <p className="text-sm text-muted-foreground">
-              {runningCount} Run(s) laufen gerade parallel.
+              {t("adminEvaluation.runningCount", { count: runningCount })}
             </p>
           )}
         </div>
@@ -1009,6 +1013,7 @@ function DashboardTab({
   runDetailLoading: boolean;
   onDeleteRun: (id: number) => void;
 }) {
+  const { t } = useTranslation();
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -1022,22 +1027,22 @@ function DashboardTab({
       <Card className="p-4">
         <h3 className="font-medium mb-4 flex items-center gap-2">
           <BarChart3 className="h-4 w-4" />
-          Testruns
+          {t("adminEvaluation.testRunsHeading")}
         </h3>
         {runs.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">
-            Noch keine Testruns. Starte einen im Tab „Testrun starten“.
+            {t("adminEvaluation.noTestRuns")}
           </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Datum</TableHead>
-                <TableHead>Avg CER</TableHead>
-                <TableHead>Avg WER</TableHead>
-                <TableHead>Dokumente</TableHead>
+                <TableHead>{t("adminEvaluation.colName")}</TableHead>
+                <TableHead>{t("adminEvaluation.colStatus")}</TableHead>
+                <TableHead>{t("adminEvaluation.colDate")}</TableHead>
+                <TableHead>{t("adminEvaluation.colAvgCer")}</TableHead>
+                <TableHead>{t("adminEvaluation.colAvgWer")}</TableHead>
+                <TableHead>{t("adminEvaluation.colDocuments")}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -1108,6 +1113,7 @@ function RunDetailPanel({
   isLoading: boolean;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   if (!runDetail) return null;
@@ -1135,13 +1141,13 @@ function RunDetailPanel({
             </Badge>
             {(s as any)?.source === "production" && (
               <Badge variant="outline" className="text-xs text-amber-600 border-amber-400">
-                Produktionsdaten
+                {t("adminEvaluation.productionDataBadge")}
               </Badge>
             )}
           </div>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
-          Schließen
+          {t("common.close")}
         </Button>
       </div>
       {isLoading ? (
@@ -1152,19 +1158,19 @@ function RunDetailPanel({
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-xs text-muted-foreground">Avg CER</p>
+              <p className="text-xs text-muted-foreground">{t("adminEvaluation.statAvgCer")}</p>
               <p className="text-lg font-mono">{formatPct(s?.avgCER)}</p>
             </div>
             <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-xs text-muted-foreground">Avg WER</p>
+              <p className="text-xs text-muted-foreground">{t("adminEvaluation.statAvgWer")}</p>
               <p className="text-lg font-mono">{formatPct(s?.avgWER)}</p>
             </div>
             <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-xs text-muted-foreground">Token</p>
+              <p className="text-xs text-muted-foreground">{t("adminEvaluation.statTokens")}</p>
               <p className="text-lg font-mono">{s?.totalTokens ?? "–"}</p>
             </div>
             <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-xs text-muted-foreground">Dauer</p>
+              <p className="text-xs text-muted-foreground">{t("adminEvaluation.statDuration")}</p>
               <p className="text-lg font-mono">
                 {s?.totalDurationMs != null
                   ? `${(s.totalDurationMs / 1000).toFixed(1)}s`
@@ -1176,11 +1182,11 @@ function RunDetailPanel({
             <TableHeader>
               <TableRow>
                 <TableHead></TableHead>
-                <TableHead>Dokument</TableHead>
-                <TableHead>Typ</TableHead>
-                <TableHead>CER</TableHead>
-                <TableHead>WER</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>{t("adminEvaluation.colDocument")}</TableHead>
+                <TableHead>{t("adminEvaluation.colType")}</TableHead>
+                <TableHead>{t("adminEvaluation.colCer")}</TableHead>
+                <TableHead>{t("adminEvaluation.colWer")}</TableHead>
+                <TableHead>{t("adminEvaluation.colStatus")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1202,12 +1208,12 @@ function RunDetailPanel({
                     <TableCell>
                       {r.document?.name
                         ?? ((r as any).qualityDetails?.source === "production"
-                          ? `Seite ${(r as any).qualityDetails?.pageId ?? "?"}`
+                          ? t("adminEvaluation.pageLabel", { page: (r as any).qualityDetails?.pageId ?? "?" })
                           : r.documentId || "–")}
                     </TableCell>
                     <TableCell>
                       {r.document?.fileType
-                        ?? ((r as any).qualityDetails?.source === "production" ? "Produktion" : "–")}
+                        ?? ((r as any).qualityDetails?.source === "production" ? t("adminEvaluation.typeProduction") : "–")}
                     </TableCell>
                     <TableCell>{formatPct(r.cer)}</TableCell>
                     <TableCell>{formatPct(r.wer)}</TableCell>
@@ -1236,17 +1242,17 @@ function RunDetailPanel({
                             return (
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground mb-1">
-                                  Originaldokument
+                                  {t("adminEvaluation.originalDocument")}
                                 </p>
                                 {isPdf ? (
                                   <a href={imgUrl} target="_blank" rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
-                                    PDF anzeigen ↗
+                                    {t("adminEvaluation.viewPdf")}
                                   </a>
                                 ) : (
                                   <img
                                     src={imgUrl}
-                                    alt="Original"
+                                    alt={t("adminEvaluation.originalAlt")}
                                     className="max-h-72 rounded-md border object-contain bg-white"
                                   />
                                 )}
@@ -1256,22 +1262,22 @@ function RunDetailPanel({
                           <div className="grid gap-4 sm:grid-cols-2">
                             <div>
                               <p className="text-xs font-medium text-muted-foreground mb-1">
-                                KI-Transkription ({runModel})
+                                {t("adminEvaluation.aiTranscriptionWithModel", { model: runModel })}
                               </p>
                               <pre className="p-3 bg-background rounded-md text-sm whitespace-pre-wrap max-h-64 overflow-y-auto border">
-                                {r.transcription || "(leer)"}
+                                {r.transcription || t("adminEvaluation.empty")}
                               </pre>
                             </div>
                             <div>
                               <p className="text-xs font-medium text-muted-foreground mb-1">
                                 {(r as any).qualityDetails?.source === "production"
-                                  ? "Referenz (Claude-Transkription)"
-                                  : "Ground Truth"}
+                                  ? t("adminEvaluation.referenceClaude")
+                                  : t("adminEvaluation.groundTruthShort")}
                               </p>
                               <pre className="p-3 bg-background rounded-md text-sm whitespace-pre-wrap max-h-64 overflow-y-auto border">
                                 {(r as any).qualityDetails?.groundTruth
                                   || r.document?.groundTruth
-                                  || "(leer)"}
+                                  || t("adminEvaluation.empty")}
                               </pre>
                             </div>
                           </div>
@@ -1300,6 +1306,7 @@ function TestSingleDialog({
   onScriptTypeChange: (v: string) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [provider, setProvider] = useState<Provider>("anthropic");
   const [model, setModel] = useState("");
@@ -1357,7 +1364,7 @@ function TestSingleDialog({
       });
     } catch (e: unknown) {
       toast({
-        title: "Fehler",
+        title: t("adminEvaluation.error"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -1370,11 +1377,11 @@ function TestSingleDialog({
     <Dialog open onOpenChange={() => onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Einzeltest: {doc.name}</DialogTitle>
+          <DialogTitle>{t("adminEvaluation.singleTestTitle", { name: doc.name })}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label>Skripttyp</Label>
+            <Label>{t("adminEvaluation.scriptTypeLabel")}</Label>
             <Select value={scriptType} onValueChange={onScriptTypeChange}>
               <SelectTrigger>
                 <SelectValue />
@@ -1390,7 +1397,7 @@ function TestSingleDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Provider</Label>
+              <Label>{t("adminEvaluation.providerLabel")}</Label>
               <Select
                 value={provider}
                 onValueChange={(v) => {
@@ -1402,19 +1409,19 @@ function TestSingleDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                  <SelectItem value="google">Google (Gemini)</SelectItem>
+                  <SelectItem value="anthropic">{t("adminEvaluation.providerAnthropic")}</SelectItem>
+                  <SelectItem value="google">{t("adminEvaluation.providerGoogle")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Model</Label>
+              <Label>{t("adminEvaluation.modelLabel")}</Label>
               <Select value={model || "__default__"} onValueChange={(v) => setModel(v === "__default__" ? "" : v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder={getDefaultModelLabel(provider)} />
+                  <SelectValue placeholder={getDefaultModelLabel(provider, t)} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__default__">{getDefaultModelLabel(provider)}</SelectItem>
+                  <SelectItem value="__default__">{getDefaultModelLabel(provider, t)}</SelectItem>
                   {getModelsForProvider(provider).map((m) => (
                     <SelectItem key={m.value} value={m.value}>
                       {m.label}
@@ -1426,7 +1433,7 @@ function TestSingleDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Max Tokens</Label>
+              <Label>{t("adminEvaluation.maxTokensLabel")}</Label>
               <Input
                 type="number"
                 value={maxTokens}
@@ -1435,7 +1442,7 @@ function TestSingleDialog({
               />
             </div>
             <div>
-              <Label>Thinking Budget</Label>
+              <Label>{t("adminEvaluation.thinkingBudgetLabel")}</Label>
               <Input
                 type="number"
                 value={thinkingBudget}
@@ -1445,7 +1452,7 @@ function TestSingleDialog({
             </div>
           </div>
           <div>
-            <Label>Bild-Preprocessing</Label>
+            <Label>{t("adminEvaluation.preprocessingLabelShort")}</Label>
             <div className="flex items-center gap-4 mt-2 mb-3">
               <div className="flex items-center gap-2">
                 <Switch
@@ -1454,7 +1461,7 @@ function TestSingleDialog({
                   onCheckedChange={setPreprocessAuto}
                 />
                 <label htmlFor="st-prep-auto" className="text-sm cursor-pointer font-medium">
-                  Regelbasiert (Auto)
+                  {t("adminEvaluation.preprocessAutoShort")}
                 </label>
               </div>
             </div>
@@ -1466,7 +1473,7 @@ function TestSingleDialog({
                     checked={preprocessContrast}
                     onCheckedChange={(c) => setPreprocessContrast(!!c)}
                   />
-                  <label htmlFor="st-prep-contrast" className="text-sm cursor-pointer">Kontrast</label>
+                  <label htmlFor="st-prep-contrast" className="text-sm cursor-pointer">{t("adminEvaluation.prepContrast")}</label>
                 </div>
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -1474,7 +1481,7 @@ function TestSingleDialog({
                     checked={preprocessSharpen}
                     onCheckedChange={(c) => setPreprocessSharpen(!!c)}
                   />
-                  <label htmlFor="st-prep-sharpen" className="text-sm cursor-pointer">Schärfen</label>
+                  <label htmlFor="st-prep-sharpen" className="text-sm cursor-pointer">{t("adminEvaluation.prepSharpen")}</label>
                 </div>
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -1482,7 +1489,7 @@ function TestSingleDialog({
                     checked={preprocessBinarize}
                     onCheckedChange={(c) => setPreprocessBinarize(!!c)}
                   />
-                  <label htmlFor="st-prep-binarize" className="text-sm cursor-pointer">Binarisierung</label>
+                  <label htmlFor="st-prep-binarize" className="text-sm cursor-pointer">{t("adminEvaluation.prepBinarize")}</label>
                 </div>
               </div>
             )}
@@ -1491,26 +1498,26 @@ function TestSingleDialog({
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="flex items-center gap-2">
                 <ChevronDown className="h-4 w-4" />
-                Custom Prompts
+                {t("adminEvaluation.customPrompts")}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-4">
               <div>
-                <Label>System-Prompt</Label>
+                <Label>{t("adminEvaluation.systemPromptLabelShort")}</Label>
                 <Textarea
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
-                  placeholder="Optional"
+                  placeholder={t("adminEvaluation.optionalPlaceholder")}
                   rows={3}
                   className="mt-1 font-mono text-sm"
                 />
               </div>
               <div>
-                <Label>Task-Prompt</Label>
+                <Label>{t("adminEvaluation.taskPromptLabelShort")}</Label>
                 <Textarea
                   value={taskPrompt}
                   onChange={(e) => setTaskPrompt(e.target.value)}
-                  placeholder="Optional"
+                  placeholder={t("adminEvaluation.optionalPlaceholder")}
                   rows={3}
                   className="mt-1 font-mono text-sm"
                 />
@@ -1519,29 +1526,29 @@ function TestSingleDialog({
           </Collapsible>
           <Button onClick={runTest} disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Transkribieren & CER/WER berechnen
+            {t("adminEvaluation.transcribeAndCompute")}
           </Button>
           {result && (
             <div className="space-y-2 pt-4 border-t">
               <div className="flex gap-4 text-sm">
                 <span>
-                  <strong>CER:</strong> {formatPct(result.cer)}
+                  <strong>{t("adminEvaluation.cerLabel")}</strong> {formatPct(result.cer)}
                 </span>
                 <span>
-                  <strong>WER:</strong> {formatPct(result.wer)}
+                  <strong>{t("adminEvaluation.werLabel")}</strong> {formatPct(result.wer)}
                 </span>
                 <span>
-                  <strong>Dauer:</strong> {(result.durationMs / 1000).toFixed(1)}s
+                  <strong>{t("adminEvaluation.durationLabel")}</strong> {(result.durationMs / 1000).toFixed(1)}s
                 </span>
               </div>
               <div>
-                <Label>KI-Transkription</Label>
+                <Label>{t("adminEvaluation.aiTranscription")}</Label>
                 <pre className="mt-1 p-3 bg-muted rounded-md text-sm whitespace-pre-wrap max-h-64 overflow-y-auto">
-                  {result.transcription || "(leer)"}
+                  {result.transcription || t("adminEvaluation.empty")}
                 </pre>
               </div>
               <div>
-                <Label>Ground Truth</Label>
+                <Label>{t("adminEvaluation.groundTruthShort")}</Label>
                 <pre className="mt-1 p-3 bg-muted rounded-md text-sm whitespace-pre-wrap max-h-64 overflow-y-auto">
                   {doc.groundTruth}
                 </pre>

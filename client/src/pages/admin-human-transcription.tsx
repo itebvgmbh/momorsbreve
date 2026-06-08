@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -86,34 +88,46 @@ function isAssignableExpert(expert: ExpertAccount): boolean {
     expert.dataProtectionConfirmed;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Offen",
-  quoted: "Angebot erstellt",
-  accepted: "Angenommen",
-  in_progress: "In Bearbeitung",
-  completed: "Abgeschlossen",
-  declined: "Abgelehnt",
-  cancelled: "Storniert",
-};
+function getStatusLabel(t: TFunction, status: string): string {
+  const map: Record<string, string> = {
+    pending: t("adminHt.statusPending"),
+    quoted: t("adminHt.statusQuoted"),
+    accepted: t("adminHt.statusAccepted"),
+    in_progress: t("adminHt.statusInProgress"),
+    completed: t("adminHt.statusCompleted"),
+    declined: t("adminHt.statusDeclined"),
+    cancelled: t("adminHt.statusCancelled"),
+  };
+  return map[status] ?? status;
+}
 
-const URGENCY_LABELS: Record<string, string> = {
-  standard: "Standard (ca. 2 Wo.)",
-  express: "Express (ca. 1 Wo.)",
-  priority: "Priorität (ca. 3 Tage)",
-};
+function getUrgencyLabel(t: TFunction, urgency: string): string {
+  const map: Record<string, string> = {
+    standard: t("adminHt.urgencyStandard"),
+    express: t("adminHt.urgencyExpress"),
+    priority: t("adminHt.urgencyPriority"),
+  };
+  return map[urgency] ?? urgency;
+}
 
-const ACCURACY_LABELS: Record<string, string> = {
-  reading: "Lesetranskription",
-  scientific: "Wissenschaftlich-diplomatisch",
-};
+function getAccuracyLabel(t: TFunction, accuracy: string): string {
+  const map: Record<string, string> = {
+    reading: t("adminHt.accuracyReading"),
+    scientific: t("adminHt.accuracyScientific"),
+  };
+  return map[accuracy] ?? accuracy;
+}
 
-const BUDGET_LABELS: Record<string, string> = {
-  bis_100: "Bis 100 €",
-  "100_250": "100 – 250 €",
-  "250_500": "250 – 500 €",
-  "500_plus": "Über 500 €",
-  flexible: "Flexibel",
-};
+function getBudgetLabel(t: TFunction, budget: string): string {
+  const map: Record<string, string> = {
+    bis_100: t("adminHt.budgetUpTo100"),
+    "100_250": t("adminHt.budget100to250"),
+    "250_500": t("adminHt.budget250to500"),
+    "500_plus": t("adminHt.budgetOver500"),
+    flexible: t("adminHt.budgetFlexible"),
+  };
+  return map[budget] ?? budget;
+}
 
 function formatDate(s: string | null): string {
   if (!s) return "–";
@@ -125,6 +139,7 @@ function formatDate(s: string | null): string {
 }
 
 export default function AdminHumanTranscriptionPage() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -166,10 +181,10 @@ export default function AdminHumanTranscriptionPage() {
       setQuotePriceEur("");
       setQuoteMessage("");
       setQuoteDeadline("");
-      toast({ title: "Angebot gespeichert" });
+      toast({ title: t("adminHt.toastQuoteSaved") });
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("adminHt.toastError"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -187,10 +202,10 @@ export default function AdminHumanTranscriptionPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/human-transcription/requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/human-transcription/requests", selectedId] });
-      toast({ title: "Experte zugewiesen" });
+      toast({ title: t("adminHt.toastExpertAssigned") });
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("adminHt.toastError"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -202,10 +217,10 @@ export default function AdminHumanTranscriptionPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/human-transcription/requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/human-transcription/requests", selectedId] });
-      toast({ title: "Als abgeschlossen markiert" });
+      toast({ title: t("adminHt.toastMarkedCompleted") });
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("adminHt.toastError"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -219,18 +234,18 @@ export default function AdminHumanTranscriptionPage() {
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/app")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Zurück
+          {t("adminHt.back")}
         </Button>
-        <h1 className="font-serif text-xl font-bold">Experten-Anfragen (Admin)</h1>
+        <h1 className="font-serif text-xl font-bold">{t("adminHt.pageTitle")}</h1>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1 p-4">
-          <h2 className="font-semibold mb-3">Anfragen</h2>
+          <h2 className="font-semibold mb-3">{t("adminHt.requestsHeading")}</h2>
           {listLoading ? (
             <Skeleton className="h-24 w-full" />
           ) : !requests?.length ? (
-            <p className="text-sm text-muted-foreground">Keine Anfragen.</p>
+            <p className="text-sm text-muted-foreground">{t("adminHt.noRequests")}</p>
           ) : (
             <ul className="space-y-2">
               {requests.map((req) => (
@@ -244,7 +259,7 @@ export default function AdminHumanTranscriptionPage() {
                   >
                     <span className="font-medium text-sm">#{req.id}</span>
                     <Badge variant="secondary" className="ml-2 text-xs">
-                      {STATUS_LABELS[req.status] ?? req.status}
+                      {getStatusLabel(t, req.status)}
                     </Badge>
                     <p className="text-xs text-muted-foreground mt-1">{formatDate(req.createdAt)}</p>
                     {req.expert && (
@@ -263,38 +278,38 @@ export default function AdminHumanTranscriptionPage() {
           {selectedId == null ? (
             <Card className="p-8 text-center text-muted-foreground">
               <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>Anfrage auswählen</p>
+              <p>{t("adminHt.selectRequest")}</p>
             </Card>
           ) : detailLoading || !detail ? (
             <Skeleton className="h-64 w-full" />
           ) : (
             <>
               <Card className="p-4">
-                <h3 className="font-semibold mb-2">Anfrage & Anforderungen</h3>
+                <h3 className="font-semibold mb-2">{t("adminHt.requestRequirementsHeading")}</h3>
                 <ul className="text-sm space-y-1 text-muted-foreground">
-                  <li>Dringlichkeit: {URGENCY_LABELS[detail.request.urgency] ?? detail.request.urgency}</li>
-                  <li>Genauigkeit: {ACCURACY_LABELS[detail.request.accuracyLevel] ?? detail.request.accuracyLevel}</li>
-                  <li>Budget: {BUDGET_LABELS[detail.request.budgetRange] ?? detail.request.budgetRange}</li>
+                  <li>{t("adminHt.urgencyLabel")}: {getUrgencyLabel(t, detail.request.urgency)}</li>
+                  <li>{t("adminHt.accuracyLabel")}: {getAccuracyLabel(t, detail.request.accuracyLevel)}</li>
+                  <li>{t("adminHt.budgetLabel")}: {getBudgetLabel(t, detail.request.budgetRange)}</li>
                   {detail.request.customerNotes && (
                     <li className="mt-2">
-                      <span className="font-medium text-foreground">Anmerkungen:</span>{" "}
+                      <span className="font-medium text-foreground">{t("adminHt.notesLabel")}:</span>{" "}
                       {detail.request.customerNotes}
                     </li>
                   )}
                   {detail.expert && (
                     <li>
-                      Experte: {detail.expert.companyName || detail.expert.contactName || detail.expert.email}
+                      {t("adminHt.expertLabel")}: {detail.expert.companyName || detail.expert.contactName || detail.expert.email}
                     </li>
                   )}
                 </ul>
               </Card>
 
               <Card className="p-4">
-                <h3 className="font-semibold mb-3">Experte</h3>
+                <h3 className="font-semibold mb-3">{t("adminHt.expertHeading")}</h3>
                 <div className="flex flex-wrap gap-2">
                   <Select value={selectedExpertId} onValueChange={setSelectedExpertId}>
                     <SelectTrigger className="w-full sm:w-[320px]">
-                      <SelectValue placeholder="Experten auswählen" />
+                      <SelectValue placeholder={t("adminHt.selectExpertPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {(experts ?? []).filter(isAssignableExpert).map((expert) => (
@@ -310,34 +325,34 @@ export default function AdminHumanTranscriptionPage() {
                     disabled={!selectedExpertId || assignMutation.isPending}
                   >
                     {assignMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Zuweisen
+                    {t("adminHt.assign")}
                   </Button>
                 </div>
                 {(experts ?? []).filter(isAssignableExpert).length === 0 && (
                   <p className="text-xs text-amber-600 mt-2">
-                    Keine aktiven Experten mit vollständigem Pflichtprofil verfügbar.
+                    {t("adminHt.noAssignableExperts")}
                   </p>
                 )}
               </Card>
 
               {detail.job && (
                 <Card className="p-4">
-                  <h3 className="font-semibold mb-2">Dokument</h3>
+                  <h3 className="font-semibold mb-2">{t("adminHt.documentHeading")}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {getScriptTypeDisplayLabel(detail.job.scriptType)} · {detail.job.totalPages} Seite(n)
+                    {getScriptTypeDisplayLabel(detail.job.scriptType)} · {t("adminHt.pagesCount", { count: detail.job.totalPages })}
                   </p>
                   {detail.previewPage && (
                     <div className="mt-3 grid sm:grid-cols-2 gap-3">
                       <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1">Vorschau (Bild)</p>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">{t("adminHt.previewImage")}</p>
                         <DocumentPreview
                           src={detail.previewPage.imageUrl}
-                          alt="Vorschau"
+                          alt={t("adminHt.previewAlt")}
                           className="rounded border"
                         />
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1">KI-Vorschau (Text)</p>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">{t("adminHt.previewAiText")}</p>
                         <p className="text-sm whitespace-pre-wrap line-clamp-6 bg-muted/50 p-2 rounded">
                           {detail.previewPage.transcription || "–"}
                         </p>
@@ -349,22 +364,22 @@ export default function AdminHumanTranscriptionPage() {
 
               {canQuote && (
                 <Card className="p-4">
-                  <h3 className="font-semibold mb-3">Angebot erstellen</h3>
+                  <h3 className="font-semibold mb-3">{t("adminHt.createQuoteHeading")}</h3>
                   <div className="space-y-3">
                     <div>
-                      <Label>Preis (EUR)</Label>
+                      <Label>{t("adminHt.priceLabel")}</Label>
                       <Input
                         type="text"
-                        placeholder="z. B. 150.00"
+                        placeholder={t("adminHt.pricePlaceholder")}
                         value={quotePriceEur}
                         onChange={(e) => setQuotePriceEur(e.target.value)}
                         className="mt-1"
                       />
                     </div>
                     <div>
-                      <Label>Nachricht an den Kunden</Label>
+                      <Label>{t("adminHt.messageLabel")}</Label>
                       <Textarea
-                        placeholder="Kurze Erklärung zum Angebot, Lieferzeit …"
+                        placeholder={t("adminHt.messagePlaceholder")}
                         value={quoteMessage}
                         onChange={(e) => setQuoteMessage(e.target.value)}
                         rows={3}
@@ -372,7 +387,7 @@ export default function AdminHumanTranscriptionPage() {
                       />
                     </div>
                     <div>
-                      <Label>Voraussichtliches Lieferdatum</Label>
+                      <Label>{t("adminHt.deliveryDateLabel")}</Label>
                       <Input
                         type="date"
                         value={quoteDeadline}
@@ -389,7 +404,7 @@ export default function AdminHumanTranscriptionPage() {
                       ) : (
                         <>
                           <Euro className="h-4 w-4 mr-2" />
-                          Angebot senden
+                          {t("adminHt.sendQuote")}
                         </>
                       )}
                     </Button>
@@ -400,7 +415,7 @@ export default function AdminHumanTranscriptionPage() {
               {detail.request.status === "quoted" && (
                 <Card className="p-4 border-amber-200/50 dark:border-amber-800/50">
                   <p className="text-sm text-muted-foreground">
-                    Angebot wurde erstellt. Warten auf Reaktion des Kunden.
+                    {t("adminHt.quotedWaiting")}
                   </p>
                   {detail.request.quotePriceEur != null && (
                     <p className="text-sm mt-1">
@@ -423,7 +438,7 @@ export default function AdminHumanTranscriptionPage() {
                     ) : (
                       <>
                         <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Als abgeschlossen markieren
+                        {t("adminHt.markCompleted")}
                       </>
                     )}
                   </Button>

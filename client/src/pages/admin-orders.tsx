@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -51,22 +53,28 @@ interface AdminRequestDetail {
   previewPage: { imageUrl: string; transcription: string | null } | null;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  accepted: { label: "Bezahlt – Warten auf Bearbeitung", color: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30" },
-  in_progress: { label: "In Bearbeitung", color: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30" },
-  completed: { label: "Abgeschlossen", color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30" },
-};
+function getStatusConfig(t: TFunction): Record<string, { label: string; color: string }> {
+  return {
+    accepted: { label: t("adminOrders.statusAccepted"), color: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30" },
+    in_progress: { label: t("adminOrders.statusInProgress"), color: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30" },
+    completed: { label: t("adminOrders.statusCompleted"), color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30" },
+  };
+}
 
-const URGENCY_LABELS: Record<string, string> = {
-  standard: "Standard",
-  express: "Express",
-  priority: "Priorität",
-};
+function getUrgencyLabels(t: TFunction): Record<string, string> {
+  return {
+    standard: t("adminOrders.urgencyStandard"),
+    express: t("adminOrders.urgencyExpress"),
+    priority: t("adminOrders.urgencyPriority"),
+  };
+}
 
-const ACCURACY_LABELS: Record<string, string> = {
-  reading: "Lesetranskription",
-  scientific: "Wissenschaftlich-diplomatisch",
-};
+function getAccuracyLabels(t: TFunction): Record<string, string> {
+  return {
+    reading: t("adminOrders.accuracyReading"),
+    scientific: t("adminOrders.accuracyScientific"),
+  };
+}
 
 type StatusFilter = "all" | "accepted" | "in_progress" | "completed";
 
@@ -88,10 +96,15 @@ function formatPrice(cents: number | null): string {
 }
 
 export default function AdminOrdersPage() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  const STATUS_CONFIG = getStatusConfig(t);
+  const URGENCY_LABELS = getUrgencyLabels(t);
+  const ACCURACY_LABELS = getAccuracyLabels(t);
 
   const { data: orders, isLoading } = useQuery<OrderItem[]>({
     queryKey: ["/api/admin/orders"],
@@ -117,10 +130,10 @@ export default function AdminOrdersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/human-transcription/requests", selectedId] });
-      toast({ title: "Auftrag als abgeschlossen markiert" });
+      toast({ title: t("adminOrders.toastMarkedCompleted") });
     },
     onError: (err: Error) => {
-      toast({ title: "Fehler", description: err.message, variant: "destructive" });
+      toast({ title: t("adminOrders.toastErrorTitle"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -142,36 +155,36 @@ export default function AdminOrdersPage() {
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/app")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Zurück
+          {t("adminOrders.back")}
         </Button>
-        <h1 className="font-serif text-xl font-bold">Bezahlte Aufträge</h1>
+        <h1 className="font-serif text-xl font-bold">{t("adminOrders.pageTitle")}</h1>
       </div>
 
       {/* Statistik-Karten */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard
-          label="Gesamt"
+          label={t("adminOrders.statTotal")}
           count={counts.all}
           active={statusFilter === "all"}
           onClick={() => setStatusFilter("all")}
           color="text-foreground"
         />
         <StatCard
-          label="Offen"
+          label={t("adminOrders.statOpen")}
           count={counts.accepted}
           active={statusFilter === "accepted"}
           onClick={() => setStatusFilter("accepted")}
           color="text-amber-600 dark:text-amber-400"
         />
         <StatCard
-          label="In Bearbeitung"
+          label={t("adminOrders.statInProgress")}
           count={counts.in_progress}
           active={statusFilter === "in_progress"}
           onClick={() => setStatusFilter("in_progress")}
           color="text-blue-600 dark:text-blue-400"
         />
         <StatCard
-          label="Abgeschlossen"
+          label={t("adminOrders.statCompleted")}
           count={counts.completed}
           active={statusFilter === "completed"}
           onClick={() => setStatusFilter("completed")}
@@ -185,7 +198,9 @@ export default function AdminOrdersPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-sm">
               <Filter className="h-3.5 w-3.5 inline mr-1.5" />
-              {filtered.length} Auftrag{filtered.length !== 1 ? "e" : ""}
+              {filtered.length === 1
+                ? t("adminOrders.orderCountOne", { count: filtered.length })
+                : t("adminOrders.orderCountMany", { count: filtered.length })}
             </h2>
           </div>
           {isLoading ? (
@@ -195,7 +210,7 @@ export default function AdminOrdersPage() {
             </div>
           ) : filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
-              Keine Aufträge in dieser Kategorie.
+              {t("adminOrders.emptyCategory")}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -246,7 +261,7 @@ export default function AdminOrdersPage() {
           {selectedId == null ? (
             <Card className="p-8 text-center text-muted-foreground">
               <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>Auftrag auswählen, um Details zu sehen</p>
+              <p>{t("adminOrders.selectOrderHint")}</p>
             </Card>
           ) : detailLoading || !detail ? (
             <Skeleton className="h-64 w-full rounded-lg" />
@@ -256,7 +271,7 @@ export default function AdminOrdersPage() {
               <Card className="p-4">
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div>
-                    <h3 className="font-semibold">Auftrag #{detail.request.id}</h3>
+                    <h3 className="font-semibold">{t("adminOrders.orderHeading", { id: detail.request.id })}</h3>
                     <Badge
                       variant="outline"
                       className={`mt-1 ${STATUS_CONFIG[detail.request.status]?.color ?? ""}`}
@@ -274,7 +289,7 @@ export default function AdminOrdersPage() {
                       ) : (
                         <CheckCircle2 className="h-4 w-4 mr-2" />
                       )}
-                      Als abgeschlossen markieren
+                      {t("adminOrders.markCompleted")}
                     </Button>
                   )}
                 </div>
@@ -284,7 +299,7 @@ export default function AdminOrdersPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <Card className="p-4">
                   <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
-                    <User className="h-4 w-4" /> Kunde
+                    <User className="h-4 w-4" /> {t("adminOrders.customer")}
                   </h4>
                   {selectedOrder?.customer ? (
                     <div className="text-sm space-y-1">
@@ -297,13 +312,13 @@ export default function AdminOrdersPage() {
                       )}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">Keine Kundendaten</p>
+                    <p className="text-sm text-muted-foreground">{t("adminOrders.noCustomerData")}</p>
                   )}
                 </Card>
 
                 <Card className="p-4">
                   <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
-                    <Euro className="h-4 w-4" /> Zahlung & Rechnung
+                    <Euro className="h-4 w-4" /> {t("adminOrders.paymentAndInvoice")}
                   </h4>
                   <div className="text-sm space-y-1">
                     {detail.request.quotePriceEur != null && (
@@ -313,13 +328,13 @@ export default function AdminOrdersPage() {
                     )}
                     {selectedOrder?.stripePaymentIntentId && (
                       <p className="text-xs text-muted-foreground truncate">
-                        Stripe: {selectedOrder.stripePaymentIntentId}
+                        {t("adminOrders.stripeLabel")} {selectedOrder.stripePaymentIntentId}
                       </p>
                     )}
                     {selectedOrder?.invoice ? (
                       <div className="flex items-center gap-2 mt-1.5">
                         <span className="text-muted-foreground">
-                          Rechnung {selectedOrder.invoice.invoiceNumber}
+                          {t("adminOrders.invoiceLabel", { number: selectedOrder.invoice.invoiceNumber })}
                         </span>
                         {selectedOrder.invoice.pdfPath && (
                           <a
@@ -334,7 +349,7 @@ export default function AdminOrdersPage() {
                         )}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground">Keine Rechnung vorhanden</p>
+                      <p className="text-xs text-muted-foreground">{t("adminOrders.noInvoice")}</p>
                     )}
                   </div>
                 </Card>
@@ -342,18 +357,18 @@ export default function AdminOrdersPage() {
 
               {/* Auftragsdetails */}
               <Card className="p-4">
-                <h4 className="text-sm font-semibold mb-2">Auftragsdetails</h4>
+                <h4 className="text-sm font-semibold mb-2">{t("adminOrders.orderDetails")}</h4>
                 <div className="grid sm:grid-cols-3 gap-3 text-sm">
                   <div>
-                    <span className="text-muted-foreground block text-xs">Dringlichkeit</span>
+                    <span className="text-muted-foreground block text-xs">{t("adminOrders.urgency")}</span>
                     <span>{URGENCY_LABELS[detail.request.urgency] ?? detail.request.urgency}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-xs">Genauigkeit</span>
+                    <span className="text-muted-foreground block text-xs">{t("adminOrders.accuracy")}</span>
                     <span>{ACCURACY_LABELS[detail.request.accuracyLevel] ?? detail.request.accuracyLevel}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-xs">Lieferdatum</span>
+                    <span className="text-muted-foreground block text-xs">{t("adminOrders.deliveryDate")}</span>
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                       {formatDate(detail.request.quoteDeadline ?? null)}
@@ -362,13 +377,13 @@ export default function AdminOrdersPage() {
                 </div>
                 {detail.request.customerNotes && (
                   <div className="mt-3 p-2 bg-muted/50 rounded text-sm">
-                    <span className="text-xs font-medium text-muted-foreground block mb-1">Kundennotiz</span>
+                    <span className="text-xs font-medium text-muted-foreground block mb-1">{t("adminOrders.customerNote")}</span>
                     <p className="whitespace-pre-wrap">{detail.request.customerNotes}</p>
                   </div>
                 )}
                 {detail.request.quoteMessage && (
                   <div className="mt-2 p-2 bg-muted/50 rounded text-sm">
-                    <span className="text-xs font-medium text-muted-foreground block mb-1">Angebotsnachricht</span>
+                    <span className="text-xs font-medium text-muted-foreground block mb-1">{t("adminOrders.quoteMessage")}</span>
                     <p className="whitespace-pre-wrap">{detail.request.quoteMessage}</p>
                   </div>
                 )}
@@ -377,22 +392,24 @@ export default function AdminOrdersPage() {
               {/* Dokument-Vorschau */}
               {detail.job && (
                 <Card className="p-4">
-                  <h4 className="text-sm font-semibold mb-2">Dokument</h4>
+                  <h4 className="text-sm font-semibold mb-2">{t("adminOrders.document")}</h4>
                   <p className="text-sm text-muted-foreground mb-3">
-                    {getScriptTypeDisplayLabel(detail.job.scriptType)} · {detail.job.totalPages} Seite(n)
+                    {detail.job.totalPages === 1
+                      ? t("adminOrders.documentMetaOne", { script: getScriptTypeDisplayLabel(detail.job.scriptType), count: detail.job.totalPages })
+                      : t("adminOrders.documentMetaMany", { script: getScriptTypeDisplayLabel(detail.job.scriptType), count: detail.job.totalPages })}
                   </p>
                   {detail.previewPage && (
                     <div className="grid sm:grid-cols-2 gap-3">
                       <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1">Vorschau (Bild)</p>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">{t("adminOrders.previewImage")}</p>
                         <DocumentPreview
                           src={detail.previewPage.imageUrl}
-                          alt="Vorschau"
+                          alt={t("adminOrders.previewAlt")}
                           className="rounded border"
                         />
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1">KI-Transkription</p>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">{t("adminOrders.aiTranscription")}</p>
                         <p className="text-sm whitespace-pre-wrap bg-muted/50 p-2 rounded max-h-64 overflow-auto">
                           {detail.previewPage.transcription || "–"}
                         </p>
@@ -405,7 +422,7 @@ export default function AdminOrdersPage() {
                       size="sm"
                       onClick={() => navigate(`/app/result/${detail.job!.id}`)}
                     >
-                      Zum vollständigen Dokument
+                      {t("adminOrders.toFullDocument")}
                     </Button>
                   </div>
                 </Card>
@@ -414,13 +431,13 @@ export default function AdminOrdersPage() {
               {/* Zeitstempel */}
               <Card className="p-4">
                 <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
-                  <Clock className="h-4 w-4" /> Zeitverlauf
+                  <Clock className="h-4 w-4" /> {t("adminOrders.timeline")}
                 </h4>
                 <div className="text-sm space-y-1 text-muted-foreground">
-                  <p>Erstellt: {formatDate(detail.request.createdAt)}</p>
-                  <p>Bezahlt: {formatDate(detail.request.respondedAt)}</p>
+                  <p>{t("adminOrders.createdAt", { date: formatDate(detail.request.createdAt) })}</p>
+                  <p>{t("adminOrders.paidAt", { date: formatDate(detail.request.respondedAt) })}</p>
                   {detail.request.completedAt && (
-                    <p>Abgeschlossen: {formatDate(detail.request.completedAt)}</p>
+                    <p>{t("adminOrders.completedAt", { date: formatDate(detail.request.completedAt) })}</p>
                   )}
                 </div>
               </Card>

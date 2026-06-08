@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, Loader2, Trash2, Eye } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { DocumentPreview } from "@/components/document-preview";
 import { getScriptTypeDisplayLabel } from "@shared/models/transcription";
 
@@ -61,6 +62,7 @@ function formatDate(s: string): string {
 }
 
 export default function AdminAnonymousAnalysesPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [detailDialog, setDetailDialog] = useState<AnalysisRow | null>(null);
 
@@ -78,10 +80,10 @@ export default function AdminAnonymousAnalysesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/anonymous-analyses"] });
-      toast({ title: "Analyse gelöscht" });
+      toast({ title: t("adminAnon.toastDeleted") });
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("adminAnon.toastErrorTitle"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -108,11 +110,11 @@ export default function AdminAnonymousAnalysesPage() {
   if (isError) {
     return (
       <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
-        <h1 className="font-serif text-2xl font-bold">Anonyme Analysen</h1>
+        <h1 className="font-serif text-2xl font-bold">{t("adminAnon.title")}</h1>
         <Card className="p-6 text-center space-y-3">
-          <p className="text-destructive font-medium">Fehler beim Laden der Analysen</p>
-          <p className="text-sm text-muted-foreground">{error?.message || "Unbekannter Fehler"}</p>
-          <Button variant="outline" onClick={() => refetch()}>Erneut versuchen</Button>
+          <p className="text-destructive font-medium">{t("adminAnon.loadError")}</p>
+          <p className="text-sm text-muted-foreground">{error?.message || t("adminAnon.unknownError")}</p>
+          <Button variant="outline" onClick={() => refetch()}>{t("adminAnon.retry")}</Button>
         </Card>
       </div>
     );
@@ -122,28 +124,28 @@ export default function AdminAnonymousAnalysesPage() {
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-serif text-2xl font-bold">Anonyme Analysen</h1>
+          <h1 className="font-serif text-2xl font-bold">{t("adminAnon.title")}</h1>
           <p className="text-muted-foreground text-sm">
-            Hochgeladene Dokumente aus der kostenlosen KI-Analyse (ohne Login)
+            {t("adminAnon.subtitle")}
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Gesamt</p>
+          <p className="text-sm text-muted-foreground">{t("adminAnon.statTotal")}</p>
           <p className="text-2xl font-semibold">{total}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Aktiv</p>
+          <p className="text-sm text-muted-foreground">{t("adminAnon.statActive")}</p>
           <p className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400">{aktiv}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Geclaimed</p>
+          <p className="text-sm text-muted-foreground">{t("adminAnon.statClaimed")}</p>
           <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400">{geclaimed}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Abgelaufen</p>
+          <p className="text-sm text-muted-foreground">{t("adminAnon.statExpired")}</p>
           <p className="text-2xl font-semibold text-muted-foreground">{abgelaufen}</p>
         </Card>
       </div>
@@ -152,21 +154,21 @@ export default function AdminAnonymousAnalysesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[80px]">Vorschau</TableHead>
-              <TableHead>Datum</TableHead>
-              <TableHead>Schrifttyp</TableHead>
-              <TableHead>Qualität</TableHead>
-              <TableHead>Konfidenz</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Geclaimed von</TableHead>
-              <TableHead className="w-[100px]">Aktionen</TableHead>
+              <TableHead className="w-[80px]">{t("adminAnon.colPreview")}</TableHead>
+              <TableHead>{t("adminAnon.colDate")}</TableHead>
+              <TableHead>{t("adminAnon.colScriptType")}</TableHead>
+              <TableHead>{t("adminAnon.colQuality")}</TableHead>
+              <TableHead>{t("adminAnon.colConfidence")}</TableHead>
+              <TableHead>{t("adminAnon.colStatus")}</TableHead>
+              <TableHead>{t("adminAnon.colClaimedBy")}</TableHead>
+              <TableHead className="w-[100px]">{t("adminAnon.colActions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {analyses.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                  Noch keine anonymen Analysen.
+                  {t("adminAnon.emptyState")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -208,7 +210,7 @@ export default function AdminAnonymousAnalysesPage() {
                               : "bg-red-500/15 text-red-600 dark:text-red-400"
                         }
                       >
-                        {row.qualityDetails.level === "green" ? "Gut" : row.qualityDetails.level === "yellow" ? "Mittel" : "Schlecht"}
+                        {row.qualityDetails.level === "green" ? t("adminAnon.qualityGood") : row.qualityDetails.level === "yellow" ? t("adminAnon.qualityMedium") : t("adminAnon.qualityPoor")}
                       </Badge>
                     ) : (
                       "–"
@@ -227,7 +229,7 @@ export default function AdminAnonymousAnalysesPage() {
                             : "outline"
                       }
                     >
-                      {row.status === "aktiv" ? "Aktiv" : row.status === "geclaimed" ? "Geclaimed" : "Abgelaufen"}
+                      {row.status === "aktiv" ? t("adminAnon.statusActive") : row.status === "geclaimed" ? t("adminAnon.statusClaimed") : t("adminAnon.statusExpired")}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-[180px] truncate">
@@ -267,37 +269,37 @@ export default function AdminAnonymousAnalysesPage() {
       <Dialog open={!!detailDialog} onOpenChange={() => setDetailDialog(null)}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>Analyse-Details</DialogTitle>
+            <DialogTitle>{t("adminAnon.detailTitle")}</DialogTitle>
           </DialogHeader>
           {detailDialog && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="rounded-md border border-border overflow-hidden">
-                <DocumentPreview src={detailDialog.imageUrl} alt="Hochgeladenes Dokument" />
+                <DocumentPreview src={detailDialog.imageUrl} alt={t("adminAnon.uploadedDocumentAlt")} />
               </div>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-xs text-muted-foreground">Datum</p>
+                    <p className="text-xs text-muted-foreground">{t("adminAnon.colDate")}</p>
                     <p className="text-sm font-medium">{formatDate(detailDialog.createdAt)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Schrifttyp (gewählt)</p>
+                    <p className="text-xs text-muted-foreground">{t("adminAnon.scriptTypeChosen")}</p>
                     <p className="text-sm font-medium">{getScriptTypeDisplayLabel(detailDialog.scriptType)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Status</p>
+                    <p className="text-xs text-muted-foreground">{t("adminAnon.colStatus")}</p>
                     <Badge
                       variant={
                         detailDialog.status === "aktiv" ? "default"
                           : detailDialog.status === "geclaimed" ? "secondary" : "outline"
                       }
                     >
-                      {detailDialog.status === "aktiv" ? "Aktiv" : detailDialog.status === "geclaimed" ? "Geclaimed" : "Abgelaufen"}
+                      {detailDialog.status === "aktiv" ? t("adminAnon.statusActive") : detailDialog.status === "geclaimed" ? t("adminAnon.statusClaimed") : t("adminAnon.statusExpired")}
                     </Badge>
                   </div>
                   {detailDialog.claimedByUserEmail && (
                     <div>
-                      <p className="text-xs text-muted-foreground">Geclaimed von</p>
+                      <p className="text-xs text-muted-foreground">{t("adminAnon.colClaimedBy")}</p>
                       <p className="text-sm font-medium">{detailDialog.claimedByUserEmail}</p>
                     </div>
                   )}
@@ -306,10 +308,10 @@ export default function AdminAnonymousAnalysesPage() {
                 {detailDialog.qualityDetails && (
                   <>
                     <hr className="border-border" />
-                    <h3 className="font-semibold text-sm">KI-Analyse</h3>
+                    <h3 className="font-semibold text-sm">{t("adminAnon.aiAnalysis")}</h3>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <p className="text-xs text-muted-foreground">Qualitätslevel</p>
+                        <p className="text-xs text-muted-foreground">{t("adminAnon.qualityLevel")}</p>
                         {detailDialog.qualityDetails.level ? (
                           <Badge
                             variant="secondary"
@@ -321,12 +323,12 @@ export default function AdminAnonymousAnalysesPage() {
                                   : "bg-red-500/15 text-red-600 dark:text-red-400"
                             }
                           >
-                            {detailDialog.qualityDetails.level === "green" ? "Gut" : detailDialog.qualityDetails.level === "yellow" ? "Mittel" : "Schlecht"}
+                            {detailDialog.qualityDetails.level === "green" ? t("adminAnon.qualityGood") : detailDialog.qualityDetails.level === "yellow" ? t("adminAnon.qualityMedium") : t("adminAnon.qualityPoor")}
                           </Badge>
                         ) : "–"}
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Erkannter Schrifttyp</p>
+                        <p className="text-xs text-muted-foreground">{t("adminAnon.detectedScriptType")}</p>
                         <p className="text-sm font-medium">
                           {detailDialog.qualityDetails.detectedScriptType
                             ? getScriptTypeDisplayLabel(detailDialog.qualityDetails.detectedScriptType)
@@ -334,7 +336,7 @@ export default function AdminAnonymousAnalysesPage() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Lesbarkeit</p>
+                        <p className="text-xs text-muted-foreground">{t("adminAnon.readability")}</p>
                         <p className="text-sm font-medium">
                           {detailDialog.qualityDetails.readability != null
                             ? `${detailDialog.qualityDetails.readability} / 5`
@@ -342,7 +344,7 @@ export default function AdminAnonymousAnalysesPage() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Konfidenz</p>
+                        <p className="text-xs text-muted-foreground">{t("adminAnon.colConfidence")}</p>
                         <p className="text-sm font-medium">
                           {detailDialog.qualityDetails.confidence != null
                             ? `${detailDialog.qualityDetails.confidence}%`
@@ -353,14 +355,14 @@ export default function AdminAnonymousAnalysesPage() {
 
                     {detailDialog.qualityDetails.recommendation && (
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">Empfehlung</p>
+                        <p className="text-xs text-muted-foreground mb-1">{t("adminAnon.recommendation")}</p>
                         <p className="text-sm bg-muted rounded-md p-2">{detailDialog.qualityDetails.recommendation}</p>
                       </div>
                     )}
 
                     {detailDialog.qualityDetails.issues && detailDialog.qualityDetails.issues.length > 0 && (
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">Erkannte Probleme</p>
+                        <p className="text-xs text-muted-foreground mb-1">{t("adminAnon.detectedIssues")}</p>
                         <ul className="text-sm space-y-1">
                           {detailDialog.qualityDetails.issues.map((issue, i) => (
                             <li key={i} className="flex gap-2 bg-muted rounded-md p-2">
@@ -375,7 +377,7 @@ export default function AdminAnonymousAnalysesPage() {
                 )}
 
                 {!detailDialog.qualityDetails && (
-                  <p className="text-sm text-muted-foreground italic">Keine KI-Analyse vorhanden.</p>
+                  <p className="text-sm text-muted-foreground italic">{t("adminAnon.noAiAnalysis")}</p>
                 )}
               </div>
             </div>

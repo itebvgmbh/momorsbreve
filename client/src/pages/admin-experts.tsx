@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -36,25 +38,26 @@ interface ExpertAccount {
   adminNotes: string | null;
 }
 
-function getMissingFields(expert: ExpertAccount): string[] {
+function getMissingFields(expert: ExpertAccount, t: TFunction): string[] {
   const missing: string[] = [];
-  if (!expert.companyName && !expert.legalName) missing.push("Firma oder rechtlicher Name");
-  if (!expert.street) missing.push("Straße");
-  if (!expert.postalCode) missing.push("PLZ");
-  if (!expert.city) missing.push("Ort");
-  if (!expert.country) missing.push("Land");
-  if (!expert.phone) missing.push("Telefon");
-  if (!expert.invoiceEmail) missing.push("Rechnungs-E-Mail");
-  if (!expert.businessType) missing.push("Anbieterart");
-  if (!expert.actsAsBusinessConfirmed) missing.push("Unternehmerstatus");
-  if (!expert.externalBillingConfirmed) missing.push("Externe Abrechnung");
-  if (!expert.legalComplianceConfirmed) missing.push("Recht/Haftung");
-  if (!expert.confidentialityConfirmed) missing.push("Vertraulichkeit");
-  if (!expert.dataProtectionConfirmed) missing.push("Datenschutz");
+  if (!expert.companyName && !expert.legalName) missing.push(t("adminExperts.missingCompanyOrLegalName"));
+  if (!expert.street) missing.push(t("adminExperts.missingStreet"));
+  if (!expert.postalCode) missing.push(t("adminExperts.missingPostalCode"));
+  if (!expert.city) missing.push(t("adminExperts.missingCity"));
+  if (!expert.country) missing.push(t("adminExperts.missingCountry"));
+  if (!expert.phone) missing.push(t("adminExperts.missingPhone"));
+  if (!expert.invoiceEmail) missing.push(t("adminExperts.missingInvoiceEmail"));
+  if (!expert.businessType) missing.push(t("adminExperts.missingBusinessType"));
+  if (!expert.actsAsBusinessConfirmed) missing.push(t("adminExperts.missingBusinessStatus"));
+  if (!expert.externalBillingConfirmed) missing.push(t("adminExperts.missingExternalBilling"));
+  if (!expert.legalComplianceConfirmed) missing.push(t("adminExperts.missingLegalCompliance"));
+  if (!expert.confidentialityConfirmed) missing.push(t("adminExperts.missingConfidentiality"));
+  if (!expert.dataProtectionConfirmed) missing.push(t("adminExperts.missingDataProtection"));
   return missing;
 }
 
 export default function AdminExpertsPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [newEmail, setNewEmail] = useState("");
   const { data: experts, isLoading } = useQuery<ExpertAccount[]>({
@@ -72,28 +75,28 @@ export default function AdminExpertsPage() {
     onSuccess: () => {
       setNewEmail("");
       queryClient.invalidateQueries({ queryKey: ["/api/admin/experts"] });
-      toast({ title: "Experte angelegt" });
+      toast({ title: t("adminExperts.toastExpertCreated") });
     },
-    onError: (error: Error) => toast({ title: "Fehler", description: error.message, variant: "destructive" }),
+    onError: (error: Error) => toast({ title: t("adminExperts.toastError"), description: error.message, variant: "destructive" }),
   });
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="font-serif text-2xl font-bold">Expertenaccounts</h1>
+        <h1 className="font-serif text-2xl font-bold">{t("adminExperts.pageTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          Aktive Experten werden über ihre Login-E-Mail erkannt und erhalten den Expertenbereich.
+          {t("adminExperts.pageSubtitle")}
         </p>
       </div>
 
       <Card className="p-4 flex flex-wrap items-end gap-3">
         <div className="flex-1 min-w-[240px]">
-          <Label>Neue Experten-E-Mail</Label>
-          <Input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="experte@example.de" />
+          <Label>{t("adminExperts.newExpertEmailLabel")}</Label>
+          <Input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder={t("adminExperts.newExpertEmailPlaceholder")} />
         </div>
         <Button onClick={() => createMutation.mutate()} disabled={!newEmail.trim() || createMutation.isPending}>
           {createMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-          Anlegen
+          {t("adminExperts.create")}
         </Button>
       </Card>
 
@@ -104,7 +107,7 @@ export default function AdminExpertsPage() {
       ) : !experts?.length ? (
         <Card className="p-8 text-center text-muted-foreground">
           <Building2 className="h-10 w-10 mx-auto mb-2 opacity-60" />
-          Noch keine Expertenaccounts.
+          {t("adminExperts.emptyState")}
         </Card>
       ) : (
         <div className="space-y-3">
@@ -118,9 +121,10 @@ export default function AdminExpertsPage() {
 }
 
 function ExpertCard({ expert }: { expert: ExpertAccount }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [form, setForm] = useState(expert);
-  const missingFields = getMissingFields(form);
+  const missingFields = getMissingFields(form, t);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -129,9 +133,9 @@ function ExpertCard({ expert }: { expert: ExpertAccount }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/experts"] });
-      toast({ title: "Experte gespeichert" });
+      toast({ title: t("adminExperts.toastExpertSaved") });
     },
-    onError: (error: Error) => toast({ title: "Fehler", description: error.message, variant: "destructive" }),
+    onError: (error: Error) => toast({ title: t("adminExperts.toastError"), description: error.message, variant: "destructive" }),
   });
 
   return (
@@ -140,81 +144,81 @@ function ExpertCard({ expert }: { expert: ExpertAccount }) {
         <div>
           <p className="font-medium">{expert.email}</p>
           <p className="text-sm text-muted-foreground">
-            {expert.companyName || expert.contactName || "Noch kein Firmenprofil"}{expert.city ? ` · ${expert.city}` : ""}
+            {expert.companyName || expert.contactName || t("adminExperts.noCompanyProfile")}{expert.city ? ` · ${expert.city}` : ""}
           </p>
           <p className={`text-xs mt-1 ${missingFields.length === 0 ? "text-emerald-600" : "text-amber-600"}`}>
-            {missingFields.length === 0 ? "Pflichtprofil vollständig" : `Fehlend: ${missingFields.join(", ")}`}
+            {missingFields.length === 0 ? t("adminExperts.requiredProfileComplete") : t("adminExperts.missingFields", { fields: missingFields.join(", ") })}
           </p>
         </div>
         <label className="flex items-center gap-2 text-sm">
-          Aktiv
+          {t("adminExperts.active")}
           <Switch checked={form.isActive} onCheckedChange={(checked) => setForm((prev) => ({ ...prev, isActive: checked }))} />
         </label>
       </div>
       <div className="grid sm:grid-cols-3 gap-3">
         <div>
-          <Label>E-Mail</Label>
+          <Label>{t("adminExperts.fieldEmail")}</Label>
           <Input value={form.email} onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))} />
         </div>
         <div>
-          <Label>Firma</Label>
+          <Label>{t("adminExperts.fieldCompany")}</Label>
           <Input value={form.companyName ?? ""} onChange={(e) => setForm((prev) => ({ ...prev, companyName: e.target.value }))} />
         </div>
         <div>
-          <Label>Rechtlicher Name</Label>
+          <Label>{t("adminExperts.fieldLegalName")}</Label>
           <Input value={form.legalName ?? ""} onChange={(e) => setForm((prev) => ({ ...prev, legalName: e.target.value }))} />
         </div>
         <div>
-          <Label>Ansprechpartner</Label>
+          <Label>{t("adminExperts.fieldContactName")}</Label>
           <Input value={form.contactName ?? ""} onChange={(e) => setForm((prev) => ({ ...prev, contactName: e.target.value }))} />
         </div>
         <div>
-          <Label>Straße</Label>
+          <Label>{t("adminExperts.fieldStreet")}</Label>
           <Input value={form.street ?? ""} onChange={(e) => setForm((prev) => ({ ...prev, street: e.target.value }))} />
         </div>
         <div>
-          <Label>PLZ</Label>
+          <Label>{t("adminExperts.fieldPostalCode")}</Label>
           <Input value={form.postalCode ?? ""} onChange={(e) => setForm((prev) => ({ ...prev, postalCode: e.target.value }))} />
         </div>
         <div>
-          <Label>Ort</Label>
+          <Label>{t("adminExperts.fieldCity")}</Label>
           <Input value={form.city ?? ""} onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))} />
         </div>
         <div>
-          <Label>Land</Label>
+          <Label>{t("adminExperts.fieldCountry")}</Label>
           <Input value={form.country ?? ""} onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))} />
         </div>
         <div>
-          <Label>Telefon</Label>
+          <Label>{t("adminExperts.fieldPhone")}</Label>
           <Input value={form.phone ?? ""} onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))} />
         </div>
         <div>
-          <Label>Rechnungs-E-Mail</Label>
+          <Label>{t("adminExperts.fieldInvoiceEmail")}</Label>
           <Input value={form.invoiceEmail ?? ""} onChange={(e) => setForm((prev) => ({ ...prev, invoiceEmail: e.target.value }))} />
         </div>
         <div>
-          <Label>Anbieterart</Label>
+          <Label>{t("adminExperts.fieldBusinessType")}</Label>
           <Input value={form.businessType ?? ""} onChange={(e) => setForm((prev) => ({ ...prev, businessType: e.target.value }))} />
         </div>
         <div>
-          <Label>Register / Kammer</Label>
+          <Label>{t("adminExperts.fieldTradeRegisterName")}</Label>
           <Input value={form.tradeRegisterName ?? ""} onChange={(e) => setForm((prev) => ({ ...prev, tradeRegisterName: e.target.value }))} />
         </div>
         <div>
-          <Label>Registernummer</Label>
+          <Label>{t("adminExperts.fieldTradeRegisterNumber")}</Label>
           <Input value={form.tradeRegisterNumber ?? ""} onChange={(e) => setForm((prev) => ({ ...prev, tradeRegisterNumber: e.target.value }))} />
         </div>
       </div>
       <div className="grid sm:grid-cols-2 gap-2 text-sm">
-        <ConfirmCheckbox checked={form.actsAsBusinessConfirmed} onCheckedChange={(v) => setForm((p) => ({ ...p, actsAsBusinessConfirmed: v }))} label="Unternehmerstatus bestätigt" />
-        <ConfirmCheckbox checked={form.externalBillingConfirmed} onCheckedChange={(v) => setForm((p) => ({ ...p, externalBillingConfirmed: v }))} label="Externe Abrechnung bestätigt" />
-        <ConfirmCheckbox checked={form.legalComplianceConfirmed} onCheckedChange={(v) => setForm((p) => ({ ...p, legalComplianceConfirmed: v }))} label="Recht/Haftung bestätigt" />
-        <ConfirmCheckbox checked={form.confidentialityConfirmed} onCheckedChange={(v) => setForm((p) => ({ ...p, confidentialityConfirmed: v }))} label="Vertraulichkeit bestätigt" />
-        <ConfirmCheckbox checked={form.dataProtectionConfirmed} onCheckedChange={(v) => setForm((p) => ({ ...p, dataProtectionConfirmed: v }))} label="Datenschutz bestätigt" />
-        <ConfirmCheckbox checked={form.liabilityInsuranceConfirmed} onCheckedChange={(v) => setForm((p) => ({ ...p, liabilityInsuranceConfirmed: v }))} label="Haftpflicht vorhanden (optional)" />
+        <ConfirmCheckbox checked={form.actsAsBusinessConfirmed} onCheckedChange={(v) => setForm((p) => ({ ...p, actsAsBusinessConfirmed: v }))} label={t("adminExperts.confirmBusinessStatus")} />
+        <ConfirmCheckbox checked={form.externalBillingConfirmed} onCheckedChange={(v) => setForm((p) => ({ ...p, externalBillingConfirmed: v }))} label={t("adminExperts.confirmExternalBilling")} />
+        <ConfirmCheckbox checked={form.legalComplianceConfirmed} onCheckedChange={(v) => setForm((p) => ({ ...p, legalComplianceConfirmed: v }))} label={t("adminExperts.confirmLegalCompliance")} />
+        <ConfirmCheckbox checked={form.confidentialityConfirmed} onCheckedChange={(v) => setForm((p) => ({ ...p, confidentialityConfirmed: v }))} label={t("adminExperts.confirmConfidentiality")} />
+        <ConfirmCheckbox checked={form.dataProtectionConfirmed} onCheckedChange={(v) => setForm((p) => ({ ...p, dataProtectionConfirmed: v }))} label={t("adminExperts.confirmDataProtection")} />
+        <ConfirmCheckbox checked={form.liabilityInsuranceConfirmed} onCheckedChange={(v) => setForm((p) => ({ ...p, liabilityInsuranceConfirmed: v }))} label={t("adminExperts.confirmLiabilityInsurance")} />
       </div>
       <div>
-        <Label>Adminnotiz</Label>
+        <Label>{t("adminExperts.fieldAdminNotes")}</Label>
         <Textarea
           className="mt-1"
           value={form.adminNotes ?? ""}
@@ -224,7 +228,7 @@ function ExpertCard({ expert }: { expert: ExpertAccount }) {
       </div>
       <Button size="sm" variant="outline" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
         {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-        Speichern
+        {t("common.save")}
       </Button>
     </Card>
   );

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -127,6 +128,7 @@ function parsePromotionFromSettings(settings: Record<string, unknown> | undefine
 }
 
 export default function AdminSettingsPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const { data: settings, isLoading } = useQuery<Record<string, unknown>>({
@@ -202,15 +204,15 @@ export default function AdminSettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
       toast({
-        title: "Gespeichert",
-        description: `Produktionsmodell auf ${provider === "google" ? "Gemini" : "Claude"} (${model}) umgestellt.`,
+        title: t("adminSettings.toastSavedTitle"),
+        description: t("adminSettings.toastModelSaved", { provider: provider === "google" ? "Gemini" : "Claude", model }),
       });
       setHasChanges(false);
     },
     onError: () => {
       toast({
-        title: "Fehler",
-        description: "Einstellungen konnten nicht gespeichert werden.",
+        title: t("adminSettings.toastErrorTitle"),
+        description: t("adminSettings.toastModelSaveError"),
         variant: "destructive",
       });
     },
@@ -228,17 +230,17 @@ export default function AdminSettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
       toast({
-        title: "Gespeichert",
+        title: t("adminSettings.toastSavedTitle"),
         description: fallbackEnabled
-          ? `Fallback auf ${fallbackProvider === "google" ? "Gemini" : "Claude"} (${fallbackModel}) aktiviert.`
-          : "Fallback deaktiviert.",
+          ? t("adminSettings.toastFallbackEnabled", { provider: fallbackProvider === "google" ? "Gemini" : "Claude", model: fallbackModel })
+          : t("adminSettings.toastFallbackDisabled"),
       });
       setFallbackHasChanges(false);
     },
     onError: () => {
       toast({
-        title: "Fehler",
-        description: "Fallback-Einstellungen konnten nicht gespeichert werden.",
+        title: t("adminSettings.toastErrorTitle"),
+        description: t("adminSettings.toastFallbackSaveError"),
         variant: "destructive",
       });
     },
@@ -265,15 +267,15 @@ export default function AdminSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/promotion"] });
       queryClient.invalidateQueries({ queryKey: ["/api/packages"] });
       toast({
-        title: "Gespeichert",
-        description: "Rabattaktion wurde aktualisiert.",
+        title: t("adminSettings.toastSavedTitle"),
+        description: t("adminSettings.toastPromotionSaved"),
       });
       setPromotionHasChanges(false);
     },
     onError: () => {
       toast({
-        title: "Fehler",
-        description: "Rabatt-Einstellungen konnten nicht gespeichert werden.",
+        title: t("adminSettings.toastErrorTitle"),
+        description: t("adminSettings.toastPromotionSaveError"),
         variant: "destructive",
       });
     },
@@ -289,11 +291,11 @@ export default function AdminSettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/examples"] });
-      toast({ title: "Gespeichert", description: "Beispiel-Konfiguration aktualisiert." });
+      toast({ title: t("adminSettings.toastSavedTitle"), description: t("adminSettings.toastExampleSaved") });
       setExampleHasChanges(false);
     },
     onError: () => {
-      toast({ title: "Fehler", description: "Beispiel-Konfiguration konnte nicht gespeichert werden.", variant: "destructive" });
+      toast({ title: t("adminSettings.toastErrorTitle"), description: t("adminSettings.toastExampleSaveError"), variant: "destructive" });
     },
   });
 
@@ -319,11 +321,11 @@ export default function AdminSettingsPage() {
       }));
       setExampleHasChanges(true);
       setGeneratingTtsFor(null);
-      toast({ title: "Audio generiert", description: "TTS-Audio wurde erstellt. Speichern, um anzuwenden." });
+      toast({ title: t("adminSettings.toastAudioGeneratedTitle"), description: t("adminSettings.toastAudioGeneratedBody") });
     },
     onError: (error: Error) => {
       setGeneratingTtsFor(null);
-      toast({ title: "TTS-Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("adminSettings.toastTtsErrorTitle"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -337,7 +339,7 @@ export default function AdminSettingsPage() {
         ...prev.documents,
         {
           jobId: id,
-          title: job ? `${getScriptTypeDisplayLabel(job.scriptType)} #${id}` : `Dokument #${id}`,
+          title: job ? `${getScriptTypeDisplayLabel(job.scriptType)} #${id}` : t("adminSettings.defaultDocTitle", { id }),
           description: "",
           source: "",
           ttsVersion: "interpreted" as TtsTextVersion,
@@ -418,20 +420,20 @@ export default function AdminSettingsPage() {
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Admin-Einstellungen</h1>
+        <h1 className="text-2xl font-bold">{t("adminSettings.pageTitle")}</h1>
         <p className="text-muted-foreground mt-1">
-          Konfiguration für die Produktionsumgebung
+          {t("adminSettings.pageSubtitle")}
         </p>
       </div>
 
       <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-1">Transkriptions-Modell</h2>
+        <h2 className="text-lg font-semibold mb-1">{t("adminSettings.modelCardTitle")}</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Das hier eingestellte Modell wird für alle neuen Transkriptionen in der Produktionsumgebung verwendet.
+          {t("adminSettings.modelCardDesc")}
         </p>
 
         <div className="flex items-center gap-2 mb-6">
-          <span className="text-sm text-muted-foreground">Aktuell aktiv:</span>
+          <span className="text-sm text-muted-foreground">{t("adminSettings.currentlyActive")}</span>
           <Badge variant="outline">
             {currentProvider === "google" ? "Gemini" : "Claude"}
           </Badge>
@@ -442,7 +444,7 @@ export default function AdminSettingsPage() {
 
         <div className="space-y-4">
           <div>
-            <Label>Provider</Label>
+            <Label>{t("adminSettings.providerLabel")}</Label>
             <Select value={provider} onValueChange={handleProviderChange}>
               <SelectTrigger>
                 <SelectValue />
@@ -455,7 +457,7 @@ export default function AdminSettingsPage() {
           </div>
 
           <div>
-            <Label>Modell</Label>
+            <Label>{t("adminSettings.modelLabel")}</Label>
             <Select value={model} onValueChange={handleModelChange}>
               <SelectTrigger>
                 <SelectValue />
@@ -474,7 +476,7 @@ export default function AdminSettingsPage() {
             <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/20">
               <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
               <p className="text-sm text-amber-700 dark:text-amber-400">
-                Gemini-Modelle wurden noch nicht ausreichend getestet. Stelle sicher, dass die Evaluation zufriedenstellende Ergebnisse zeigt, bevor du auf Gemini umstellst.
+                {t("adminSettings.geminiWarning")}
               </p>
             </div>
           )}
@@ -489,21 +491,20 @@ export default function AdminSettingsPage() {
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Änderungen speichern
+            {t("adminSettings.saveChanges")}
           </Button>
         </div>
       </Card>
 
       <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-1">Fallback-Modell</h2>
+        <h2 className="text-lg font-semibold mb-1">{t("adminSettings.fallbackCardTitle")}</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Wird automatisch verwendet, wenn das Primärmodell überlastet ist (HTTP 429/503/529).
-          Empfohlen: ein schnelleres oder alternatives Modell eines anderen Providers.
+          {t("adminSettings.fallbackCardDesc")}
         </p>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
-            <Label htmlFor="fallback-enabled">Fallback aktiv</Label>
+            <Label htmlFor="fallback-enabled">{t("adminSettings.fallbackActive")}</Label>
             <Switch
               id="fallback-enabled"
               checked={fallbackEnabled}
@@ -517,7 +518,7 @@ export default function AdminSettingsPage() {
           {fallbackEnabled && (
             <>
               <div>
-                <Label>Fallback-Provider</Label>
+                <Label>{t("adminSettings.fallbackProviderLabel")}</Label>
                 <Select value={fallbackProvider} onValueChange={handleFallbackProviderChange}>
                   <SelectTrigger>
                     <SelectValue />
@@ -530,7 +531,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div>
-                <Label>Fallback-Modell</Label>
+                <Label>{t("adminSettings.fallbackModelLabel")}</Label>
                 <Select value={fallbackModel} onValueChange={handleFallbackModelChange}>
                   <SelectTrigger>
                     <SelectValue />
@@ -549,7 +550,7 @@ export default function AdminSettingsPage() {
                 <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/20">
                   <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
                   <p className="text-sm text-amber-700 dark:text-amber-400">
-                    Fallback und Primärmodell sind identisch. Wähle ein anderes Modell oder einen anderen Provider, damit der Fallback sinnvoll ist.
+                    {t("adminSettings.fallbackIdenticalWarning")}
                   </p>
                 </div>
               )}
@@ -566,20 +567,20 @@ export default function AdminSettingsPage() {
             ) : (
               <ShieldAlert className="h-4 w-4 mr-2" />
             )}
-            Fallback-Einstellungen speichern
+            {t("adminSettings.saveFallback")}
           </Button>
         </div>
       </Card>
 
       <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-1">Rabattaktion</h2>
+        <h2 className="text-lg font-semibold mb-1">{t("adminSettings.promotionCardTitle")}</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Aktion aktivieren und Rabatte in Prozent pro Paket festlegen. Die Preise auf der Website und in Stripe werden automatisch angepasst.
+          {t("adminSettings.promotionCardDesc")}
         </p>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
-            <Label htmlFor="promo-enabled">Aktion aktiv</Label>
+            <Label htmlFor="promo-enabled">{t("adminSettings.promotionActive")}</Label>
             <Switch
               id="promo-enabled"
               checked={promotionEnabled}
@@ -591,7 +592,7 @@ export default function AdminSettingsPage() {
           </div>
 
           <div>
-            <Label htmlFor="promo-label">Aktions-Label (z. B. Sommeraktion)</Label>
+            <Label htmlFor="promo-label">{t("adminSettings.promotionLabelLabel")}</Label>
             <Input
               id="promo-label"
               value={promotionLabel}
@@ -600,7 +601,7 @@ export default function AdminSettingsPage() {
                 setPromotionHasChanges(true);
               }}
               className="mt-1"
-              placeholder="Aktion"
+              placeholder={t("adminSettings.promotionLabelPlaceholder")}
             />
           </div>
 
@@ -657,7 +658,7 @@ export default function AdminSettingsPage() {
 
           {promotionEnabled && (
             <div className="rounded-md border bg-muted/40 p-3 text-sm">
-              <p className="font-medium mb-2">Vorschau Aktionspreise</p>
+              <p className="font-medium mb-2">{t("adminSettings.promotionPreviewTitle")}</p>
               <ul className="space-y-1 text-muted-foreground">
                 {(["Starter", "Standard", "Premium"] as const).map((name) => {
                   const base = PACKAGE_BASE_PRICES_CENTS[name];
@@ -683,22 +684,21 @@ export default function AdminSettingsPage() {
             ) : (
               <Percent className="h-4 w-4 mr-2" />
             )}
-            Rabatt-Einstellungen speichern
+            {t("adminSettings.savePromotion")}
           </Button>
         </div>
       </Card>
 
       <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-1">Beispiel-Dokumente</h2>
+        <h2 className="text-lg font-semibold mb-1">{t("adminSettings.exampleCardTitle")}</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Abgeschlossene Transkriptionsjobs auswählen, die auf der öffentlichen Beispielseite angezeigt werden.
-          Besucher können diese Dokumente ohne Anmeldung einsehen.
+          {t("adminSettings.exampleCardDesc")}
         </p>
 
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Max. angezeigte Beispiele</Label>
+              <Label>{t("adminSettings.maxVisibleLabel")}</Label>
               <Input
                 type="number"
                 min={1}
@@ -718,7 +718,7 @@ export default function AdminSettingsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>TTS-Stimme</Label>
+              <Label>{t("adminSettings.ttsVoiceLabel")}</Label>
               <Select
                 value={exampleConfig.ttsVoice}
                 onValueChange={(v) => {
@@ -739,7 +739,7 @@ export default function AdminSettingsPage() {
               </Select>
             </div>
             <div>
-              <Label>TTS-Stil</Label>
+              <Label>{t("adminSettings.ttsStyleLabel")}</Label>
               <Select
                 value={exampleConfig.ttsStyle}
                 onValueChange={(v) => {
@@ -762,15 +762,15 @@ export default function AdminSettingsPage() {
           </div>
 
           <div className="border-t pt-4">
-            <Label className="mb-2 block">Dokument hinzufügen</Label>
+            <Label className="mb-2 block">{t("adminSettings.addDocumentLabel")}</Label>
             {jobsLoading ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Abgeschlossene Jobs werden geladen...
+                {t("adminSettings.loadingJobs")}
               </div>
             ) : jobsError ? (
               <div className="text-sm text-destructive py-2">
-                Fehler beim Laden: {(jobsError as Error).message}
+                {t("adminSettings.loadError", { message: (jobsError as Error).message })}
               </div>
             ) : (() => {
               const availableJobs = (completedJobs ?? []).filter(
@@ -779,12 +779,12 @@ export default function AdminSettingsPage() {
               return availableJobs.length > 0 ? (
                 <Select value="" onValueChange={(val) => addExampleDocById(val)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Abgeschlossenen Job auswählen..." />
+                    <SelectValue placeholder={t("adminSettings.selectJobPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {availableJobs.map((j) => (
                       <SelectItem key={j.id} value={String(j.id)}>
-                        #{j.id} &ndash; {getScriptTypeDisplayLabel(j.scriptType)} ({j.totalPages} S.)
+                        #{j.id} &ndash; {getScriptTypeDisplayLabel(j.scriptType)} {t("adminSettings.pagesAbbrev", { count: j.totalPages })}
                         {j.textSnippet ? ` — ${j.textSnippet.slice(0, 50)}…` : ""}
                       </SelectItem>
                     ))}
@@ -792,14 +792,14 @@ export default function AdminSettingsPage() {
                 </Select>
               ) : completedJobs?.length ? (
                 <p className="text-sm text-muted-foreground py-1">
-                  Alle abgeschlossenen Jobs sind bereits als Beispiele hinzugefügt.
+                  {t("adminSettings.allJobsAdded")}
                 </p>
               ) : null;
             })()}
             <div className="flex gap-2 mt-2">
               <Input
                 type="number"
-                placeholder="Oder Job-ID manuell eingeben..."
+                placeholder={t("adminSettings.manualJobIdPlaceholder")}
                 value={addJobId}
                 onChange={(e) => setAddJobId(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && addJobId) addExampleDocById(addJobId); }}
@@ -810,12 +810,12 @@ export default function AdminSettingsPage() {
                 disabled={!addJobId}
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Hinzufügen
+                {t("adminSettings.add")}
               </Button>
             </div>
             {!completedJobs?.length && !jobsLoading && !jobsError && (
               <p className="text-sm text-muted-foreground mt-2">
-                Keine abgeschlossenen Transkriptionsjobs gefunden. Job-ID oben manuell eingeben.
+                {t("adminSettings.noJobsFound")}
               </p>
             )}
           </div>
@@ -830,10 +830,10 @@ export default function AdminSettingsPage() {
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-primary shrink-0" />
                         <span className="text-sm font-medium">
-                          Job #{doc.jobId}
+                          {t("adminSettings.jobNumber", { id: doc.jobId })}
                           {job && (
                             <span className="text-muted-foreground font-normal">
-                              {" "}&ndash; {getScriptTypeDisplayLabel(job.scriptType)}, {job.totalPages} Seite{job.totalPages !== 1 ? "n" : ""}
+                              {" "}&ndash; {getScriptTypeDisplayLabel(job.scriptType)}, {t("adminSettings.pagesCount", { count: job.totalPages })}
                             </span>
                           )}
                         </span>
@@ -852,32 +852,32 @@ export default function AdminSettingsPage() {
                     </div>
 
                     <div>
-                      <Label className="text-xs">Titel</Label>
+                      <Label className="text-xs">{t("adminSettings.titleLabel")}</Label>
                       <Input
                         value={doc.title}
                         onChange={(e) => updateExampleDoc(doc.jobId, "title", e.target.value)}
-                        placeholder="z. B. Feldpostbrief 1943 (Sütterlin)"
+                        placeholder={t("adminSettings.titlePlaceholder")}
                         className="mt-1"
                       />
                     </div>
 
                     <div>
-                      <Label className="text-xs">Beschreibung</Label>
+                      <Label className="text-xs">{t("adminSettings.descriptionLabel")}</Label>
                       <Textarea
                         value={doc.description}
                         onChange={(e) => updateExampleDoc(doc.jobId, "description", e.target.value)}
-                        placeholder="Kurze Beschreibung für Besucher..."
+                        placeholder={t("adminSettings.descriptionPlaceholder")}
                         rows={2}
                         className="mt-1"
                       />
                     </div>
 
                     <div>
-                      <Label className="text-xs">Quelle (optional)</Label>
+                      <Label className="text-xs">{t("adminSettings.sourceLabel")}</Label>
                       <Input
                         value={doc.source}
                         onChange={(e) => updateExampleDoc(doc.jobId, "source", e.target.value)}
-                        placeholder="z. B. Familienarchiv Bayern / Bundesarchiv Berlin"
+                        placeholder={t("adminSettings.sourcePlaceholder")}
                         className="mt-1"
                       />
                     </div>
@@ -885,21 +885,21 @@ export default function AdminSettingsPage() {
                     <div className="rounded-md border bg-muted/20 p-3 space-y-2">
                       <div className="flex items-center gap-2">
                         <Headphones className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span className="text-xs font-medium">Audio (TTS)</span>
+                        <span className="text-xs font-medium">{t("adminSettings.audioTts")}</span>
                         {doc.audioUrl && (
-                          <Badge variant="secondary" className="text-[10px] ml-auto">Audio vorhanden</Badge>
+                          <Badge variant="secondary" className="text-[10px] ml-auto">{t("adminSettings.audioAvailable")}</Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Label className="text-xs whitespace-nowrap shrink-0">Textversion</Label>
+                        <Label className="text-xs whitespace-nowrap shrink-0">{t("adminSettings.textVersionLabel")}</Label>
                         <Select value={doc.ttsVersion} onValueChange={(v) => updateExampleDoc(doc.jobId, "ttsVersion", v)}>
                           <SelectTrigger className="h-8 text-xs flex-1">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="original">Originalgetreu</SelectItem>
-                            <SelectItem value="completed">Ergänzt</SelectItem>
-                            <SelectItem value="interpreted">Interpretation (besonders lesbar)</SelectItem>
+                            <SelectItem value="original">{t("adminSettings.versionOriginal")}</SelectItem>
+                            <SelectItem value="completed">{t("adminSettings.versionCompleted")}</SelectItem>
+                            <SelectItem value="interpreted">{t("adminSettings.versionInterpreted")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -915,7 +915,7 @@ export default function AdminSettingsPage() {
                         ) : (
                           <Volume2 className="h-3.5 w-3.5 mr-1.5" />
                         )}
-                        {generatingTtsFor === doc.jobId ? "Wird generiert..." : doc.audioUrl ? "TTS neu generieren" : "TTS generieren"}
+                        {generatingTtsFor === doc.jobId ? t("adminSettings.ttsGenerating") : doc.audioUrl ? t("adminSettings.ttsRegenerate") : t("adminSettings.ttsGenerate")}
                       </Button>
                     </div>
 
@@ -938,7 +938,7 @@ export default function AdminSettingsPage() {
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Beispiel-Konfiguration speichern
+            {t("adminSettings.saveExample")}
           </Button>
         </div>
       </Card>

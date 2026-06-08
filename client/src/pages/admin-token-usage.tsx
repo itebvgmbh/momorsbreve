@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useQuery } from "@tanstack/react-query";
 import { getAuthHeaders } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,6 +113,7 @@ function formatDate(dateStr: string | null): string {
 }
 
 export default function AdminTokenUsagePage() {
+  const { t } = useTranslation();
   const [days, setDays] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField>("totalTokens");
   const [sortAsc, setSortAsc] = useState(false);
@@ -125,7 +128,7 @@ export default function AdminTokenUsagePage() {
         : "/api/admin/token-usage";
       const headers = await getAuthHeaders();
       const res = await fetch(url, { headers });
-      if (!res.ok) throw new Error("Fehler beim Laden");
+      if (!res.ok) throw new Error(t("adminTokens.errorLoading"));
       return res.json();
     },
     staleTime: 30_000,
@@ -189,9 +192,9 @@ export default function AdminTokenUsagePage() {
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Token-Verbrauch</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("adminTokens.pageTitle")}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            API-Kosten und Token-Nutzung pro User
+            {t("adminTokens.pageSubtitle")}
             {pricing && (
               <span className="ml-2">
                 <Badge variant="secondary" className="text-[10px]">
@@ -206,10 +209,10 @@ export default function AdminTokenUsagePage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="7">Letzte 7 Tage</SelectItem>
-            <SelectItem value="30">Letzte 30 Tage</SelectItem>
-            <SelectItem value="90">Letzte 90 Tage</SelectItem>
-            <SelectItem value="all">Gesamt</SelectItem>
+            <SelectItem value="7">{t("adminTokens.last7Days")}</SelectItem>
+            <SelectItem value="30">{t("adminTokens.last30Days")}</SelectItem>
+            <SelectItem value="90">{t("adminTokens.last90Days")}</SelectItem>
+            <SelectItem value="all">{t("adminTokens.allTime")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -218,7 +221,7 @@ export default function AdminTokenUsagePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Gesamtkosten</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("adminTokens.totalCost")}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -228,37 +231,37 @@ export default function AdminTokenUsagePage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Input-Tokens</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("adminTokens.inputTokens")}</CardTitle>
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatNumber(totals?.inputTokens ?? 0)}</div>
             <p className="text-xs text-muted-foreground">
-              ${pricing?.inputPricePerM ?? 0} / 1M Tokens
+              {t("adminTokens.pricePerMillion", { price: pricing?.inputPricePerM ?? 0 })}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Output-Tokens</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("adminTokens.outputTokens")}</CardTitle>
             <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatNumber(totals?.outputTokens ?? 0)}</div>
             <p className="text-xs text-muted-foreground">
-              ${pricing?.outputPricePerM ?? 0} / 1M Tokens
+              {t("adminTokens.pricePerMillion", { price: pricing?.outputPricePerM ?? 0 })}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Seiten transkribiert</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("adminTokens.pagesTranscribed")}</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totals?.pageCount ?? 0}</div>
             <p className="text-xs text-muted-foreground">
-              {sortedUsers.length} {sortedUsers.length === 1 ? "User" : "User"}
+              {t("adminTokens.userCount", { count: sortedUsers.length })}
             </p>
           </CardContent>
         </Card>
@@ -269,9 +272,9 @@ export default function AdminTokenUsagePage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <Users className="h-12 w-12 text-muted-foreground/40 mb-4" />
-            <h3 className="text-lg font-medium">Keine Token-Daten vorhanden</h3>
+            <h3 className="text-lg font-medium">{t("adminTokens.emptyTitle")}</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Token-Daten werden erst ab jetzt bei neuen Transkriptionen erfasst.
+              {t("adminTokens.emptyBody")}
             </p>
           </CardContent>
         </Card>
@@ -281,20 +284,20 @@ export default function AdminTokenUsagePage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-8" />
-                <TableHead>User</TableHead>
-                <TableHead className="text-right">Input</TableHead>
-                <TableHead className="text-right">Output</TableHead>
+                <TableHead>{t("adminTokens.colUser")}</TableHead>
+                <TableHead className="text-right">{t("adminTokens.colInput")}</TableHead>
+                <TableHead className="text-right">{t("adminTokens.colOutput")}</TableHead>
                 <TableHead className="text-right">
-                  <SortButton field="totalTokens">Gesamt</SortButton>
+                  <SortButton field="totalTokens">{t("adminTokens.colTotal")}</SortButton>
                 </TableHead>
                 <TableHead className="text-right">
-                  <SortButton field="costUsd">Kosten</SortButton>
+                  <SortButton field="costUsd">{t("adminTokens.colCost")}</SortButton>
                 </TableHead>
                 <TableHead className="text-right">
-                  <SortButton field="pageCount">Seiten</SortButton>
+                  <SortButton field="pageCount">{t("adminTokens.colPages")}</SortButton>
                 </TableHead>
                 <TableHead className="text-right">
-                  <SortButton field="lastActivity">Letzte Aktivität</SortButton>
+                  <SortButton field="lastActivity">{t("adminTokens.colLastActivity")}</SortButton>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -310,13 +313,13 @@ export default function AdminTokenUsagePage() {
   );
 }
 
-function JobStatusBadge({ status, completedPages, totalPages }: { status: string; completedPages: number; totalPages: number }) {
+function JobStatusBadge({ status, completedPages, totalPages, t }: { status: string; completedPages: number; totalPages: number; t: TFunction }) {
   switch (status) {
     case "completed":
       return (
         <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px]">
           <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
-          Fertig
+          {t("adminTokens.statusDone")}
         </Badge>
       );
     case "processing":
@@ -330,7 +333,7 @@ function JobStatusBadge({ status, completedPages, totalPages }: { status: string
       return (
         <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-[10px]">
           <Clock className="h-2.5 w-2.5 mr-0.5" />
-          Vorschau
+          {t("adminTokens.statusPreview")}
         </Badge>
       );
     default:
@@ -344,6 +347,7 @@ function JobStatusBadge({ status, completedPages, totalPages }: { status: string
 }
 
 function UserRow({ user, queryDays }: { user: TokenUsageUser; queryDays: string | undefined }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [, navigate] = useLocation();
 
@@ -355,7 +359,7 @@ function UserRow({ user, queryDays }: { user: TokenUsageUser; queryDays: string 
         : `/api/admin/token-usage/${encodeURIComponent(user.userId)}/jobs`;
       const headers = await getAuthHeaders();
       const res = await fetch(url, { headers });
-      if (!res.ok) throw new Error("Fehler beim Laden der Dokumente");
+      if (!res.ok) throw new Error(t("adminTokens.errorLoadingDocs"));
       return res.json();
     },
     enabled: open,
@@ -376,7 +380,7 @@ function UserRow({ user, queryDays }: { user: TokenUsageUser; queryDays: string 
         <TableCell>
           <div>
             <p className="font-medium text-sm">
-              {user.name || "Unbenannt"}
+              {user.name || t("adminTokens.unnamed")}
             </p>
             <p className="text-xs text-muted-foreground">{user.email || user.userId}</p>
           </div>
@@ -406,49 +410,49 @@ function UserRow({ user, queryDays }: { user: TokenUsageUser; queryDays: string 
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <p className="text-muted-foreground text-xs">Aufträge</p>
+                  <p className="text-muted-foreground text-xs">{t("adminTokens.detailJobs")}</p>
                   <p className="font-medium">{user.jobCount}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs">Seiten / Auftrag</p>
+                  <p className="text-muted-foreground text-xs">{t("adminTokens.detailPagesPerJob")}</p>
                   <p className="font-medium">
                     {user.jobCount > 0 ? (user.pageCount / user.jobCount).toFixed(1) : "–"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs">Kosten / Seite</p>
+                  <p className="text-muted-foreground text-xs">{t("adminTokens.detailCostPerPage")}</p>
                   <p className="font-medium">
                     {user.pageCount > 0 ? formatCost(user.costUsd / user.pageCount) : "–"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs">Kosten (EUR)</p>
+                  <p className="text-muted-foreground text-xs">{t("adminTokens.detailCostEur")}</p>
                   <p className="font-medium">{formatCostEur(user.costUsd)}</p>
                 </div>
               </div>
               <div>
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Dokumente</h4>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{t("adminTokens.documents")}</h4>
                 {jobsLoading ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Dokumente werden geladen…
+                    {t("adminTokens.documentsLoading")}
                   </div>
                 ) : jobs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2">Keine Dokumente mit Token-Daten.</p>
+                  <p className="text-sm text-muted-foreground py-2">{t("adminTokens.noDocuments")}</p>
                 ) : (
                   <div className="border rounded-md overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50 hover:bg-muted/50">
-                          <TableHead className="text-xs">Schriftart</TableHead>
-                          <TableHead className="text-xs">Status</TableHead>
-                          <TableHead className="text-xs text-right">Seiten</TableHead>
-                          <TableHead className="text-xs text-right">Input</TableHead>
-                          <TableHead className="text-xs text-right">Output</TableHead>
-                          <TableHead className="text-xs text-right">Gesamt</TableHead>
-                          <TableHead className="text-xs text-right">Kosten</TableHead>
-                          <TableHead className="text-xs">Snippet</TableHead>
-                          <TableHead className="text-xs">Erstellt</TableHead>
+                          <TableHead className="text-xs">{t("adminTokens.jobColScript")}</TableHead>
+                          <TableHead className="text-xs">{t("adminTokens.jobColStatus")}</TableHead>
+                          <TableHead className="text-xs text-right">{t("adminTokens.jobColPages")}</TableHead>
+                          <TableHead className="text-xs text-right">{t("adminTokens.jobColInput")}</TableHead>
+                          <TableHead className="text-xs text-right">{t("adminTokens.jobColOutput")}</TableHead>
+                          <TableHead className="text-xs text-right">{t("adminTokens.jobColTotal")}</TableHead>
+                          <TableHead className="text-xs text-right">{t("adminTokens.jobColCost")}</TableHead>
+                          <TableHead className="text-xs">{t("adminTokens.jobColSnippet")}</TableHead>
+                          <TableHead className="text-xs">{t("adminTokens.jobColCreated")}</TableHead>
                           <TableHead className="text-xs w-20" />
                         </TableRow>
                       </TableHeader>
@@ -463,6 +467,7 @@ function UserRow({ user, queryDays }: { user: TokenUsageUser; queryDays: string 
                                 status={job.status}
                                 completedPages={job.completedPages}
                                 totalPages={job.totalPages}
+                                t={t}
                               />
                             </TableCell>
                             <TableCell className="text-right tabular-nums py-2">
@@ -497,7 +502,7 @@ function UserRow({ user, queryDays }: { user: TokenUsageUser; queryDays: string 
                                 }}
                               >
                                 <ExternalLink className="h-3 w-3 mr-1" />
-                                Ansehen
+                                {t("adminTokens.view")}
                               </Button>
                             </TableCell>
                           </TableRow>

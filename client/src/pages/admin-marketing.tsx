@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -151,13 +153,15 @@ interface ResendBroadcastResult {
   scheduledAt: string | null;
 }
 
-const TRIGGER_LABELS: Record<FlowTriggerType, string> = {
-  registration: "Neue Registrierung",
-  first_purchase: "Erster Kauf",
-  no_purchase_after_days: "Kein Kauf nach X Tagen",
-  credits_low: "Credits fast aufgebraucht",
-  inactive_since_days: "Inaktiv seit X Tagen",
-};
+function triggerLabels(t: TFunction): Record<FlowTriggerType, string> {
+  return {
+    registration: t("adminMarketing.triggerRegistration"),
+    first_purchase: t("adminMarketing.triggerFirstPurchase"),
+    no_purchase_after_days: t("adminMarketing.triggerNoPurchaseAfterDays"),
+    credits_low: t("adminMarketing.triggerCreditsLow"),
+    inactive_since_days: t("adminMarketing.triggerInactiveSinceDays"),
+  };
+}
 
 const DEFAULT_TEMPLATE_BODY = `<!DOCTYPE html>
 <html lang="de"><head><meta charset="utf-8"></head>
@@ -185,22 +189,22 @@ const DEFAULT_TEMPLATE_BODY = `<!DOCTYPE html>
   </table>
 </body></html>`;
 
-function statusBadge(status: EmailCampaign["status"]) {
+function statusBadge(status: EmailCampaign["status"], t: TFunction) {
   const map: Record<EmailCampaign["status"], { label: string; variant: any }> = {
-    draft: { label: "Entwurf", variant: "secondary" },
-    scheduled: { label: "Geplant", variant: "outline" },
-    sending: { label: "Versand läuft", variant: "default" },
-    sent: { label: "Versendet", variant: "default" },
-    failed: { label: "Fehlgeschlagen", variant: "destructive" },
+    draft: { label: t("adminMarketing.statusDraft"), variant: "secondary" },
+    scheduled: { label: t("adminMarketing.statusScheduled"), variant: "outline" },
+    sending: { label: t("adminMarketing.statusSending"), variant: "default" },
+    sent: { label: t("adminMarketing.statusSent"), variant: "default" },
+    failed: { label: t("adminMarketing.statusFailed"), variant: "destructive" },
   };
   const m = map[status];
   return <Badge variant={m.variant}>{m.label}</Badge>;
 }
 
-function sendStatusBadge(s: string) {
-  if (s === "sent" || s === "delivered") return <Badge>✓ versendet</Badge>;
+function sendStatusBadge(s: string, t: TFunction) {
+  if (s === "sent" || s === "delivered") return <Badge>{t("adminMarketing.sendStatusSent")}</Badge>;
   if (s === "opened" || s === "clicked") return <Badge>{s}</Badge>;
-  if (s === "skipped") return <Badge variant="outline">übersprungen</Badge>;
+  if (s === "skipped") return <Badge variant="outline">{t("adminMarketing.sendStatusSkipped")}</Badge>;
   if (s === "failed" || s === "bounced")
     return <Badge variant="destructive">{s}</Badge>;
   return <Badge variant="secondary">{s}</Badge>;
@@ -209,24 +213,25 @@ function sendStatusBadge(s: string) {
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function AdminMarketingPage() {
+  const { t } = useTranslation();
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="flex items-center gap-3 mb-6">
         <Mail className="h-7 w-7 text-primary" />
         <div>
-          <h1 className="text-2xl font-bold">Marketing &amp; E-Mail-Kampagnen</h1>
+          <h1 className="text-2xl font-bold">{t("adminMarketing.pageTitle")}</h1>
           <p className="text-sm text-muted-foreground">
-            Vorlagen anlegen, Segmente filtern, Kampagnen versenden und Funnel-Automatisierung verwalten.
+            {t("adminMarketing.pageSubtitle")}
           </p>
         </div>
       </div>
 
       <Tabs defaultValue="templates" className="w-full">
         <TabsList>
-          <TabsTrigger value="templates">Vorlagen</TabsTrigger>
-          <TabsTrigger value="campaigns">Kampagnen</TabsTrigger>
-          <TabsTrigger value="flows">Funnels</TabsTrigger>
-          <TabsTrigger value="log">Log</TabsTrigger>
+          <TabsTrigger value="templates">{t("adminMarketing.tabTemplates")}</TabsTrigger>
+          <TabsTrigger value="campaigns">{t("adminMarketing.tabCampaigns")}</TabsTrigger>
+          <TabsTrigger value="flows">{t("adminMarketing.tabFlows")}</TabsTrigger>
+          <TabsTrigger value="log">{t("adminMarketing.tabLog")}</TabsTrigger>
         </TabsList>
         <TabsContent value="templates" className="mt-6">
           <TemplatesTab />
@@ -248,6 +253,7 @@ export default function AdminMarketingPage() {
 // ─── Templates Tab ─────────────────────────────────────────────────────────
 
 function TemplatesTab() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [editing, setEditing] = useState<EmailTemplate | null>(null);
   const [previewTpl, setPreviewTpl] = useState<EmailTemplate | null>(null);
@@ -266,17 +272,17 @@ function TemplatesTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/marketing/templates"] });
-      toast({ title: "Vorlage gelöscht" });
+      toast({ title: t("adminMarketing.toastTemplateDeleted") });
     },
     onError: (err: any) =>
-      toast({ variant: "destructive", title: "Löschen fehlgeschlagen", description: err?.message }),
+      toast({ variant: "destructive", title: t("adminMarketing.toastDeleteFailed"), description: err?.message }),
   });
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Platzhalter: <code className="text-xs">{`{{firstName}} {{email}} {{credits}} {{appUrl}} {{unsubscribeUrl}}`}</code>
+          {t("adminMarketing.placeholdersLabel")} <code className="text-xs">{`{{firstName}} {{email}} {{credits}} {{appUrl}} {{unsubscribeUrl}}`}</code>
         </p>
         <Button onClick={() => setEditing({
           id: 0,
@@ -288,7 +294,7 @@ function TemplatesTab() {
           createdAt: "",
           updatedAt: "",
         })}>
-          <Plus className="h-4 w-4 mr-2" /> Neue Vorlage
+          <Plus className="h-4 w-4 mr-2" /> {t("adminMarketing.newTemplate")}
         </Button>
       </div>
 
@@ -296,43 +302,43 @@ function TemplatesTab() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">
-              <Loader2 className="inline h-5 w-5 animate-spin mr-2" /> Lädt…
+              <Loader2 className="inline h-5 w-5 animate-spin mr-2" /> {t("common.loading")}
             </div>
           ) : templates.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
-              Noch keine Vorlagen. Lege jetzt deine erste an.
+              {t("adminMarketing.templatesEmpty")}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Betreff</TableHead>
-                  <TableHead>Aktualisiert</TableHead>
-                  <TableHead className="text-right">Aktionen</TableHead>
+                  <TableHead>{t("adminMarketing.colName")}</TableHead>
+                  <TableHead>{t("adminMarketing.colSubject")}</TableHead>
+                  <TableHead>{t("adminMarketing.colUpdated")}</TableHead>
+                  <TableHead className="text-right">{t("adminMarketing.colActions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {templates.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{t.subject}</TableCell>
+                {templates.map((tpl) => (
+                  <TableRow key={tpl.id}>
+                    <TableCell className="font-medium">{tpl.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{tpl.subject}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {new Date(t.updatedAt).toLocaleString("de-DE")}
+                      {new Date(tpl.updatedAt).toLocaleString("de-DE")}
                     </TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Button variant="ghost" size="sm" onClick={() => setPreviewTpl(t)}>
+                      <Button variant="ghost" size="sm" onClick={() => setPreviewTpl(tpl)}>
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setEditing(t)}>
+                      <Button variant="ghost" size="sm" onClick={() => setEditing(tpl)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          if (confirm(`Vorlage "${t.name}" wirklich löschen?`)) {
-                            deleteMut.mutate(t.id);
+                          if (confirm(t("adminMarketing.confirmDeleteTemplate", { name: tpl.name }))) {
+                            deleteMut.mutate(tpl.id);
                           }
                         }}
                       >
@@ -364,6 +370,7 @@ function TemplatesTab() {
 }
 
 function TemplateEditor({ template, onClose }: { template: EmailTemplate; onClose: () => void }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const isNew = template.id === 0;
   const [name, setName] = useState(template.name);
@@ -390,16 +397,16 @@ function TemplateEditor({ template, onClose }: { template: EmailTemplate; onClos
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/marketing/templates"] });
-      toast({ title: isNew ? "Vorlage erstellt" : "Vorlage gespeichert" });
+      toast({ title: isNew ? t("adminMarketing.toastTemplateCreated") : t("adminMarketing.toastTemplateSaved") });
       onClose();
     },
     onError: (err: any) =>
-      toast({ variant: "destructive", title: "Speichern fehlgeschlagen", description: err?.message }),
+      toast({ variant: "destructive", title: t("adminMarketing.toastSaveFailed"), description: err?.message }),
   });
 
   const testMut = useMutation({
     mutationFn: async () => {
-      if (!template.id) throw new Error("Bitte erst speichern.");
+      if (!template.id) throw new Error(t("adminMarketing.errorSaveFirst"));
       const res = await apiRequest(
         "POST",
         `/api/admin/marketing/templates/${template.id}/test`,
@@ -408,38 +415,38 @@ function TemplateEditor({ template, onClose }: { template: EmailTemplate; onClos
       return res.json();
     },
     onSuccess: () =>
-      toast({ title: "Testmail versendet", description: `An ${testEmail}` }),
+      toast({ title: t("adminMarketing.toastTestmailSent"), description: t("adminMarketing.toastTestmailSentTo", { email: testEmail }) }),
     onError: (err: any) =>
-      toast({ variant: "destructive", title: "Testversand fehlgeschlagen", description: err?.message }),
+      toast({ variant: "destructive", title: t("adminMarketing.toastTestSendFailed"), description: err?.message }),
   });
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isNew ? "Neue Vorlage" : `Vorlage: ${template.name}`}</DialogTitle>
+          <DialogTitle>{isNew ? t("adminMarketing.newTemplate") : t("adminMarketing.editTemplateTitle", { name: template.name })}</DialogTitle>
           <DialogDescription>
-            HTML-Body mit Platzhaltern. Footer mit Abmelde-Link wird automatisch angehängt.
+            {t("adminMarketing.templateEditorDesc")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4">
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <Label>Name (intern)</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. Willkommen + 3 Gratis-Credits" />
+              <Label>{t("adminMarketing.labelNameInternal")}</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("adminMarketing.placeholderTemplateName")} />
             </div>
             <div>
-              <Label>Preheader (Vorschautext)</Label>
-              <Input value={preheader} onChange={(e) => setPreheader(e.target.value)} placeholder="Kurztext, der in der Inbox neben dem Betreff erscheint" />
+              <Label>{t("adminMarketing.labelPreheader")}</Label>
+              <Input value={preheader} onChange={(e) => setPreheader(e.target.value)} placeholder={t("adminMarketing.placeholderPreheader")} />
             </div>
           </div>
           <div>
-            <Label>Betreff</Label>
-            <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="z. B. Willkommen bei MormorsBreve, {{firstName}}" />
+            <Label>{t("adminMarketing.labelSubject")}</Label>
+            <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={t("adminMarketing.placeholderSubject")} />
           </div>
           <div>
-            <Label>HTML-Body</Label>
+            <Label>{t("adminMarketing.labelHtmlBody")}</Label>
             <Textarea
               value={htmlBody}
               onChange={(e) => setHtmlBody(e.target.value)}
@@ -448,12 +455,12 @@ function TemplateEditor({ template, onClose }: { template: EmailTemplate; onClos
             />
           </div>
           <div>
-            <Label>Text-Fallback (optional)</Label>
+            <Label>{t("adminMarketing.labelTextFallback")}</Label>
             <Textarea
               value={textBody}
               onChange={(e) => setTextBody(e.target.value)}
               rows={4}
-              placeholder="Leer lassen, dann wird automatisch aus dem HTML generiert."
+              placeholder={t("adminMarketing.placeholderTextFallback")}
             />
           </div>
 
@@ -461,7 +468,7 @@ function TemplateEditor({ template, onClose }: { template: EmailTemplate; onClos
             <Card className="bg-muted/30">
               <CardContent className="p-4">
                 <Label className="flex items-center gap-2 mb-2">
-                  <TestTube2 className="h-4 w-4" /> Testmail an beliebige Adresse
+                  <TestTube2 className="h-4 w-4" /> {t("adminMarketing.testmailLabel")}
                 </Label>
                 <div className="flex gap-2">
                   <Input
@@ -480,11 +487,11 @@ function TemplateEditor({ template, onClose }: { template: EmailTemplate; onClos
                     ) : (
                       <Send className="h-4 w-4" />
                     )}
-                    <span className="ml-2">Senden</span>
+                    <span className="ml-2">{t("adminMarketing.send")}</span>
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Achtung: Änderungen im Editor erst speichern, damit sie in die Testmail einfließen. Testmails umgehen Opt-In &amp; Cooldown.
+                  {t("adminMarketing.testmailHint")}
                 </p>
               </CardContent>
             </Card>
@@ -492,13 +499,13 @@ function TemplateEditor({ template, onClose }: { template: EmailTemplate; onClos
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Abbrechen</Button>
+          <Button variant="outline" onClick={onClose}>{t("common.cancel")}</Button>
           <Button
             onClick={() => saveMut.mutate()}
             disabled={!name || !subject || !htmlBody || saveMut.isPending}
           >
             {saveMut.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            Speichern
+            {t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -507,6 +514,7 @@ function TemplateEditor({ template, onClose }: { template: EmailTemplate; onClos
 }
 
 function TemplatePreview({ template, onClose }: { template: EmailTemplate; onClose: () => void }) {
+  const { t } = useTranslation();
   const { data: preview } = useQuery<{ subject: string; html: string; text: string }>({
     queryKey: [`/api/admin/marketing/templates/${template.id}/preview-q`],
     queryFn: async () => {
@@ -519,7 +527,7 @@ function TemplatePreview({ template, onClose }: { template: EmailTemplate; onClo
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Vorschau: {template.name}</DialogTitle>
+          <DialogTitle>{t("adminMarketing.previewTitle", { name: template.name })}</DialogTitle>
           <DialogDescription>{preview?.subject}</DialogDescription>
         </DialogHeader>
         {preview ? (
@@ -531,7 +539,7 @@ function TemplatePreview({ template, onClose }: { template: EmailTemplate; onClo
           />
         ) : (
           <div className="p-8 text-center text-muted-foreground">
-            <Loader2 className="inline h-5 w-5 animate-spin mr-2" /> Lädt…
+            <Loader2 className="inline h-5 w-5 animate-spin mr-2" /> {t("common.loading")}
           </div>
         )}
       </DialogContent>
@@ -548,6 +556,7 @@ function SegmentFilterEditor({
   value: SegmentFilter;
   onChange: (v: SegmentFilter) => void;
 }) {
+  const { t } = useTranslation();
   const { data: preview } = useQuery<{ count: number; sample: { email: string; firstName: string | null }[] }>({
     queryKey: ["/api/admin/marketing/segments/preview", JSON.stringify(value)],
     queryFn: async () => {
@@ -563,7 +572,7 @@ function SegmentFilterEditor({
     <div className="space-y-3 p-4 border rounded-md bg-muted/20">
       <div className="grid md:grid-cols-3 gap-3">
         <div>
-          <Label>Kaufstatus</Label>
+          <Label>{t("adminMarketing.purchaseStatus")}</Label>
           <Select
             value={purchaseValue}
             onValueChange={(v) =>
@@ -577,14 +586,14 @@ function SegmentFilterEditor({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="any">Alle</SelectItem>
-              <SelectItem value="yes">Hat gekauft</SelectItem>
-              <SelectItem value="no">Noch nicht gekauft</SelectItem>
+              <SelectItem value="any">{t("adminMarketing.purchaseAny")}</SelectItem>
+              <SelectItem value="yes">{t("adminMarketing.purchaseYes")}</SelectItem>
+              <SelectItem value="no">{t("adminMarketing.purchaseNo")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label>Registriert ab (optional)</Label>
+          <Label>{t("adminMarketing.registeredFrom")}</Label>
           <Input
             type="date"
             value={value.registeredAfter ? value.registeredAfter.slice(0, 10) : ""}
@@ -599,7 +608,7 @@ function SegmentFilterEditor({
           />
         </div>
         <div>
-          <Label>Registriert bis (optional)</Label>
+          <Label>{t("adminMarketing.registeredUntil")}</Label>
           <Input
             type="date"
             value={value.registeredBefore ? value.registeredBefore.slice(0, 10) : ""}
@@ -617,7 +626,7 @@ function SegmentFilterEditor({
 
       <div className="grid md:grid-cols-2 gap-3">
         <div>
-          <Label>Registriert vor mind. N Tagen</Label>
+          <Label>{t("adminMarketing.registeredAtLeastDays")}</Label>
           <Input
             type="number"
             min={0}
@@ -631,7 +640,7 @@ function SegmentFilterEditor({
           />
         </div>
         <div>
-          <Label>Registriert vor höchstens N Tagen</Label>
+          <Label>{t("adminMarketing.registeredAtMostDays")}</Label>
           <Input
             type="number"
             min={0}
@@ -649,15 +658,15 @@ function SegmentFilterEditor({
       <div className="flex items-center justify-between pt-2 border-t">
         <div>
           <span className="text-sm font-medium">
-            {preview?.count ?? "…"} Nutzer im Segment
+            {t("adminMarketing.usersInSegment", { n: preview?.count ?? "…" })}
           </span>
           <p className="text-xs text-muted-foreground">
-            Newsletter-Opt-In ist immer Pflicht. Der 48h-Cooldown greift beim Versand.
+            {t("adminMarketing.segmentOptInHint")}
           </p>
         </div>
         {preview && preview.sample.length > 0 && (
           <div className="text-xs text-muted-foreground text-right">
-            Stichprobe: {preview.sample.map((s) => s.email).slice(0, 3).join(", ")}
+            {t("adminMarketing.sampleLabel")} {preview.sample.map((s) => s.email).slice(0, 3).join(", ")}
             {preview.count > 3 ? " …" : ""}
           </div>
         )}
@@ -669,6 +678,7 @@ function SegmentFilterEditor({
 // ─── Campaigns Tab ─────────────────────────────────────────────────────────
 
 function CampaignsTab() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [editing, setEditing] = useState<EmailCampaign | null>(null);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
@@ -685,10 +695,10 @@ function CampaignsTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/marketing/campaigns"] });
-      toast({ title: "Versand gestartet" });
+      toast({ title: t("adminMarketing.toastSendStarted") });
     },
     onError: (err: any) =>
-      toast({ variant: "destructive", title: "Versand fehlgeschlagen", description: err?.message }),
+      toast({ variant: "destructive", title: t("adminMarketing.toastSendFailed"), description: err?.message }),
   });
 
   const deleteMut = useMutation({
@@ -698,7 +708,7 @@ function CampaignsTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/marketing/campaigns"] });
-      toast({ title: "Kampagne gelöscht" });
+      toast({ title: t("adminMarketing.toastCampaignDeleted") });
     },
   });
 
@@ -706,7 +716,7 @@ function CampaignsTab() {
     <div className="space-y-4">
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={() => setBroadcastOpen(true)}>
-          <Mail className="h-4 w-4 mr-2" /> Resend Broadcast
+          <Mail className="h-4 w-4 mr-2" /> {t("adminMarketing.resendBroadcast")}
         </Button>
         <Button onClick={() => setEditing({
           id: 0,
@@ -722,7 +732,7 @@ function CampaignsTab() {
           createdAt: "",
           updatedAt: "",
         })}>
-          <Plus className="h-4 w-4 mr-2" /> Neue Kampagne
+          <Plus className="h-4 w-4 mr-2" /> {t("adminMarketing.newCampaign")}
         </Button>
       </div>
 
@@ -730,34 +740,34 @@ function CampaignsTab() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">
-              <Loader2 className="inline h-5 w-5 animate-spin mr-2" /> Lädt…
+              <Loader2 className="inline h-5 w-5 animate-spin mr-2" /> {t("common.loading")}
             </div>
           ) : campaigns.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
-              Noch keine Kampagnen.
+              {t("adminMarketing.campaignsEmpty")}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Empfänger / Versandt</TableHead>
-                  <TableHead>Aktualisiert</TableHead>
-                  <TableHead className="text-right">Aktionen</TableHead>
+                  <TableHead>{t("adminMarketing.colName")}</TableHead>
+                  <TableHead>{t("adminMarketing.colStatus")}</TableHead>
+                  <TableHead>{t("adminMarketing.colRecipientsSent")}</TableHead>
+                  <TableHead>{t("adminMarketing.colUpdated")}</TableHead>
+                  <TableHead className="text-right">{t("adminMarketing.colActions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {campaigns.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell>{statusBadge(c.status)}</TableCell>
+                    <TableCell>{statusBadge(c.status, t)}</TableCell>
                     <TableCell className="text-sm">
                       {c.stats ? (
                         <>
-                          {c.stats.sent ?? 0}/{c.stats.totalRecipients ?? 0} versendet
-                          {c.stats.skippedCooldown ? ` · ${c.stats.skippedCooldown} übersprungen` : ""}
-                          {c.stats.failed ? ` · ${c.stats.failed} Fehler` : ""}
+                          {t("adminMarketing.statsSent", { sent: c.stats.sent ?? 0, total: c.stats.totalRecipients ?? 0 })}
+                          {c.stats.skippedCooldown ? t("adminMarketing.statsSkipped", { count: c.stats.skippedCooldown }) : ""}
+                          {c.stats.failed ? t("adminMarketing.statsFailed", { count: c.stats.failed }) : ""}
                         </>
                       ) : (
                         "–"
@@ -771,13 +781,13 @@ function CampaignsTab() {
                         <Button
                           size="sm"
                           onClick={() => {
-                            if (confirm(`Kampagne "${c.name}" jetzt versenden?`)) {
+                            if (confirm(t("adminMarketing.confirmSendCampaign", { name: c.name }))) {
                               sendMut.mutate(c.id);
                             }
                           }}
                           disabled={sendMut.isPending}
                         >
-                          <Send className="h-4 w-4 mr-1" /> Senden
+                          <Send className="h-4 w-4 mr-1" /> {t("adminMarketing.send")}
                         </Button>
                       )}
                       {c.status === "draft" && (
@@ -789,7 +799,7 @@ function CampaignsTab() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          if (confirm("Kampagne löschen?")) deleteMut.mutate(c.id);
+                          if (confirm(t("adminMarketing.confirmDeleteCampaign"))) deleteMut.mutate(c.id);
                         }}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
@@ -810,6 +820,7 @@ function CampaignsTab() {
 }
 
 function CampaignEditor({ campaign, onClose }: { campaign: EmailCampaign; onClose: () => void }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const isNew = campaign.id === 0;
   const [name, setName] = useState(campaign.name);
@@ -831,61 +842,61 @@ function CampaignEditor({ campaign, onClose }: { campaign: EmailCampaign; onClos
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/marketing/campaigns"] });
-      toast({ title: isNew ? "Kampagne erstellt" : "Kampagne gespeichert" });
+      toast({ title: isNew ? t("adminMarketing.toastCampaignCreated") : t("adminMarketing.toastCampaignSaved") });
       onClose();
     },
     onError: (err: any) =>
-      toast({ variant: "destructive", title: "Speichern fehlgeschlagen", description: err?.message }),
+      toast({ variant: "destructive", title: t("adminMarketing.toastSaveFailed"), description: err?.message }),
   });
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isNew ? "Neue Kampagne" : `Kampagne: ${campaign.name}`}</DialogTitle>
+          <DialogTitle>{isNew ? t("adminMarketing.newCampaign") : t("adminMarketing.editCampaignTitle", { name: campaign.name })}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <Label>Name (intern)</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. Osterrabatt 2026" />
+            <Label>{t("adminMarketing.labelNameInternal")}</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("adminMarketing.placeholderCampaignName")} />
           </div>
           <div>
-            <Label>Vorlage</Label>
+            <Label>{t("adminMarketing.labelTemplate")}</Label>
             <Select value={String(templateId)} onValueChange={(v) => setTemplateId(Number(v))}>
               <SelectTrigger>
-                <SelectValue placeholder="Vorlage wählen" />
+                <SelectValue placeholder={t("adminMarketing.selectTemplate")} />
               </SelectTrigger>
               <SelectContent>
-                {templates.map((t) => (
-                  <SelectItem key={t.id} value={String(t.id)}>
-                    {t.name}
+                {templates.map((tpl) => (
+                  <SelectItem key={tpl.id} value={String(tpl.id)}>
+                    {tpl.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label className="mb-2 block">Zielgruppe</Label>
+            <Label className="mb-2 block">{t("adminMarketing.targetGroup")}</Label>
             <SegmentFilterEditor value={filter} onChange={setFilter} />
           </div>
 
           <div className="flex items-start gap-2 p-3 bg-amber-500/10 text-amber-900 dark:text-amber-200 rounded-md text-sm">
             <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <div>
-              Der Versand startet sofort nach Klick auf „Senden" in der Kampagnen-Liste. Nutzer, die in den letzten 48 h schon eine Marketing-Mail bekommen haben, werden automatisch übersprungen.
+              {t("adminMarketing.campaignSendWarning")}
             </div>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Abbrechen</Button>
+          <Button variant="outline" onClick={onClose}>{t("common.cancel")}</Button>
           <Button
             onClick={() => saveMut.mutate()}
             disabled={!name || !templateId || saveMut.isPending}
           >
             {saveMut.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            Speichern
+            {t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -894,6 +905,7 @@ function CampaignEditor({ campaign, onClose }: { campaign: EmailCampaign; onClos
 }
 
 function ResendBroadcastDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [templateId, setTemplateId] = useState<number>(0);
   const [segmentId, setSegmentId] = useState("");
@@ -920,14 +932,14 @@ function ResendBroadcastDialog({ onClose }: { onClose: () => void }) {
     onSuccess: (data) => {
       setLastResult(data);
       toast({
-        title: data.send ? "Resend Broadcast gestartet" : "Resend Broadcast erstellt",
-        description: `Broadcast-ID: ${data.id}`,
+        title: data.send ? t("adminMarketing.toastBroadcastStarted") : t("adminMarketing.toastBroadcastCreated"),
+        description: t("adminMarketing.broadcastIdLabel", { id: data.id }),
       });
     },
     onError: (err: any) =>
       toast({
         variant: "destructive",
-        title: "Resend Broadcast fehlgeschlagen",
+        title: t("adminMarketing.toastBroadcastFailed"),
         description: err?.message,
       }),
   });
@@ -936,23 +948,23 @@ function ResendBroadcastDialog({ onClose }: { onClose: () => void }) {
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Resend Broadcast aus Vorlage senden</DialogTitle>
+          <DialogTitle>{t("adminMarketing.broadcastDialogTitle")}</DialogTitle>
           <DialogDescription>
-            Sendet eine vorhandene App-Vorlage als Resend Marketing Broadcast an dein Segment. Der Newsletter-Footer nutzt dabei automatisch den Resend-Abmeldelink.
+            {t("adminMarketing.broadcastDialogDesc")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <Label>Vorlage</Label>
+            <Label>{t("adminMarketing.labelTemplate")}</Label>
             <Select value={templateId ? String(templateId) : ""} onValueChange={(v) => setTemplateId(Number(v))}>
               <SelectTrigger>
-                <SelectValue placeholder="Vorlage wählen" />
+                <SelectValue placeholder={t("adminMarketing.selectTemplate")} />
               </SelectTrigger>
               <SelectContent>
-                {templates.map((t) => (
-                  <SelectItem key={t.id} value={String(t.id)}>
-                    {t.name}
+                {templates.map((tpl) => (
+                  <SelectItem key={tpl.id} value={String(tpl.id)}>
+                    {tpl.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -960,7 +972,7 @@ function ResendBroadcastDialog({ onClose }: { onClose: () => void }) {
           </div>
 
           <div>
-            <Label htmlFor="broadcast-segment">Resend Segment-ID</Label>
+            <Label htmlFor="broadcast-segment">{t("adminMarketing.labelSegmentId")}</Label>
             <Input
               id="broadcast-segment"
               value={segmentId}
@@ -968,25 +980,25 @@ function ResendBroadcastDialog({ onClose }: { onClose: () => void }) {
               placeholder="z. B. 78261eea-8f8b-4381-83c6-79fa7120f1cf"
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              Nicht der Segment-Name, sondern die UUID aus Resend. Leer lassen, wenn RESEND_MARKETING_SEGMENT_ID gesetzt ist.
+              {t("adminMarketing.segmentIdHint")}
             </p>
           </div>
 
           <div>
-            <Label htmlFor="broadcast-name">Name in Resend (optional)</Label>
+            <Label htmlFor="broadcast-name">{t("adminMarketing.labelNameInResend")}</Label>
             <Input
               id="broadcast-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="z. B. Reaktivierung April 2026"
+              placeholder={t("adminMarketing.placeholderResendName")}
             />
           </div>
 
           <div className="flex items-start justify-between gap-4 rounded-md border p-3">
             <div>
-              <Label htmlFor="broadcast-send-now">Sofort senden</Label>
+              <Label htmlFor="broadcast-send-now">{t("adminMarketing.labelSendNow")}</Label>
               <p className="text-xs text-muted-foreground">
-                Wenn deaktiviert, wird nur ein Draft in Resend erstellt.
+                {t("adminMarketing.sendNowHint")}
               </p>
             </div>
             <Switch id="broadcast-send-now" checked={sendNow} onCheckedChange={setSendNow} />
@@ -994,25 +1006,25 @@ function ResendBroadcastDialog({ onClose }: { onClose: () => void }) {
 
           {sendNow && (
             <div>
-              <Label htmlFor="broadcast-schedule">Geplante Zeit (optional)</Label>
+              <Label htmlFor="broadcast-schedule">{t("adminMarketing.labelScheduledTime")}</Label>
               <Input
                 id="broadcast-schedule"
                 value={scheduledAt}
                 onChange={(e) => setScheduledAt(e.target.value)}
-                placeholder="z. B. in 1 hour oder 2026-04-26T10:00:00.000Z"
+                placeholder={t("adminMarketing.placeholderScheduledTime")}
               />
             </div>
           )}
 
           <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-200">
-            App-Platzhalter werden für Resend übersetzt: <code>{`{{firstName}}`}</code> wird zu <code>{`{{{contact.first_name|}}}`}</code>, <code>{`{{email}}`}</code> zu <code>{`{{{contact.email}}}`}</code> und <code>{`{{unsubscribeUrl}}`}</code> zu <code>{`{{{RESEND_UNSUBSCRIBE_URL}}}`}</code>.
+            {t("adminMarketing.placeholderMappingPrefix")} <code>{`{{firstName}}`}</code> → <code>{`{{{contact.first_name|}}}`}</code>, <code>{`{{email}}`}</code> → <code>{`{{{contact.email}}}`}</code> {t("adminMarketing.placeholderMappingAnd")} <code>{`{{unsubscribeUrl}}`}</code> → <code>{`{{{RESEND_UNSUBSCRIBE_URL}}}`}</code>.
           </div>
 
           {lastResult && (
             <div className="rounded-md border p-3 text-sm">
-              <div className="font-medium">Broadcast erstellt</div>
+              <div className="font-medium">{t("adminMarketing.broadcastCreatedTitle")}</div>
               <div className="text-muted-foreground">
-                ID: {lastResult.id} · Segment: {lastResult.segmentId} · Betreff: {lastResult.subject}
+                {t("adminMarketing.broadcastResultLine", { id: lastResult.id, segment: lastResult.segmentId, subject: lastResult.subject })}
               </div>
             </div>
           )}
@@ -1020,14 +1032,14 @@ function ResendBroadcastDialog({ onClose }: { onClose: () => void }) {
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={createMut.isPending}>
-            Schließen
+            {t("common.close")}
           </Button>
           <Button
             onClick={() => createMut.mutate()}
             disabled={!templateId || createMut.isPending}
           >
             {createMut.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            {sendNow ? "Als Broadcast senden" : "Broadcast-Draft erstellen"}
+            {sendNow ? t("adminMarketing.sendAsBroadcast") : t("adminMarketing.createBroadcastDraft")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1038,8 +1050,10 @@ function ResendBroadcastDialog({ onClose }: { onClose: () => void }) {
 // ─── Flows Tab ─────────────────────────────────────────────────────────────
 
 function FlowsTab() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [editing, setEditing] = useState<EmailFlow | null>(null);
+  const TRIGGER_LABELS = triggerLabels(t);
 
   const { data: flows = [], isLoading } = useQuery<EmailFlow[]>({
     queryKey: ["/api/admin/marketing/flows"],
@@ -1073,18 +1087,18 @@ function FlowsTab() {
       return res.json();
     },
     onSuccess: () =>
-      toast({ title: "Scheduler gestartet", description: "Fällige Mails werden im Hintergrund versendet." }),
+      toast({ title: t("adminMarketing.toastSchedulerStarted"), description: t("adminMarketing.toastSchedulerStartedDesc") }),
   });
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Funnels prüfen alle 15 Minuten automatisch, ob Nutzer einen Schritt erreichen.
+          {t("adminMarketing.flowsHint")}
         </p>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => runNowMut.mutate()} disabled={runNowMut.isPending}>
-            <PlayCircle className="h-4 w-4 mr-2" /> Scheduler jetzt laufen lassen
+            <PlayCircle className="h-4 w-4 mr-2" /> {t("adminMarketing.runSchedulerNow")}
           </Button>
           <Button onClick={() => setEditing({
             id: 0,
@@ -1097,7 +1111,7 @@ function FlowsTab() {
             createdAt: "",
             updatedAt: "",
           })}>
-            <Plus className="h-4 w-4 mr-2" /> Neuer Funnel
+            <Plus className="h-4 w-4 mr-2" /> {t("adminMarketing.newFlow")}
           </Button>
         </div>
       </div>
@@ -1106,7 +1120,7 @@ function FlowsTab() {
         <Card><CardContent className="p-8 text-center"><Loader2 className="inline h-5 w-5 animate-spin" /></CardContent></Card>
       ) : flows.length === 0 ? (
         <Card><CardContent className="p-8 text-center text-muted-foreground">
-          Noch keine Funnels.
+          {t("adminMarketing.flowsEmpty")}
         </CardContent></Card>
       ) : (
         <div className="grid gap-4">
@@ -1119,22 +1133,22 @@ function FlowsTab() {
                       <Zap className="h-5 w-5 text-primary" /> {f.name}
                     </CardTitle>
                     <CardDescription>
-                      Trigger: <strong>{TRIGGER_LABELS[f.triggerType]}</strong>
+                      {t("adminMarketing.triggerPrefix")} <strong>{TRIGGER_LABELS[f.triggerType]}</strong>
                       {f.triggerType === "no_purchase_after_days" && f.triggerConfig?.days != null && (
-                        <> (nach {f.triggerConfig.days} Tagen)</>
+                        <> {t("adminMarketing.afterDays", { days: f.triggerConfig.days })}</>
                       )}
                       {f.triggerType === "inactive_since_days" && f.triggerConfig?.days != null && (
-                        <> (nach {f.triggerConfig.days} Tagen)</>
+                        <> {t("adminMarketing.afterDays", { days: f.triggerConfig.days })}</>
                       )}
                       {f.triggerType === "credits_low" && f.triggerConfig?.threshold != null && (
-                        <> (≤ {f.triggerConfig.threshold} Credits)</>
+                        <> {t("adminMarketing.creditsThreshold", { threshold: f.triggerConfig.threshold })}</>
                       )}
                     </CardDescription>
                     {f.description && <p className="text-xs text-muted-foreground mt-1">{f.description}</p>}
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
-                      <Label className="text-sm">Aktiv</Label>
+                      <Label className="text-sm">{t("adminMarketing.active")}</Label>
                       <Switch
                         checked={f.enabled}
                         onCheckedChange={(v) => toggleMut.mutate({ flow: f, enabled: v })}
@@ -1147,7 +1161,7 @@ function FlowsTab() {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        if (confirm("Funnel löschen?")) deleteMut.mutate(f.id);
+                        if (confirm(t("adminMarketing.confirmDeleteFlow"))) deleteMut.mutate(f.id);
                       }}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -1157,7 +1171,7 @@ function FlowsTab() {
               </CardHeader>
               <CardContent>
                 {f.steps.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Keine Schritte. Bearbeiten, um welche hinzuzufügen.</p>
+                  <p className="text-sm text-muted-foreground">{t("adminMarketing.noStepsAddHint")}</p>
                 ) : (
                   <ol className="space-y-2">
                     {f.steps.map((s) => (
@@ -1177,22 +1191,25 @@ function FlowsTab() {
 }
 
 function FlowStepRow({ step }: { step: FlowStep }) {
+  const { t } = useTranslation();
   const { data: templates = [] } = useQuery<EmailTemplate[]>({
     queryKey: ["/api/admin/marketing/templates"],
   });
-  const tpl = templates.find((t) => t.id === step.templateId);
+  const tpl = templates.find((tp) => tp.id === step.templateId);
   return (
     <li className="flex items-center gap-3 p-2 border rounded bg-muted/20">
-      <Badge variant="outline">Schritt {step.stepOrder + 1}</Badge>
+      <Badge variant="outline">{t("adminMarketing.stepN", { n: step.stepOrder + 1 })}</Badge>
       <span className="text-sm">
-        Nach <strong>{step.delayHours} h</strong> → Vorlage „{tpl?.name ?? `#${step.templateId}`}"
+        {t("adminMarketing.stepAfterHoursPrefix")} <strong>{t("adminMarketing.hoursValue", { hours: step.delayHours })}</strong> {t("adminMarketing.stepTemplateArrow", { name: tpl?.name ?? `#${step.templateId}` })}
       </span>
     </li>
   );
 }
 
 function FlowEditor({ flow, onClose }: { flow: EmailFlow; onClose: () => void }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
+  const TRIGGER_LABELS = triggerLabels(t);
   const isNew = flow.id === 0;
   const [name, setName] = useState(flow.name);
   const [description, setDescription] = useState(flow.description ?? "");
@@ -1224,11 +1241,11 @@ function FlowEditor({ flow, onClose }: { flow: EmailFlow; onClose: () => void })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/marketing/flows"] });
-      toast({ title: isNew ? "Funnel erstellt" : "Funnel gespeichert" });
+      toast({ title: isNew ? t("adminMarketing.toastFlowCreated") : t("adminMarketing.toastFlowSaved") });
       if (isNew) onClose();
     },
     onError: (err: any) =>
-      toast({ variant: "destructive", title: "Speichern fehlgeschlagen", description: err?.message }),
+      toast({ variant: "destructive", title: t("adminMarketing.toastSaveFailed"), description: err?.message }),
   });
 
   const addStepMut = useMutation({
@@ -1254,24 +1271,24 @@ function FlowEditor({ flow, onClose }: { flow: EmailFlow; onClose: () => void })
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isNew ? "Neuer Funnel" : `Funnel: ${flow.name}`}</DialogTitle>
+          <DialogTitle>{isNew ? t("adminMarketing.newFlow") : t("adminMarketing.editFlowTitle", { name: flow.name })}</DialogTitle>
           <DialogDescription>
-            Trigger + zeitlich versetzte Schritte. Pro Nutzer wird jeder Schritt maximal einmal gesendet.
+            {t("adminMarketing.flowEditorDesc")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <Label>Name</Label>
+            <Label>{t("adminMarketing.colName")}</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div>
-            <Label>Beschreibung (optional)</Label>
+            <Label>{t("adminMarketing.labelDescription")}</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <Label>Trigger</Label>
+              <Label>{t("adminMarketing.labelTrigger")}</Label>
               <Select value={triggerType} onValueChange={(v) => setTriggerType(v as FlowTriggerType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -1283,7 +1300,7 @@ function FlowEditor({ flow, onClose }: { flow: EmailFlow; onClose: () => void })
             </div>
             {(triggerType === "no_purchase_after_days" || triggerType === "inactive_since_days") && (
               <div>
-                <Label>Tage</Label>
+                <Label>{t("adminMarketing.labelDays")}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -1294,7 +1311,7 @@ function FlowEditor({ flow, onClose }: { flow: EmailFlow; onClose: () => void })
             )}
             {triggerType === "credits_low" && (
               <div>
-                <Label>Credit-Schwellwert (≤)</Label>
+                <Label>{t("adminMarketing.labelCreditThreshold")}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -1306,36 +1323,36 @@ function FlowEditor({ flow, onClose }: { flow: EmailFlow; onClose: () => void })
           </div>
           <div className="flex items-center gap-2">
             <Switch checked={enabled} onCheckedChange={setEnabled} />
-            <Label>Funnel aktiv (sendet automatisch)</Label>
+            <Label>{t("adminMarketing.flowActiveLabel")}</Label>
           </div>
 
           <div className="flex justify-end">
             <Button onClick={() => saveMut.mutate()} disabled={!name || saveMut.isPending}>
               {saveMut.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {isNew ? "Funnel anlegen" : "Funnel speichern"}
+              {isNew ? t("adminMarketing.createFlow") : t("adminMarketing.saveFlow")}
             </Button>
           </div>
 
           {!isNew && (
             <div className="space-y-3 pt-4 border-t">
-              <h3 className="font-semibold">Schritte</h3>
+              <h3 className="font-semibold">{t("adminMarketing.stepsHeading")}</h3>
               {flow.steps.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Noch keine Schritte.</p>
+                <p className="text-sm text-muted-foreground">{t("adminMarketing.noStepsYet")}</p>
               ) : (
                 <ul className="space-y-2">
                   {flow.steps.map((s) => {
-                    const tpl = templates.find((t) => t.id === s.templateId);
+                    const tpl = templates.find((tp) => tp.id === s.templateId);
                     return (
                       <li key={s.id} className="flex items-center justify-between p-2 border rounded">
                         <div className="text-sm">
-                          <Badge variant="outline" className="mr-2">Schritt {s.stepOrder + 1}</Badge>
-                          nach <strong>{s.delayHours} h</strong> → „{tpl?.name ?? `#${s.templateId}`}"
+                          <Badge variant="outline" className="mr-2">{t("adminMarketing.stepN", { n: s.stepOrder + 1 })}</Badge>
+                          {t("adminMarketing.stepAfterHoursLower")} <strong>{t("adminMarketing.hoursValue", { hours: s.delayHours })}</strong> {t("adminMarketing.stepTemplateArrowShort", { name: tpl?.name ?? `#${s.templateId}` })}
                         </div>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            if (confirm("Schritt löschen?")) deleteStepMut.mutate(s.id);
+                            if (confirm(t("adminMarketing.confirmDeleteStep"))) deleteStepMut.mutate(s.id);
                           }}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
@@ -1348,7 +1365,7 @@ function FlowEditor({ flow, onClose }: { flow: EmailFlow; onClose: () => void })
 
               <div className="flex items-end gap-2 pt-2">
                 <div className="flex-1">
-                  <Label>Verzögerung (Std.)</Label>
+                  <Label>{t("adminMarketing.labelDelayHours")}</Label>
                   <Input
                     type="number"
                     min={0}
@@ -1357,12 +1374,12 @@ function FlowEditor({ flow, onClose }: { flow: EmailFlow; onClose: () => void })
                   />
                 </div>
                 <div className="flex-[2]">
-                  <Label>Vorlage</Label>
+                  <Label>{t("adminMarketing.labelTemplate")}</Label>
                   <Select value={String(newStepTemplate)} onValueChange={(v) => setNewStepTemplate(Number(v))}>
-                    <SelectTrigger><SelectValue placeholder="Vorlage wählen" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t("adminMarketing.selectTemplate")} /></SelectTrigger>
                     <SelectContent>
-                      {templates.map((t) => (
-                        <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                      {templates.map((tpl) => (
+                        <SelectItem key={tpl.id} value={String(tpl.id)}>{tpl.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1378,7 +1395,7 @@ function FlowEditor({ flow, onClose }: { flow: EmailFlow; onClose: () => void })
                   }}
                   disabled={!newStepTemplate || addStepMut.isPending}
                 >
-                  <Plus className="h-4 w-4 mr-1" /> Hinzufügen
+                  <Plus className="h-4 w-4 mr-1" /> {t("adminMarketing.add")}
                 </Button>
               </div>
             </div>
@@ -1386,7 +1403,7 @@ function FlowEditor({ flow, onClose }: { flow: EmailFlow; onClose: () => void })
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Schließen</Button>
+          <Button variant="outline" onClick={onClose}>{t("common.close")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1396,6 +1413,7 @@ function FlowEditor({ flow, onClose }: { flow: EmailFlow; onClose: () => void })
 // ─── Log Tab ───────────────────────────────────────────────────────────────
 
 function LogTab() {
+  const { t } = useTranslation();
   const { data: sends = [], isLoading } = useQuery<EmailSend[]>({
     queryKey: ["/api/admin/marketing/sends"],
     refetchInterval: 15_000,
@@ -1404,23 +1422,23 @@ function LogTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Versand-Log (letzte 100)</CardTitle>
-        <CardDescription>Alle Test-, Kampagnen- und Funnel-Mails chronologisch.</CardDescription>
+        <CardTitle>{t("adminMarketing.logTitle")}</CardTitle>
+        <CardDescription>{t("adminMarketing.logDesc")}</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         {isLoading ? (
           <div className="p-8 text-center"><Loader2 className="inline h-5 w-5 animate-spin" /></div>
         ) : sends.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">Noch keine Mails versendet.</div>
+          <div className="p-8 text-center text-muted-foreground">{t("adminMarketing.logEmpty")}</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Zeit</TableHead>
-                <TableHead>Empfänger</TableHead>
-                <TableHead>Art</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Betreff</TableHead>
+                <TableHead>{t("adminMarketing.colTime")}</TableHead>
+                <TableHead>{t("adminMarketing.colRecipient")}</TableHead>
+                <TableHead>{t("adminMarketing.colKind")}</TableHead>
+                <TableHead>{t("adminMarketing.colStatus")}</TableHead>
+                <TableHead>{t("adminMarketing.colSubject")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1434,7 +1452,7 @@ function LogTab() {
                     <Badge variant="outline">{s.kind}</Badge>
                   </TableCell>
                   <TableCell>
-                    {sendStatusBadge(s.status)}
+                    {sendStatusBadge(s.status, t)}
                     {s.errorMessage && (
                       <div className="text-xs text-destructive mt-1 max-w-xs truncate">{s.errorMessage}</div>
                     )}

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -44,34 +46,38 @@ type ConversationDetail = {
   user: { id: string; email: string | null; firstName: string | null; lastName: string | null } | null;
 };
 
-const categoryLabels: Record<string, { label: string; icon: React.ReactNode }> = {
-  hilfe: { label: "Hilfe", icon: <HelpCircle className="h-3.5 w-3.5" /> },
-  feedback: { label: "Feedback", icon: <MessageCircle className="h-3.5 w-3.5" /> },
-  fehler: { label: "Fehlermeldung", icon: <Bug className="h-3.5 w-3.5" /> },
-  sonstiges: { label: "Sonstiges", icon: <MoreHorizontal className="h-3.5 w-3.5" /> },
-};
+function getCategoryLabels(
+  t: TFunction,
+): Record<string, { label: string; icon: React.ReactNode }> {
+  return {
+    hilfe: { label: t("adminMessages.categoryHilfe"), icon: <HelpCircle className="h-3.5 w-3.5" /> },
+    feedback: { label: t("adminMessages.categoryFeedback"), icon: <MessageCircle className="h-3.5 w-3.5" /> },
+    fehler: { label: t("adminMessages.categoryFehler"), icon: <Bug className="h-3.5 w-3.5" /> },
+    sonstiges: { label: t("adminMessages.categorySonstiges"), icon: <MoreHorizontal className="h-3.5 w-3.5" /> },
+  };
+}
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, t }: { status: string; t: TFunction }) {
   switch (status) {
     case "open":
       return (
         <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs">
           <Clock className="h-3 w-3 mr-1" />
-          Offen
+          {t("adminMessages.statusOpen")}
         </Badge>
       );
     case "answered":
       return (
         <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs">
           <CheckCircle2 className="h-3 w-3 mr-1" />
-          Beantwortet
+          {t("adminMessages.statusAnswered")}
         </Badge>
       );
     case "closed":
       return (
         <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs">
           <XCircle className="h-3 w-3 mr-1" />
-          Geschlossen
+          {t("adminMessages.statusClosed")}
         </Badge>
       );
     default:
@@ -89,7 +95,7 @@ function formatDate(date: string | Date) {
   });
 }
 
-function formatShortDate(date: string | Date) {
+function formatShortDate(date: string | Date, t: TFunction) {
   const d = new Date(date);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
@@ -98,7 +104,7 @@ function formatShortDate(date: string | Date) {
   if (diffDays === 0) {
     return d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
   }
-  if (diffDays === 1) return "Gestern";
+  if (diffDays === 1) return t("adminMessages.yesterday");
   if (diffDays < 7) {
     return d.toLocaleDateString("de-DE", { weekday: "short" });
   }
@@ -106,7 +112,9 @@ function formatShortDate(date: string | Date) {
 }
 
 export default function AdminMessagesPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
+  const categoryLabels = getCategoryLabels(t);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [replyContent, setReplyContent] = useState("");
@@ -139,10 +147,10 @@ export default function AdminMessagesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/messages"] });
       setReplyContent("");
-      toast({ title: "Antwort gesendet" });
+      toast({ title: t("adminMessages.toastReplySent") });
     },
     onError: () => {
-      toast({ title: "Fehler", description: "Antwort konnte nicht gesendet werden.", variant: "destructive" });
+      toast({ title: t("adminMessages.toastErrorTitle"), description: t("adminMessages.toastReplyFailed"), variant: "destructive" });
     },
   });
 
@@ -168,11 +176,13 @@ export default function AdminMessagesPage() {
     <div className="p-4 sm:p-6 max-w-6xl mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="font-serif text-2xl font-bold">Support-Nachrichten</h1>
+          <h1 className="font-serif text-2xl font-bold">{t("adminMessages.pageTitle")}</h1>
           <p className="text-sm text-muted-foreground">
             {openCount > 0
-              ? `${openCount} offene ${openCount === 1 ? "Anfrage" : "Anfragen"}`
-              : "Keine offenen Anfragen"}
+              ? openCount === 1
+                ? t("adminMessages.openRequestsOne", { count: openCount })
+                : t("adminMessages.openRequestsMany", { count: openCount })
+              : t("adminMessages.noOpenRequests")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -182,10 +192,10 @@ export default function AdminMessagesPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alle</SelectItem>
-              <SelectItem value="open">Offen</SelectItem>
-              <SelectItem value="answered">Beantwortet</SelectItem>
-              <SelectItem value="closed">Geschlossen</SelectItem>
+              <SelectItem value="all">{t("adminMessages.filterAll")}</SelectItem>
+              <SelectItem value="open">{t("adminMessages.statusOpen")}</SelectItem>
+              <SelectItem value="answered">{t("adminMessages.statusAnswered")}</SelectItem>
+              <SelectItem value="closed">{t("adminMessages.statusClosed")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -217,13 +227,13 @@ export default function AdminMessagesPage() {
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <span className="font-medium text-sm truncate flex-1">{convo.subject}</span>
                           <span className="text-[11px] text-muted-foreground shrink-0">
-                            {formatShortDate(convo.updatedAt)}
+                            {formatShortDate(convo.updatedAt, t)}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 mb-1.5">
                           <User className="h-3 w-3 text-muted-foreground" />
                           <span className="text-xs text-muted-foreground truncate">
-                            {convo.userName || convo.userEmail || "Unbekannt"}
+                            {convo.userName || convo.userEmail || t("adminMessages.unknownUser")}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mb-1.5">
@@ -231,11 +241,13 @@ export default function AdminMessagesPage() {
                             {cat.icon}
                             {cat.label}
                           </span>
-                          <StatusBadge status={convo.status} />
+                          <StatusBadge status={convo.status} t={t} />
                         </div>
                         {convo.lastMessage && (
                           <p className="text-xs text-muted-foreground line-clamp-1">
-                            {convo.lastMessage.isAdmin ? "Sie: " : "Nutzer: "}
+                            {convo.lastMessage.isAdmin
+                              ? t("adminMessages.lastMessagePrefixAdmin")
+                              : t("adminMessages.lastMessagePrefixUser")}
                             {convo.lastMessage.content}
                           </p>
                         )}
@@ -247,11 +259,11 @@ export default function AdminMessagesPage() {
             ) : (
               <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                 <Inbox className="h-12 w-12 text-muted-foreground/40 mb-4" />
-                <h3 className="font-serif text-lg font-semibold mb-1">Keine Nachrichten</h3>
+                <h3 className="font-serif text-lg font-semibold mb-1">{t("adminMessages.emptyTitle")}</h3>
                 <p className="text-sm text-muted-foreground">
                   {statusFilter !== "all"
-                    ? "Keine Nachrichten mit diesem Filter."
-                    : "Es gibt noch keine Support-Anfragen."}
+                    ? t("adminMessages.emptyFiltered")
+                    : t("adminMessages.emptyNone")}
                 </p>
               </div>
             )}
@@ -277,13 +289,13 @@ export default function AdminMessagesPage() {
                     <div className="flex items-center gap-2 mt-0.5">
                       {detail.user && (
                         <span className="text-xs text-muted-foreground">
-                          {[detail.user.firstName, detail.user.lastName].filter(Boolean).join(" ") || detail.user.email || "Unbekannt"}
+                          {[detail.user.firstName, detail.user.lastName].filter(Boolean).join(" ") || detail.user.email || t("adminMessages.unknownUser")}
                         </span>
                       )}
                       <span className="text-xs text-muted-foreground">
-                        {categoryLabels[detail.conversation.category]?.label || "Sonstiges"}
+                        {categoryLabels[detail.conversation.category]?.label || t("adminMessages.categorySonstiges")}
                       </span>
-                      <StatusBadge status={detail.conversation.status} />
+                      <StatusBadge status={detail.conversation.status} t={t} />
                     </div>
                   </div>
                   <Select
@@ -294,9 +306,9 @@ export default function AdminMessagesPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="open">Offen</SelectItem>
-                      <SelectItem value="answered">Beantwortet</SelectItem>
-                      <SelectItem value="closed">Geschlossen</SelectItem>
+                      <SelectItem value="open">{t("adminMessages.statusOpen")}</SelectItem>
+                      <SelectItem value="answered">{t("adminMessages.statusAnswered")}</SelectItem>
+                      <SelectItem value="closed">{t("adminMessages.statusClosed")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -317,11 +329,11 @@ export default function AdminMessagesPage() {
                         >
                           {!msg.isAdmin && detail.user && (
                             <p className="text-[11px] font-medium mb-1 opacity-70">
-                              {[detail.user.firstName, detail.user.lastName].filter(Boolean).join(" ") || detail.user.email || "Nutzer"}
+                              {[detail.user.firstName, detail.user.lastName].filter(Boolean).join(" ") || detail.user.email || t("adminMessages.userFallback")}
                             </p>
                           )}
                           {msg.isAdmin && (
-                            <p className="text-[11px] font-medium mb-1 text-primary-foreground/70">Ihre Antwort</p>
+                            <p className="text-[11px] font-medium mb-1 text-primary-foreground/70">{t("adminMessages.yourReply")}</p>
                           )}
                           <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                           <p className={`text-[10px] mt-1 ${msg.isAdmin ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
@@ -336,7 +348,7 @@ export default function AdminMessagesPage() {
                 <div className="border-t p-4">
                   <div className="flex gap-2">
                     <Textarea
-                      placeholder="Antwort schreiben..."
+                      placeholder={t("adminMessages.replyPlaceholder")}
                       value={replyContent}
                       onChange={(e) => setReplyContent(e.target.value)}
                       rows={3}
@@ -357,7 +369,7 @@ export default function AdminMessagesPage() {
                     </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1.5">
-                    Strg+Enter zum Senden
+                    {t("adminMessages.sendHint")}
                   </p>
                 </div>
               </>
@@ -371,7 +383,7 @@ export default function AdminMessagesPage() {
               <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                 <MessageSquare className="h-12 w-12 text-muted-foreground/30 mb-4" />
                 <p className="text-sm text-muted-foreground">
-                  Wählen Sie eine Konversation aus, um sie zu lesen und zu beantworten.
+                  {t("adminMessages.selectConversation")}
                 </p>
               </div>
             )}
