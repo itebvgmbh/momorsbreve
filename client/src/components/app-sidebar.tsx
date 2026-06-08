@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -42,28 +43,29 @@ import {
 import { Logo } from "@/components/logo";
 
 type MenuItem = {
-  title: string;
+  titleKey: string;
+  testId: string;
   url: string;
   icon: typeof LayoutDashboard;
   external?: boolean;
 };
 
 const transcriptionItems: MenuItem[] = [
-  { title: "Dashboard", url: "/app", icon: LayoutDashboard },
-  { title: "Hochladen", url: "/app/upload", icon: Upload },
-  { title: "Meine Audios", url: "/app/audio", icon: Headphones },
-  { title: "Meine Anfragen", url: "/app/human-transcription", icon: User },
+  { titleKey: "sidebar.dashboard", testId: "dashboard", url: "/app", icon: LayoutDashboard },
+  { titleKey: "sidebar.upload", testId: "hochladen", url: "/app/upload", icon: Upload },
+  { titleKey: "sidebar.myAudios", testId: "meine-audios", url: "/app/audio", icon: Headphones },
+  { titleKey: "sidebar.myRequests", testId: "meine-anfragen", url: "/app/human-transcription", icon: User },
 ];
 
 const accountItems: MenuItem[] = [
-  { title: "Preise", url: "/app/pricing", icon: Coins },
-  { title: "Einstellungen", url: "/app/settings", icon: Settings },
+  { titleKey: "sidebar.pricing", testId: "preise", url: "/app/pricing", icon: Coins },
+  { titleKey: "sidebar.settings", testId: "einstellungen", url: "/app/settings", icon: Settings },
 ];
 
 const helpItems: MenuItem[] = [
-  { title: "Häufige Fragen", url: "/faq", icon: HelpCircle, external: true },
-  { title: "Support", url: "/app/support", icon: MessageSquare },
-  { title: "Blog", url: "/blog", icon: BookOpen, external: true },
+  { titleKey: "sidebar.faq", testId: "häufige-fragen", url: "/faq", icon: HelpCircle, external: true },
+  { titleKey: "sidebar.support", testId: "support", url: "/app/support", icon: MessageSquare },
+  { titleKey: "sidebar.blog", testId: "blog", url: "/blog", icon: BookOpen, external: true },
 ];
 
 interface HumanTranscriptionRequestSummary {
@@ -71,6 +73,7 @@ interface HumanTranscriptionRequestSummary {
 }
 
 export function AppSidebar() {
+  const { t } = useTranslation();
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const { data: adminCheck, isError: adminCheckError } = useQuery<{ admin: boolean }>({
@@ -132,11 +135,11 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Meine Transkriptionen</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("sidebar.groupTranscriptions")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {transcriptionItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
                     isActive={
@@ -145,9 +148,9 @@ export function AppSidebar() {
                         : location.startsWith(item.url)
                     }
                   >
-                    <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, "-")}`}>
+                    <Link href={item.url} data-testid={`nav-${item.testId}`}>
                       <item.icon className="h-4 w-4" />
-                      <span className="flex-1">{item.title}</span>
+                      <span className="flex-1">{t(item.titleKey)}</span>
                       {item.url === "/app/human-transcription" && actionableHumanRequestsCount > 0 && (
                         <Badge variant="default" className="h-5 min-w-5 px-1.5 text-[10px] font-semibold">
                           {actionableHumanRequestsCount}
@@ -161,18 +164,18 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Mein Konto</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("sidebar.groupAccount")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {accountItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
                     isActive={location.startsWith(item.url)}
                   >
-                    <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, "-")}`}>
+                    <Link href={item.url} data-testid={`nav-${item.testId}`}>
                       <item.icon className="h-4 w-4" />
-                      <span className="flex-1">{item.title}</span>
+                      <span className="flex-1">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -181,18 +184,18 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Hilfe & Mehr</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("sidebar.groupHelp")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {helpItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
                     isActive={!item.external && location.startsWith(item.url)}
                   >
-                    <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, "-")}`}>
+                    <Link href={item.url} data-testid={`nav-${item.testId}`}>
                       <item.icon className="h-4 w-4" />
-                      <span className="flex-1">{item.title}</span>
+                      <span className="flex-1">{t(item.titleKey)}</span>
                       {item.url === "/app/support" && unreadCount > 0 && (
                         <Badge variant="default" className="h-5 min-w-5 px-1.5 text-[10px] font-semibold">
                           {unreadCount}
@@ -207,7 +210,7 @@ export function AppSidebar() {
         </SidebarGroup>
         {isExpert && (
           <SidebarGroup>
-            <SidebarGroupLabel>Experte</SidebarGroupLabel>
+            <SidebarGroupLabel>{t("sidebar.groupExpert")}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
@@ -217,7 +220,7 @@ export function AppSidebar() {
                   >
                     <Link href="/app/expert" data-testid="nav-expert-dashboard">
                       <Building2 className="h-4 w-4" />
-                      <span>Expertenbereich</span>
+                      <span>{t("sidebar.expertArea")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -227,7 +230,7 @@ export function AppSidebar() {
         )}
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupLabel>{t("sidebar.groupAdmin")}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
@@ -237,7 +240,7 @@ export function AppSidebar() {
                   >
                     <Link href="/app/admin/dashboard" data-testid="nav-admin-dashboard">
                       <BarChart3 className="h-4 w-4" />
-                      <span>Umsatz</span>
+                      <span>{t("sidebar.revenue")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -248,7 +251,7 @@ export function AppSidebar() {
                   >
                     <Link href="/app/admin/support" data-testid="nav-admin-messages">
                       <MessageSquare className="h-4 w-4" />
-                      <span className="flex-1">Support</span>
+                      <span className="flex-1">{t("sidebar.support")}</span>
                       {adminUnreadCount > 0 && (
                         <span className="relative flex h-2.5 w-2.5">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
@@ -265,7 +268,7 @@ export function AppSidebar() {
                   >
                     <Link href="/app/admin/evaluation" data-testid="nav-evaluation">
                       <FlaskConical className="h-4 w-4" />
-                      <span>Evaluation</span>
+                      <span>{t("sidebar.evaluation")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -276,7 +279,7 @@ export function AppSidebar() {
                   >
                     <Link href="/app/admin/tokens" data-testid="nav-admin-tokens">
                       <Activity className="h-4 w-4" />
-                      <span>Token-Verbrauch</span>
+                      <span>{t("sidebar.tokenUsage")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -287,7 +290,7 @@ export function AppSidebar() {
                   >
                     <Link href="/app/admin/human-transcription" data-testid="nav-admin-human-transcription">
                       <User className="h-4 w-4" />
-                      <span>Experten-Anfragen</span>
+                      <span>{t("sidebar.expertRequests")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -298,7 +301,7 @@ export function AppSidebar() {
                   >
                     <Link href="/app/admin/orders" data-testid="nav-admin-orders">
                       <ClipboardCheck className="h-4 w-4" />
-                      <span>Bezahlte Aufträge</span>
+                      <span>{t("sidebar.paidOrders")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -309,7 +312,7 @@ export function AppSidebar() {
                   >
                     <Link href="/app/admin/invoices" data-testid="nav-admin-invoices">
                       <Receipt className="h-4 w-4" />
-                      <span>Rechnungen</span>
+                      <span>{t("sidebar.invoices")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -320,7 +323,7 @@ export function AppSidebar() {
                   >
                     <Link href="/app/admin/analysen" data-testid="nav-admin-analysen">
                       <ScanSearch className="h-4 w-4" />
-                      <span>Anonyme Analysen</span>
+                      <span>{t("sidebar.anonymousAnalyses")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -331,7 +334,7 @@ export function AppSidebar() {
                   >
                     <Link href="/app/admin/marketing" data-testid="nav-admin-marketing">
                       <Mail className="h-4 w-4" />
-                      <span>Marketing</span>
+                      <span>{t("sidebar.marketing")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -342,7 +345,7 @@ export function AppSidebar() {
                   >
                     <Link href="/app/admin/settings" data-testid="nav-admin-settings">
                       <Settings className="h-4 w-4" />
-                      <span>Einstellungen</span>
+                      <span>{t("sidebar.settings")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -353,7 +356,7 @@ export function AppSidebar() {
                   >
                     <Link href="/app/admin/experts" data-testid="nav-admin-experts">
                       <Building2 className="h-4 w-4" />
-                      <span>Experten</span>
+                      <span>{t("sidebar.experts")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -377,7 +380,7 @@ export function AppSidebar() {
                       onCheckedChange={(checked) =>
                         stripeModeMutation.mutate(checked ? "test" : "live")
                       }
-                      aria-label="Stripe Sandbox Modus"
+                      aria-label={t("sidebar.stripeSandboxMode")}
                       className="scale-75"
                     />
                   </div>
@@ -401,7 +404,7 @@ export function AppSidebar() {
               <p className="text-sm font-medium truncate">
                 {user.firstName
                   ? `${user.firstName} ${user.lastName || ""}`
-                  : user.email || "Benutzer"}
+                  : user.email || t("sidebar.userFallback")}
               </p>
               {user.email && (
                 <p className="text-xs text-muted-foreground truncate">
@@ -413,13 +416,13 @@ export function AppSidebar() {
         )}
         <Button variant="ghost" className="w-full justify-start" data-testid="button-logout" onClick={() => logout()}>
           <LogOut className="h-4 w-4 mr-2" />
-          Abmelden
+          {t("sidebar.logout")}
         </Button>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground/60">
-          <Link href="/impressum" className="hover:text-muted-foreground transition-colors">Impressum</Link>
-          <Link href="/datenschutz" className="hover:text-muted-foreground transition-colors">Datenschutz</Link>
-          <Link href="/agb" className="hover:text-muted-foreground transition-colors">AGB</Link>
-          <Link href="/widerrufsbelehrung" className="hover:text-muted-foreground transition-colors">Widerruf</Link>
+          <Link href="/impressum" className="hover:text-muted-foreground transition-colors">{t("sidebar.legalImprint")}</Link>
+          <Link href="/datenschutz" className="hover:text-muted-foreground transition-colors">{t("sidebar.legalPrivacy")}</Link>
+          <Link href="/agb" className="hover:text-muted-foreground transition-colors">{t("sidebar.legalTerms")}</Link>
+          <Link href="/widerrufsbelehrung" className="hover:text-muted-foreground transition-colors">{t("sidebar.legalWithdrawal")}</Link>
         </div>
       </SidebarFooter>
     </Sidebar>

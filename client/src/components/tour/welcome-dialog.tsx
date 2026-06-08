@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { useTour } from "@/hooks/use-tour";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,6 +16,7 @@ import { Sparkles } from "lucide-react";
 import type { TranscriptionJobWithSnippet } from "@shared/models/transcription";
 
 export function WelcomeDialog() {
+  const { t } = useTranslation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { state, isLoading, startTour, setWelcomeAnswer } = useTour();
   const [open, setOpen] = useState(false);
@@ -61,12 +63,10 @@ export function WelcomeDialog() {
             <Sparkles className="h-7 w-7 text-primary" />
           </div>
           <DialogTitle className="text-center font-serif text-2xl">
-            Möchten Sie eine kurze Einführung?
+            {t("tourWelcome.title")}
           </DialogTitle>
           <DialogDescription className="text-center text-base leading-relaxed pt-2">
-            In etwa einer Minute zeigen wir Ihnen die wichtigsten Funktionen.
-            Sie können die Tour jederzeit über das Fragezeichen oben rechts
-            wieder starten.
+            {t("tourWelcome.description")}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex-col gap-2 sm:flex-col sm:gap-2 sm:space-x-0">
@@ -76,7 +76,7 @@ export function WelcomeDialog() {
             onClick={handleYes}
             data-testid="button-welcome-yes"
           >
-            Ja, gerne (1 Minute)
+            {t("tourWelcome.yes")}
           </Button>
           <Button
             variant="outline"
@@ -85,7 +85,7 @@ export function WelcomeDialog() {
             onClick={handleLater}
             data-testid="button-welcome-later"
           >
-            Später
+            {t("tourWelcome.later")}
           </Button>
           <Button
             variant="ghost"
@@ -94,7 +94,7 @@ export function WelcomeDialog() {
             onClick={handleNo}
             data-testid="button-welcome-no"
           >
-            Nein, danke
+            {t("tourWelcome.no")}
           </Button>
         </DialogFooter>
       </DialogContent>

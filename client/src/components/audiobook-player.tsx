@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
@@ -42,11 +43,11 @@ interface AudiobookPlayerProps {
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const SLEEP_OPTIONS = [
-  { label: "15 Min", minutes: 15 },
-  { label: "30 Min", minutes: 30 },
-  { label: "45 Min", minutes: 45 },
-  { label: "60 Min", minutes: 60 },
-  { label: "Am Ende des Tracks", minutes: -1 },
+  { labelKey: "audiobook.sleep15", minutes: 15 },
+  { labelKey: "audiobook.sleep30", minutes: 30 },
+  { labelKey: "audiobook.sleep45", minutes: 45 },
+  { labelKey: "audiobook.sleep60", minutes: 60 },
+  { labelKey: "audiobook.sleepEndOfTrack", minutes: -1 },
 ];
 
 function formatTime(seconds: number): string {
@@ -79,6 +80,7 @@ export function AudiobookPlayer({
   onPositionChange,
   onClose,
 }: AudiobookPlayerProps) {
+  const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTrack, setCurrentTrack] = useState(Math.min(initialTrackIndex, tracks.length - 1));
   const [isPlaying, setIsPlaying] = useState(false);
@@ -269,7 +271,7 @@ export function AudiobookPlayer({
             {(sleepRemaining !== null || sleepEndOfTrack) && (
               <Badge variant="secondary" className="text-[10px] gap-1 cursor-pointer" onClick={clearSleep}>
                 <Moon className="h-3 w-3" />
-                {sleepEndOfTrack ? "Ende Track" : formatTime(sleepRemaining!)}
+                {sleepEndOfTrack ? t("audiobook.endTrackBadge") : formatTime(sleepRemaining!)}
                 <X className="h-2.5 w-2.5" />
               </Badge>
             )}
@@ -284,7 +286,7 @@ export function AudiobookPlayer({
           <span className="font-medium">{voiceLabel}</span>
           {styleLabel && ` · ${styleLabel}`}
           {track.lang !== "de" && ` · ${track.lang.toUpperCase()}`}
-          {` · Track ${currentTrack + 1}/${tracks.length}`}
+          {` · ${t("audiobook.trackCounter", { current: currentTrack + 1, total: tracks.length })}`}
         </p>
         {track.textSnippet && (
           <p className="text-[11px] text-muted-foreground/70 truncate mt-0.5">{track.textSnippet}</p>
@@ -344,10 +346,10 @@ export function AudiobookPlayer({
 
         {/* Main controls */}
         <div className="flex items-center gap-0.5 sm:gap-1">
-          <Button size="icon" variant="ghost" className="h-11 w-11 sm:h-9 sm:w-9" onClick={prevTrack} title="Vorheriger Track">
+          <Button size="icon" variant="ghost" className="h-11 w-11 sm:h-9 sm:w-9" onClick={prevTrack} title={t("audiobook.prevTrack")}>
             <SkipBack className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="ghost" className="h-11 w-11 sm:h-9 sm:w-9" onClick={skipBackward} title="15s zurück">
+          <Button size="icon" variant="ghost" className="h-11 w-11 sm:h-9 sm:w-9" onClick={skipBackward} title={t("audiobook.skipBack15")}>
             <RotateCcw className="h-4 w-4" />
           </Button>
           <Button
@@ -357,10 +359,10 @@ export function AudiobookPlayer({
           >
             {isPlaying ? <Pause className="h-6 w-6 sm:h-5 sm:w-5" /> : <Play className="h-6 w-6 sm:h-5 sm:w-5 ml-0.5" />}
           </Button>
-          <Button size="icon" variant="ghost" className="h-11 w-11 sm:h-9 sm:w-9" onClick={skipForward} title="15s vor">
+          <Button size="icon" variant="ghost" className="h-11 w-11 sm:h-9 sm:w-9" onClick={skipForward} title={t("audiobook.skipForward15")}>
             <RotateCw className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="ghost" className="h-11 w-11 sm:h-9 sm:w-9" onClick={nextTrack} disabled={currentTrack >= tracks.length - 1} title="Nächster Track">
+          <Button size="icon" variant="ghost" className="h-11 w-11 sm:h-9 sm:w-9" onClick={nextTrack} disabled={currentTrack >= tracks.length - 1} title={t("audiobook.nextTrack")}>
             <SkipForward className="h-4 w-4" />
           </Button>
         </div>
@@ -368,19 +370,19 @@ export function AudiobookPlayer({
         {/* Sleep timer */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8 shrink-0" title="Sleep-Timer">
+            <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8 shrink-0" title={t("audiobook.sleepTimer")}>
               <Moon className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {SLEEP_OPTIONS.map((opt) => (
               <DropdownMenuItem key={opt.minutes} onClick={() => setSleepOption(opt.minutes)}>
-                {opt.label}
+                {t(opt.labelKey)}
               </DropdownMenuItem>
             ))}
             {(sleepRemaining !== null || sleepEndOfTrack) && (
               <DropdownMenuItem onClick={clearSleep} className="text-destructive">
-                Timer deaktivieren
+                {t("audiobook.disableTimer")}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>

@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -111,29 +113,33 @@ function getPreviewHasEdited(preview: PreviewData, version: TextVersion): boolea
   return v != null && v !== "";
 }
 
-function formatCredits(creditsRequired: number): string {
-  return `${creditsRequired} ${creditsRequired === 1 ? "Credit" : "Credits"}`;
+function formatCredits(t: TFunction, creditsRequired: number): string {
+  return t("preview.creditsCount", { count: creditsRequired });
 }
 
 function getTranscribeButtonLabel(
+  t: TFunction,
   totalPages: number,
   creditsRequired: number,
   variant: "full" | "compact" = "full",
 ): string {
   const remainingPages = totalPages - 1;
-  const credits = formatCredits(creditsRequired);
+  const credits = formatCredits(t, creditsRequired);
   if (variant === "compact") {
-    return remainingPages === 1 ? "Restliche Seite transkribieren" : "Restliche Seiten transkribieren";
+    return remainingPages === 1
+      ? t("preview.transcribeRemainingCompactOne")
+      : t("preview.transcribeRemainingCompactMany");
   }
   return remainingPages === 1
-    ? `Die restliche 1 Seite transkribieren (${credits})`
-    : `Die restlichen ${remainingPages} Seiten transkribieren (${credits})`;
+    ? t("preview.transcribeRemainingOne", { credits })
+    : t("preview.transcribeRemainingMany", { count: remainingPages, credits });
 }
 
 const SIMULATED_PROGRESS_INTERVAL_MS = 500;
 const SIMULATED_PROGRESS_MAX = 92;
 
 export default function PreviewPage() {
+  const { t } = useTranslation();
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -206,8 +212,8 @@ export default function PreviewPage() {
     if (preview.failed && !shownPreviewFailToast.current) {
       shownPreviewFailToast.current = true;
       toast({
-        title: "Vorschau fehlgeschlagen",
-        description: preview.transcription || "Die Vorschau konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+        title: t("preview.previewFailedTitle"),
+        description: preview.transcription || t("preview.previewFailedBody"),
         variant: "destructive",
       });
     }
@@ -224,7 +230,7 @@ export default function PreviewPage() {
       const translationError = qd?.translationError as string | undefined;
       if (translationError) {
         toast({
-          title: "Übersetzung fehlgeschlagen",
+          title: t("preview.translationFailedTitle"),
           description: translationError,
           variant: "destructive",
         });
@@ -244,7 +250,7 @@ export default function PreviewPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Fehler",
+        title: t("preview.errorTitle"),
         description: error.message,
         variant: "destructive",
       });
@@ -274,10 +280,10 @@ export default function PreviewPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/jobs", params.id, "preview"] });
       setIsEditing(false);
       setEditedTextDraft("");
-      toast({ title: "Gespeichert", description: "Ihre Änderungen wurden übernommen." });
+      toast({ title: t("preview.savedTitle"), description: t("preview.savedBody") });
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("preview.errorTitle"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -337,11 +343,11 @@ export default function PreviewPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/jobs", params.id, "tts-history"] });
       if (body.creditsUsed > 0) {
         queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
-        toast({ title: "Vorlesen", description: `${body.creditsUsed} ${body.creditsUsed === 1 ? "Credit" : "Credits"} verwendet. Audio wird generiert…` });
+        toast({ title: t("preview.ttsTitle"), description: t("preview.ttsCreditsUsed", { count: body.creditsUsed }) });
       }
     },
     onError: (error: Error) => {
-      toast({ title: "Vorlesen fehlgeschlagen", description: error.message, variant: "destructive" });
+      toast({ title: t("preview.ttsFailedTitle"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -391,11 +397,11 @@ export default function PreviewPage() {
       <div className="p-4 sm:p-6 max-w-5xl mx-auto">
         <Card className="p-10 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <h3 className="font-serif text-xl font-bold mb-2">Seite wird verarbeitet…</h3>
+          <h3 className="font-serif text-xl font-bold mb-2">{t("preview.pageProcessing")}</h3>
           {isProcessing ? (
             <TranscriptionBackgroundHint className="mb-6 max-w-md mx-auto text-center" />
           ) : (
-            <p className="text-muted-foreground mb-6">Sie werden gleich zum Ergebnis weitergeleitet.</p>
+            <p className="text-muted-foreground mb-6">{t("preview.redirectingToResult")}</p>
           )}
           <div className="max-w-sm mx-auto">
             <Progress value={simulatedProgress} className="h-2 mb-2" />
@@ -410,11 +416,11 @@ export default function PreviewPage() {
   }
 
   function getProgressLabel(): string {
-    if (simulatedProgress < 20) return "Bild wird vorbereitet…";
-    if (simulatedProgress < 45) return "Handschrift wird erkannt…";
-    if (simulatedProgress < 70) return "Text wird zusammengesetzt…";
-    if (simulatedProgress < 85) return "Qualität wird geprüft…";
-    return "Fast fertig…";
+    if (simulatedProgress < 20) return t("preview.progressPreparingImage");
+    if (simulatedProgress < 45) return t("preview.progressRecognizing");
+    if (simulatedProgress < 70) return t("preview.progressAssembling");
+    if (simulatedProgress < 85) return t("preview.progressCheckingQuality");
+    return t("preview.progressAlmostDone");
   }
 
   return (
@@ -422,15 +428,15 @@ export default function PreviewPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="hidden sm:block">
           <h1 className="font-serif text-2xl font-bold" data-testid="text-preview-title">
-            Vorschau
+            {t("preview.title")}
           </h1>
           <p className="text-muted-foreground text-sm">
-            So gut konnten wir die erste Seite lesen – und so lautet der Text
+            {t("preview.subtitle")}
           </p>
         </div>
         <Button variant="ghost" onClick={() => navigate("/app/upload")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Zurück
+          {t("preview.back")}
         </Button>
       </div>
 
@@ -438,14 +444,14 @@ export default function PreviewPage() {
         <Card className="p-10 text-center">
           <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h3 className="font-serif text-xl font-bold mb-2">
-            Vorschau fehlgeschlagen
+            {t("preview.previewFailedTitle")}
           </h3>
           <p className="text-muted-foreground max-w-md mx-auto mb-6">
-            {preview?.transcription || "Die Vorschau konnte nicht erstellt werden. Bitte versuchen Sie es erneut."}
+            {preview?.transcription || t("preview.previewFailedBody")}
           </p>
           <Button onClick={() => navigate("/app/upload")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Neuen Versuch starten
+            {t("preview.tryAgain")}
           </Button>
         </Card>
       ) : (
@@ -457,7 +463,7 @@ export default function PreviewPage() {
                   <div className="flex items-center gap-2 mb-2">
                     <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />
                     <h3 className="font-serif font-semibold text-sm">
-                      Vorschau wird erstellt…
+                      {t("preview.creatingPreview")}
                     </h3>
                   </div>
                   <Progress value={simulatedProgress} className="h-2 mb-1.5" />
@@ -483,11 +489,11 @@ export default function PreviewPage() {
                 <div className="flex items-center gap-3">
                   <Globe className={`h-5 w-5 shrink-0 ${preview!.translation ? "text-primary" : "text-muted-foreground"}`} />
                   <div>
-                    <p className="text-sm font-medium">Sprache</p>
+                    <p className="text-sm font-medium">{t("preview.language")}</p>
                     <p className="text-xs text-muted-foreground">
                       {preview!.translation
-                        ? "Zwischen Deutsch und Übersetzung umschalten. Die Übersetzungssprache wurde bei der Erstellung festgelegt."
-                        : "Übersetzung konnte nicht erstellt werden. Der Übersetzungsdienst war nicht verfügbar."}
+                        ? t("preview.languageToggleHint")
+                        : t("preview.translationUnavailable")}
                     </p>
                   </div>
                 </div>
@@ -497,7 +503,7 @@ export default function PreviewPage() {
                     onValueChange={(v) => setDisplayLanguage(v as DisplayLanguage)}
                   >
                     <TabsList>
-                      <TabsTrigger value="de" className="text-sm px-4">Deutsch</TabsTrigger>
+                      <TabsTrigger value="de" className="text-sm px-4">{t("preview.german")}</TabsTrigger>
                       <TabsTrigger value="translation" className="text-sm px-4">
                         <Globe className="h-3.5 w-3.5 mr-1.5" />
                         {getTranslationLanguageLabel(preview!.translationLanguage!)}
@@ -515,9 +521,9 @@ export default function PreviewPage() {
                 <div className="flex items-center gap-3">
                   <Sparkles className="h-5 w-5 text-amber-500 shrink-0" />
                   <div>
-                    <p className="text-sm font-medium">Textversion wählen</p>
+                    <p className="text-sm font-medium">{t("preview.chooseTextVersion")}</p>
                     <p className="text-xs text-muted-foreground hidden sm:block">
-                      Originaltreu, ergänzt oder sinngemäß interpretiert.
+                      {t("preview.chooseTextVersionHint")}
                     </p>
                   </div>
                 </div>
@@ -529,18 +535,18 @@ export default function PreviewPage() {
                   <TabsList className="grid w-full grid-cols-3 sm:inline-flex sm:w-auto">
                     <TabsTrigger value="original" className="text-xs sm:text-sm px-1.5 sm:px-4">
                       <FileText className="h-3.5 w-3.5 mr-1 sm:mr-1.5 hidden sm:inline-block" />
-                      <span className="sm:hidden">Original</span>
-                      <span className="hidden sm:inline">Originaltreu</span>
+                      <span className="sm:hidden">{t("preview.versionOriginalShort")}</span>
+                      <span className="hidden sm:inline">{t("preview.versionFaithful")}</span>
                     </TabsTrigger>
                     <TabsTrigger value="completed" className="text-xs sm:text-sm px-1.5 sm:px-4">
                       <Sparkles className="h-3.5 w-3.5 mr-1 sm:mr-1.5 hidden sm:inline-block" />
-                      <span className="sm:hidden">Ergänzt</span>
-                      <span className="hidden sm:inline">KI-ergänzt</span>
+                      <span className="sm:hidden">{t("preview.versionCompletedShort")}</span>
+                      <span className="hidden sm:inline">{t("preview.versionCompleted")}</span>
                     </TabsTrigger>
                     <TabsTrigger value="interpreted" className="text-xs sm:text-sm px-1.5 sm:px-4">
                       <Wand2 className="h-3.5 w-3.5 mr-1 sm:mr-1.5 hidden sm:inline-block" />
-                      <span className="sm:hidden">Deutung</span>
-                      <span className="hidden sm:inline">Interpretation</span>
+                      <span className="sm:hidden">{t("preview.versionInterpretedShort")}</span>
+                      <span className="hidden sm:inline">{t("preview.versionInterpreted")}</span>
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -554,7 +560,7 @@ export default function PreviewPage() {
                 {preview!.currentCredits < preview!.creditsRequired && (
                   <Button variant="outline" size="sm" onClick={() => { trackBeginCheckout(); navigate("/app/pricing"); }}>
                     <Coins className="h-4 w-4 mr-2" />
-                    Credits kaufen
+                    {t("preview.buyCredits")}
                   </Button>
                 )}
                 <Button
@@ -565,10 +571,10 @@ export default function PreviewPage() {
                   {purchaseMutation.isPending ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : preview!.currentCredits < preview!.creditsRequired ? (
-                    "Nicht genug Credits"
+                    t("preview.notEnoughCredits")
                   ) : (
                     <>
-                      {getTranscribeButtonLabel(preview!.totalPages, preview!.creditsRequired)}
+                      {getTranscribeButtonLabel(t, preview!.totalPages, preview!.creditsRequired)}
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </>
                   )}
@@ -579,12 +585,12 @@ export default function PreviewPage() {
 
           <div className="grid lg:grid-cols-2 gap-6 items-start">
             <div className="order-2 lg:order-1">
-              <h2 className="font-serif text-lg font-semibold mb-3">Original</h2>
+              <h2 className="font-serif text-lg font-semibold mb-3">{t("preview.original")}</h2>
               <Card ref={originalColRef}>
                 {preview?.imageUrl ? (
                   <DocumentPreview
                     src={preview.imageUrl}
-                    alt="Original"
+                    alt={t("preview.original")}
                     data-testid="img-original"
                   />
                 ) : (
@@ -597,7 +603,7 @@ export default function PreviewPage() {
 
             <div className="order-1 lg:order-2 space-y-4 min-w-0">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="font-serif text-lg font-semibold">Transkription</h2>
+                <h2 className="font-serif text-lg font-semibold">{t("preview.transcription")}</h2>
                 {!isProcessing && preview!.previewPageId != null && !isEditing && (
                   <div className="flex items-center gap-1">
                     <TooltipProvider>
@@ -609,13 +615,13 @@ export default function PreviewPage() {
                             className="h-8 w-8"
                             onClick={() => {
                               navigator.clipboard.writeText(getPreviewDisplayText(preview!, textVersion, displayLanguage));
-                              toast({ title: "Kopiert", description: "Text in die Zwischenablage kopiert." });
+                              toast({ title: t("common.copied"), description: t("common.copiedToClipboard") });
                             }}
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Kopieren</TooltipContent>
+                        <TooltipContent>{t("common.copy")}</TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -623,7 +629,7 @@ export default function PreviewPage() {
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Bearbeiten</TooltipContent>
+                        <TooltipContent>{t("common.edit")}</TooltipContent>
                       </Tooltip>
                       {getPreviewHasEdited(preview!, textVersion) && (
                         <Tooltip>
@@ -638,7 +644,7 @@ export default function PreviewPage() {
                               <RotateCcw className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Original wiederherstellen</TooltipContent>
+                          <TooltipContent>{t("preview.restoreOriginal")}</TooltipContent>
                         </Tooltip>
                       )}
                     </TooltipProvider>
@@ -649,25 +655,25 @@ export default function PreviewPage() {
                 {isProcessing ? (
                   <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin mb-2 text-primary" />
-                    <p className="font-serif text-sm">Handschrift wird analysiert…</p>
-                    <p className="text-xs mt-1">Der Text erscheint hier, sobald die Vorschau fertig ist.</p>
+                    <p className="font-serif text-sm">{t("preview.analyzingHandwriting")}</p>
+                    <p className="text-xs mt-1">{t("preview.textAppearsHere")}</p>
                   </div>
                 ) : (
                   <>
                     {textVersion === "completed" && preview!.transcriptionCompleted && !isEditing && (
                       <div className="flex items-center gap-1.5 mb-3 text-xs text-amber-600 dark:text-amber-400">
                         <Sparkles className="h-3 w-3" />
-                        <span>Lücken wurden sinnvoll ergänzt</span>
+                        <span>{t("preview.gapsFilled")}</span>
                       </div>
                     )}
                     {textVersion === "interpreted" && (preview!.transcriptionInterpreted ?? (preview as any).transcription_interpreted ?? preview!.transcriptionCompleted) && !isEditing && (
                       <div className="flex items-center gap-1.5 mb-3 text-xs text-amber-600 dark:text-amber-400">
                         <Wand2 className="h-3 w-3" />
-                        <span>Text wurde sinngemäß interpretiert</span>
+                        <span>{t("preview.interpretedNote")}</span>
                       </div>
                     )}
                     {getPreviewHasEdited(preview!, textVersion) && !isEditing && (
-                      <Badge variant="secondary" className="mb-3 text-xs">Bearbeitet</Badge>
+                      <Badge variant="secondary" className="mb-3 text-xs">{t("preview.edited")}</Badge>
                     )}
                     {isEditing ? (
                       <div className="space-y-3">
@@ -681,10 +687,10 @@ export default function PreviewPage() {
                         <div className="flex gap-2">
                           <Button size="sm" onClick={saveEditing} disabled={updatePageMutation.isPending} data-testid="button-save-preview">
                             {updatePageMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
-                            Speichern
+                            {t("common.save")}
                           </Button>
                           <Button size="sm" variant="outline" onClick={cancelEditing} disabled={updatePageMutation.isPending}>
-                            Abbrechen
+                            {t("common.cancel")}
                           </Button>
                         </div>
                       </div>
@@ -714,11 +720,11 @@ export default function PreviewPage() {
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <h3 className="font-serif font-semibold text-sm flex items-center gap-2">
                         <Volume2 className="h-4 w-4 text-primary" />
-                        Vorlesen
+                        {t("preview.ttsTitle")}
                       </h3>
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Coins className="h-3.5 w-3.5" />
-                        Guthaben: {preview!.currentCredits} {preview!.currentCredits === 1 ? "Credit" : "Credits"}
+                        {t("preview.balance", { count: preview!.currentCredits })}
                       </span>
                     </div>
 
@@ -737,13 +743,13 @@ export default function PreviewPage() {
                           <div className="border-t pt-3 space-y-2">
                             <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
                               <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                                ✓ Diese Audio existiert bereits
+                                {t("preview.audioExists")}
                               </p>
                               <audio controls className="w-full h-9" src={existingMatch.audioUrl!} />
                               <Button size="sm" variant="ghost" className="h-7 text-xs px-2" asChild>
                                 <a href={existingMatch.audioUrl!} download={existingMatch.audioUrl!.split("/").pop() ?? undefined}>
                                   <Download className="h-3 w-3 mr-1" />
-                                  Herunterladen
+                                  {t("common.download")}
                                 </a>
                               </Button>
                             </div>
@@ -753,7 +759,7 @@ export default function PreviewPage() {
                       return (
                         <div className="border-t pt-3 space-y-3">
                           <p className="text-xs text-muted-foreground">
-                            {displayText.length.toLocaleString("de-DE")} Zeichen = {pageCredits} {pageCredits === 1 ? "Credit" : "Credits"}
+                            {t("preview.charsEqualsCredits", { chars: displayText.length.toLocaleString("de-DE"), count: pageCredits })}
                           </p>
                           <div className="flex flex-wrap items-center gap-2">
                             <Button
@@ -767,12 +773,12 @@ export default function PreviewPage() {
                                 <Volume2 className="h-3.5 w-3.5 mr-1.5" />
                               )}
                               {ttsGeneratingForPreview
-                                ? "Audio wird generiert…"
-                                : !hasEnough ? "Nicht genug Credits" : `Vorhören (${pageCredits} ${pageCredits === 1 ? "Credit" : "Credits"})`}
+                                ? t("preview.audioGenerating")
+                                : !hasEnough ? t("preview.notEnoughCredits") : t("preview.previewListen", { count: pageCredits })}
                             </Button>
                             {!hasEnough && !ttsGeneratingForPreview && (
                               <Button variant="ghost" size="sm" className="text-xs h-auto p-0 text-primary" onClick={() => { trackBeginCheckout(); navigate("/app/pricing"); }}>
-                                Credits kaufen
+                                {t("preview.buyCredits")}
                               </Button>
                             )}
                           </div>
@@ -783,7 +789,7 @@ export default function PreviewPage() {
                     {ttsCompletedForPreview.length > 0 && (
                       <div className="space-y-3 pt-2 border-t">
                         <p className="text-xs font-semibold text-muted-foreground">
-                          {ttsCompletedForPreview.length === 1 ? "Wiedergabe" : `Wiedergabe — ${ttsCompletedForPreview.length} Varianten`}
+                          {ttsCompletedForPreview.length === 1 ? t("preview.playback") : t("preview.playbackVariants", { count: ttsCompletedForPreview.length })}
                         </p>
                         {ttsCompletedForPreview.map((gen) => {
                           const voiceMeta = TTS_VOICES.find((v) => v.name === gen.voice);
@@ -799,7 +805,7 @@ export default function PreviewPage() {
                               <Button size="sm" variant="ghost" className="h-7 text-xs px-2" asChild>
                                 <a href={gen.audioUrl!} download={gen.audioUrl!.split("/").pop() ?? undefined}>
                                   <Download className="h-3 w-3 mr-1" />
-                                  Herunterladen
+                                  {t("common.download")}
                                 </a>
                               </Button>
                             </div>
@@ -820,27 +826,25 @@ export default function PreviewPage() {
                   <div className="flex flex-col gap-3 min-w-0">
                     <div className="flex items-center gap-2">
                       <Coins className="h-5 w-5 text-primary shrink-0" />
-                      <h3 className="font-serif font-semibold">KI-Sofort</h3>
+                      <h3 className="font-serif font-semibold">{t("preview.tierInstantTitle")}</h3>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Alle {preview!.totalPages} Seiten als Text – sofort aus Ihrem Guthaben.
+                      {t("preview.tierInstantBody", { count: preview!.totalPages })}
                     </p>
                     {preview!.creditsRequired > 0 ? (
                       <p className="text-xs text-muted-foreground">
-                        Noch {preview!.creditsRequired}{" "}
-                        {preview!.creditsRequired === 1 ? "Credit" : "Credits"} nötig.
-                        Ihr Guthaben: {preview!.currentCredits} {preview!.currentCredits === 1 ? "Credit" : "Credits"}
+                        {t("preview.tierInstantCreditsNeeded", { required: preview!.creditsRequired, current: preview!.currentCredits })}
                       </p>
                     ) : (
                       <p className="text-xs text-muted-foreground">
-                        Guthaben ausreichend – Transkription starten.
+                        {t("preview.tierInstantCreditsOk")}
                       </p>
                     )}
                     <div className="flex flex-col gap-2 mt-auto pt-2 w-full min-w-0">
                       {preview!.currentCredits < preview!.creditsRequired && (
                         <Button variant="outline" size="sm" className="w-full" onClick={() => { trackBeginCheckout(); navigate("/app/pricing"); }}>
                           <Coins className="h-4 w-4 mr-2" />
-                          Credits kaufen
+                          {t("preview.buyCredits")}
                         </Button>
                       )}
                       <Button
@@ -854,13 +858,13 @@ export default function PreviewPage() {
                         {purchaseMutation.isPending ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Wird gestartet…
+                            {t("preview.starting")}
                           </>
                         ) : preview!.currentCredits < preview!.creditsRequired ? (
-                          "Nicht genug Credits"
+                          t("preview.notEnoughCredits")
                         ) : (
                           <>
-                            {getTranscribeButtonLabel(preview!.totalPages, preview!.creditsRequired, "compact")}
+                            {getTranscribeButtonLabel(t, preview!.totalPages, preview!.creditsRequired, "compact")}
                             <ArrowRight className="h-4 w-4 ml-2 shrink-0" />
                           </>
                         )}
@@ -879,26 +883,26 @@ export default function PreviewPage() {
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-2">
                       <CheckCircle className="h-5 w-5 text-primary shrink-0" />
-                      <h3 className="font-serif font-semibold">KI-Geprüft</h3>
+                      <h3 className="font-serif font-semibold">{t("preview.tierCheckedTitle")}</h3>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      KI-Transkription mit Experten-Korrektur. Lieferzeit 2–3 Werktage.
+                      {t("preview.tierCheckedBody")}
                     </p>
                     <p className="text-sm font-semibold">
                       {(preview!.totalPages * 8.99).toFixed(2).replace(".", ",")} EUR
-                      <span className="text-muted-foreground font-normal text-xs ml-1">(8,99 EUR/Seite)</span>
+                      <span className="text-muted-foreground font-normal text-xs ml-1">{t("preview.tierCheckedPerPage")}</span>
                     </p>
                     {preview!.quality?.level === "red" ? (
                       <p className="text-xs text-destructive/80 leading-snug">
-                        Dieses Dokument ist extrem schwer lesbar. KI-Geprüft ist möglicherweise eingeschränkt.
+                        {t("preview.tierCheckedQualityRed")}
                       </p>
                     ) : preview!.quality?.level === "yellow" ? (
                       <p className="text-xs text-muted-foreground/80 leading-snug">
-                        Wir prüfen nach Ihrer Anfrage, ob die KI-Qualität für eine Korrektur ausreicht.
+                        {t("preview.tierCheckedQualityYellow")}
                       </p>
                     ) : (
                       <p className="text-xs text-muted-foreground/80 leading-snug">
-                        Gute Lesbarkeit erkannt. KI-Geprüft ist für dieses Dokument geeignet.
+                        {t("preview.tierCheckedQualityGreen")}
                       </p>
                     )}
                     <Button
@@ -907,7 +911,7 @@ export default function PreviewPage() {
                       className="mt-auto"
                       onClick={() => navigate(`/app/human-transcription/${params.id}?tier=ki_geprueft`)}
                     >
-                      KI-Geprüft anfragen
+                      {t("preview.tierCheckedRequest")}
                     </Button>
                   </div>
                 </Card>
@@ -922,14 +926,14 @@ export default function PreviewPage() {
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-2">
                       <User className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
-                      <h3 className="font-serif font-semibold">Experten</h3>
+                      <h3 className="font-serif font-semibold">{t("preview.tierExpertTitle")}</h3>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Vollständige menschliche Transkription. Lieferzeit 5–7 Werktage.
+                      {t("preview.tierExpertBody")}
                     </p>
                     <p className="text-sm font-semibold">
-                      ab 14,90 EUR/Seite
-                      <span className="text-muted-foreground font-normal text-xs block">Individuelles Angebot</span>
+                      {t("preview.tierExpertPrice")}
+                      <span className="text-muted-foreground font-normal text-xs block">{t("preview.tierExpertCustomQuote")}</span>
                     </p>
                     <Button
                       variant="outline"
@@ -937,7 +941,7 @@ export default function PreviewPage() {
                       className="mt-auto border-amber-400 dark:border-amber-600"
                       onClick={() => navigate(`/app/human-transcription/${params.id}?tier=experten`)}
                     >
-                      Experten anfragen
+                      {t("preview.tierExpertRequest")}
                     </Button>
                   </div>
                 </Card>
@@ -945,7 +949,7 @@ export default function PreviewPage() {
 
               <div className="flex flex-wrap items-center gap-2 pt-2">
                 <Button variant="ghost" size="sm" onClick={() => navigate("/app")}>
-                  Abbrechen
+                  {t("common.cancel")}
                 </Button>
               </div>
             </>
@@ -954,20 +958,18 @@ export default function PreviewPage() {
           <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Original wiederherstellen?</AlertDialogTitle>
+                <AlertDialogTitle>{t("preview.resetDialogTitle")}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Ihre Bearbeitungen für diese Textversion werden verworfen und die
-                  ursprüngliche KI-Transkription wird wieder angezeigt. Dieser Schritt
-                  kann nicht rückgängig gemacht werden.
+                  {t("preview.resetDialogBody")}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                 <AlertDialogAction
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   onClick={resetToOriginal}
                 >
-                  Verwerfen und Original anzeigen
+                  {t("preview.resetDialogConfirm")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

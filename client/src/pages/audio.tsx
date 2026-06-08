@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -124,30 +126,31 @@ function getVoiceLabel(voice: string) {
   return { label: voice, gender: null, description: null };
 }
 
-function getStyleLabel(style: string | null): string {
-  if (!style) return "Standard";
+function getStyleLabel(style: string | null, t: TFunction): string {
+  if (!style) return t("audioPage.styleStandard");
   const preset = TTS_CHARACTER_STYLES.find((s) => s.prompt === style);
   if (preset) return preset.label;
   return style.length > 50 ? style.slice(0, 50) + "…" : style;
 }
 
-function getVersionLabel(version: string): string {
+function getVersionLabel(version: string, t: TFunction): string {
   switch (version) {
-    case "original": return "Original";
-    case "completed": return "Vervollständigt";
-    case "interpreted": return "Interpretiert";
+    case "original": return t("audioPage.versionOriginal");
+    case "completed": return t("audioPage.versionCompleted");
+    case "interpreted": return t("audioPage.versionInterpreted");
     default: return version;
   }
 }
 
-function getPagesLabel(pages: number[] | "all"): string {
-  if (pages === "all") return "Alle Seiten";
-  if (Array.isArray(pages) && pages.length === 1) return `Seite ${pages[0]}`;
-  if (Array.isArray(pages)) return `${pages.length} Seiten`;
+function getPagesLabel(pages: number[] | "all", t: TFunction): string {
+  if (pages === "all") return t("audioPage.pagesAll");
+  if (Array.isArray(pages) && pages.length === 1) return t("audioPage.pageSingle", { page: pages[0] });
+  if (Array.isArray(pages)) return t("audioPage.pagesCount", { count: pages.length });
   return "";
 }
 
 export default function AudioPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"audios" | "playlists">("audios");
@@ -182,11 +185,11 @@ export default function AudioPage() {
     mutationFn: async (id: number) => { await apiRequest("DELETE", `/api/audio/${id}`); },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audio"] });
-      toast({ title: "Gelöscht", description: "Die Audio-Datei wurde entfernt." });
+      toast({ title: t("audioPage.toastDeletedTitle"), description: t("audioPage.toastAudioDeletedBody") });
       setDeleteId(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("audioPage.toastErrorTitle"), description: error.message, variant: "destructive" });
       setDeleteId(null);
     },
   });
@@ -198,14 +201,14 @@ export default function AudioPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/playlists"] });
-      toast({ title: "Erstellt", description: "Playlist wurde erstellt." });
+      toast({ title: t("audioPage.toastCreatedTitle"), description: t("audioPage.toastPlaylistCreatedBody") });
       setShowCreatePlaylist(false);
       setNewPlaylistName("");
       setSelectedAudioIds(new Set());
       setTab("playlists");
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("audioPage.toastErrorTitle"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -213,7 +216,7 @@ export default function AudioPage() {
     mutationFn: async (id: number) => { await apiRequest("DELETE", `/api/playlists/${id}`); },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/playlists"] });
-      toast({ title: "Gelöscht", description: "Playlist wurde entfernt." });
+      toast({ title: t("audioPage.toastDeletedTitle"), description: t("audioPage.toastPlaylistDeletedBody") });
       setDeletePlaylistId(null);
       if (activePlaylist?.id === deletePlaylistId) setActivePlaylist(null);
     },
@@ -239,9 +242,9 @@ export default function AudioPage() {
       const detail: PlaylistDetail = await res.json();
       setActivePlaylist(detail);
     } catch {
-      toast({ title: "Fehler", description: "Playlist konnte nicht geladen werden.", variant: "destructive" });
+      toast({ title: t("audioPage.toastErrorTitle"), description: t("audioPage.toastPlaylistLoadFailed"), variant: "destructive" });
     }
-  }, [toast]);
+  }, [toast, t]);
 
   const playerTracks: PlaylistTrack[] = useMemo(() => {
     if (!activePlaylist) return [];
@@ -277,7 +280,7 @@ export default function AudioPage() {
     if (tracks.length === 0) return;
     setActivePlaylist({
       id: 0,
-      name: "Alle Audios",
+      name: t("audioPage.allAudios"),
       itemCount: tracks.length,
       createdAt: "",
       updatedAt: "",
@@ -295,7 +298,7 @@ export default function AudioPage() {
         textSnippet: g.textSnippet,
       })),
     });
-  }, [generations]);
+  }, [generations, t]);
 
   return (
     <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
@@ -303,17 +306,17 @@ export default function AudioPage() {
         <div>
           <h1 className="font-serif text-2xl font-bold flex items-center gap-2">
             <Headphones className="h-6 w-6" />
-            Meine Audios
+            {t("audioPage.pageTitle")}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Audios anhören, Playlists zusammenstellen, als Hörbuch abspielen.
+            {t("audioPage.pageSubtitle")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {generations.length > 0 && (
             <Button variant="outline" size="sm" onClick={playAllAsPlaylist}>
               <Play className="h-3.5 w-3.5 mr-1.5" />
-              Alle abspielen
+              {t("audioPage.playAll")}
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => {
@@ -324,11 +327,11 @@ export default function AudioPage() {
               setNewPlaylistName("");
               setShowCreatePlaylist(true);
             } else {
-              toast({ title: "Keine Audios", description: "Erstellen Sie zuerst Audios über die Transkriptions-Ergebnisse." });
+              toast({ title: t("audioPage.toastNoAudiosTitle"), description: t("audioPage.toastNoAudiosBody") });
             }
           }}>
             <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Neue Playlist
+            {t("audioPage.newPlaylist")}
           </Button>
         </div>
       </div>
@@ -350,11 +353,11 @@ export default function AudioPage() {
         <TabsList>
           <TabsTrigger value="audios" className="gap-1.5">
             <Volume2 className="h-3.5 w-3.5" />
-            Audios ({generations.length})
+            {t("audioPage.tabAudios", { count: generations.length })}
           </TabsTrigger>
           <TabsTrigger value="playlists" className="gap-1.5">
             <ListMusic className="h-3.5 w-3.5" />
-            Playlists ({playlistsList.length})
+            {t("audioPage.tabPlaylists", { count: playlistsList.length })}
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -371,14 +374,14 @@ export default function AudioPage() {
           {!audiosLoading && generations.length === 0 && (
             <Card className="p-10 text-center">
               <Headphones className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-              <h3 className="font-serif text-lg font-semibold mb-2">Noch keine Audios</h3>
+              <h3 className="font-serif text-lg font-semibold mb-2">{t("audioPage.emptyAudiosTitle")}</h3>
               <p className="text-sm text-muted-foreground mb-2 max-w-md mx-auto">
-                Lassen Sie Ihre Transkriptionen vorlesen — mit 6 verschiedenen Stimmen und 4 Vorlesestilen. Ideal als Geschenk.
+                {t("audioPage.emptyAudiosBody")}
               </p>
-              <p className="text-xs text-muted-foreground/60 mb-5">1 Seite pro 1.000 Zeichen</p>
+              <p className="text-xs text-muted-foreground/60 mb-5">{t("audioPage.emptyAudiosHint")}</p>
               <Link href="/app">
                 <Button>
-                  Erstes Audio erstellen
+                  {t("audioPage.createFirstAudio")}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
@@ -390,11 +393,11 @@ export default function AudioPage() {
               {selectedAudioIds.size > 0 && (
                 <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/30 px-4 py-2.5">
                   <span className="text-sm">
-                    {selectedAudioIds.size} {selectedAudioIds.size === 1 ? "Audio" : "Audios"} ausgewählt
+                    {t("audioPage.selectedCount", { count: selectedAudioIds.size })}
                   </span>
                   <div className="flex items-center gap-2">
                     <Button size="sm" variant="ghost" onClick={() => setSelectedAudioIds(new Set())}>
-                      Auswahl aufheben
+                      {t("audioPage.clearSelection")}
                     </Button>
                     <Button size="sm" onClick={() => {
                       setOrderedSelectedIds(Array.from(selectedAudioIds));
@@ -402,7 +405,7 @@ export default function AudioPage() {
                       setShowCreatePlaylist(true);
                     }}>
                       <ListMusic className="h-3.5 w-3.5 mr-1.5" />
-                      Playlist erstellen
+                      {t("audioPage.createPlaylist")}
                     </Button>
                   </div>
                 </div>
@@ -411,9 +414,9 @@ export default function AudioPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 {generations.map((gen) => {
                   const voiceInfo = getVoiceLabel(gen.voice);
-                  const styleLabel = getStyleLabel(gen.style);
-                  const versionLabel = getVersionLabel(gen.version);
-                  const pagesLabel = getPagesLabel(gen.pages);
+                  const styleLabel = getStyleLabel(gen.style, t);
+                  const versionLabel = getVersionLabel(gen.version, t);
+                  const pagesLabel = getPagesLabel(gen.pages, t);
                   const date = new Date(gen.createdAt).toLocaleDateString("de-DE", { day: "2-digit", month: "short", year: "numeric" });
                   const isSelected = selectedAudioIds.has(gen.id);
 
@@ -491,19 +494,19 @@ export default function AudioPage() {
           {!playlistsLoading && playlistsList.length === 0 && (
             <Card className="p-10 text-center">
               <ListMusic className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-              <h3 className="font-serif text-lg font-semibold mb-2">Noch keine Playlists</h3>
+              <h3 className="font-serif text-lg font-semibold mb-2">{t("audioPage.emptyPlaylistsTitle")}</h3>
               <p className="text-sm text-muted-foreground mb-5 max-w-md mx-auto">
-                Stellen Sie Ihre Audios zu Playlists zusammen — mit Hörbuch-Player, Kapitelnavigation und Sleep-Timer.
+                {t("audioPage.emptyPlaylistsBody")}
               </p>
               {generations.length > 0 ? (
-                <Button onClick={() => { setTab("audios"); toast({ title: "Tipp", description: "Wählen Sie Audios aus und klicken Sie auf \"Playlist erstellen\"." }); }}>
+                <Button onClick={() => { setTab("audios"); toast({ title: t("audioPage.toastTipTitle"), description: t("audioPage.toastTipBody") }); }}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Playlist erstellen
+                  {t("audioPage.createPlaylist")}
                 </Button>
               ) : (
                 <Link href="/app">
                   <Button>
-                    Erst Audios erstellen
+                    {t("audioPage.createAudiosFirst")}
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </Link>
@@ -525,15 +528,15 @@ export default function AudioPage() {
                         <div className="min-w-0">
                           <p className="font-medium text-sm">{pl.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {pl.itemCount} {pl.itemCount === 1 ? "Track" : "Tracks"} · {date}
-                            {pl.lastPosition && " · Fortschritt gespeichert"}
+                            {t("audioPage.trackCount", { count: pl.itemCount })} · {date}
+                            {pl.lastPosition && ` · ${t("audioPage.progressSaved")}`}
                           </p>
                         </div>
                       </button>
                       <div className="flex items-center gap-1 shrink-0">
                         <Button size="sm" variant="ghost" className="h-8" onClick={() => openPlaylist(pl.id)}>
                           <Play className="h-3.5 w-3.5 mr-1" />
-                          Abspielen
+                          {t("audioPage.play")}
                         </Button>
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeletePlaylistId(pl.id)}>
                           <Trash2 className="h-3.5 w-3.5" />
@@ -552,13 +555,13 @@ export default function AudioPage() {
       <Dialog open={showCreatePlaylist} onOpenChange={setShowCreatePlaylist}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-serif">Neue Playlist erstellen</DialogTitle>
+            <DialogTitle className="font-serif">{t("audioPage.createPlaylistDialogTitle")}</DialogTitle>
             <DialogDescription>
-              {orderedSelectedIds.length} {orderedSelectedIds.length === 1 ? "Audio" : "Audios"} — Reihenfolge mit den Pfeilen anpassen.
+              {t("audioPage.createPlaylistDialogDesc", { count: orderedSelectedIds.length })}
             </DialogDescription>
           </DialogHeader>
           <Input
-            placeholder="Name der Playlist (z.B. MormorsBreve)"
+            placeholder={t("audioPage.playlistNamePlaceholder")}
             value={newPlaylistName}
             onChange={(e) => setNewPlaylistName(e.target.value)}
             autoFocus
@@ -611,15 +614,15 @@ export default function AudioPage() {
             })}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreatePlaylist(false)}>Abbrechen</Button>
+            <Button variant="outline" onClick={() => setShowCreatePlaylist(false)}>{t("common.cancel")}</Button>
             <Button
               disabled={createPlaylistMutation.isPending || orderedSelectedIds.length === 0}
               onClick={() => createPlaylistMutation.mutate({
-                name: newPlaylistName.trim() || "Neue Playlist",
+                name: newPlaylistName.trim() || t("audioPage.defaultPlaylistName"),
                 ttsIds: orderedSelectedIds,
               })}
             >
-              Erstellen
+              {t("audioPage.create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -629,18 +632,18 @@ export default function AudioPage() {
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Audio löschen?</AlertDialogTitle>
+            <AlertDialogTitle>{t("audioPage.deleteAudioTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Die Audio-Datei wird unwiderruflich gelöscht. Verbrauchtes Guthaben wird nicht erstattet.
+              {t("audioPage.deleteAudioBody")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => deleteId !== null && deleteMutation.mutate(deleteId)}
             >
-              Löschen
+              {t("audioPage.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -650,18 +653,18 @@ export default function AudioPage() {
       <AlertDialog open={deletePlaylistId !== null} onOpenChange={(open) => !open && setDeletePlaylistId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Playlist löschen?</AlertDialogTitle>
+            <AlertDialogTitle>{t("audioPage.deletePlaylistTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Die Playlist wird gelöscht. Die enthaltenen Audio-Dateien bleiben erhalten.
+              {t("audioPage.deletePlaylistBody")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => deletePlaylistId !== null && deletePlaylistMutation.mutate(deletePlaylistId)}
             >
-              Löschen
+              {t("audioPage.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

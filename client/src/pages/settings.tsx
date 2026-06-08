@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -56,10 +58,10 @@ type ProfilePayload = Partial<{
   newsletterOptIn: boolean;
 }>;
 
-async function downloadInvoicePdf(id: number, invoiceNumber: string) {
+async function downloadInvoicePdf(id: number, invoiceNumber: string, t: TFunction) {
   const headers = await getAuthHeaders();
   const res = await fetch(`/api/invoices/${id}/pdf`, { headers });
-  if (!res.ok) throw new Error("Rechnung konnte nicht geladen werden.");
+  if (!res.ok) throw new Error(t("settings.invoiceLoadError"));
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -70,6 +72,7 @@ async function downloadInvoicePdf(id: number, invoiceNumber: string) {
 }
 
 function InvoicesSection() {
+  const { t } = useTranslation();
   const { data: invoices, isLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],
     queryFn: getQueryFn({ on401: "throw" }),
@@ -78,9 +81,9 @@ function InvoicesSection() {
   const { toast } = useToast();
 
   const handleDownload = (id: number, invoiceNumber: string) => {
-    downloadInvoicePdf(id, invoiceNumber).then(
-      () => toast({ title: "Download gestartet", description: `${invoiceNumber}.pdf` }),
-      (err) => toast({ title: "Fehler", description: err.message, variant: "destructive" })
+    downloadInvoicePdf(id, invoiceNumber, t).then(
+      () => toast({ title: t("settings.downloadStarted"), description: `${invoiceNumber}.pdf` }),
+      (err) => toast({ title: t("settings.errorTitle"), description: err.message, variant: "destructive" })
     );
   };
 
@@ -95,8 +98,7 @@ function InvoicesSection() {
   if (!invoices?.length) {
     return (
       <p className="text-muted-foreground text-sm py-4">
-        Noch keine Rechnungen vorhanden. Rechnungen werden automatisch bei Seiten-Käufen und
-        Spezialistenaufträgen erstellt.
+        {t("settings.invoicesEmpty")}
       </p>
     );
   }
@@ -115,10 +117,10 @@ function InvoicesSection() {
       <Table className="min-w-[640px]">
         <TableHeader>
           <TableRow>
-            <TableHead>Datum</TableHead>
-            <TableHead>Rechnungsnr.</TableHead>
-            <TableHead>Beschreibung</TableHead>
-            <TableHead className="text-right">Betrag</TableHead>
+            <TableHead>{t("settings.colDate")}</TableHead>
+            <TableHead>{t("settings.colInvoiceNo")}</TableHead>
+            <TableHead>{t("settings.colDescription")}</TableHead>
+            <TableHead className="text-right">{t("settings.colAmount")}</TableHead>
             <TableHead className="w-[100px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -176,6 +178,7 @@ function syncUserToForm(user: User | null) {
 }
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
@@ -210,10 +213,10 @@ export default function SettingsPage() {
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(["/api/auth/user"], updated);
-      toast({ title: "Gespeichert", description: "Ihre Angaben wurden aktualisiert." });
+      toast({ title: t("settings.savedTitle"), description: t("settings.savedDescription") });
     },
     onError: (err: Error) => {
-      toast({ title: "Fehler", description: err.message, variant: "destructive" });
+      toast({ title: t("settings.errorTitle"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -225,10 +228,10 @@ export default function SettingsPage() {
       setDeleteDialogOpen(false);
       logout();
       navigate("/");
-      toast({ title: "Konto gelöscht", description: "Ihr Konto wurde unwiderruflich gelöscht." });
+      toast({ title: t("settings.accountDeletedTitle"), description: t("settings.accountDeletedDescription") });
     },
     onError: (err: Error) => {
-      toast({ title: "Fehler", description: err.message, variant: "destructive" });
+      toast({ title: t("settings.errorTitle"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -279,104 +282,104 @@ export default function SettingsPage() {
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="font-serif text-2xl font-bold mb-1">Einstellungen</h1>
+        <h1 className="font-serif text-2xl font-bold mb-1">{t("settings.pageTitle")}</h1>
         <p className="text-muted-foreground text-sm">
-          Verwalten Sie Ihre persönlichen Daten, Adresse und Rechnungsanschrift.
+          {t("settings.pageSubtitle")}
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Persönliche Daten</CardTitle>
-          <CardDescription>Name und E-Mail (E-Mail wird über Ihr Konto verwaltet)</CardDescription>
+          <CardTitle>{t("settings.personalTitle")}</CardTitle>
+          <CardDescription>{t("settings.personalDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstName">Vorname</Label>
+              <Label htmlFor="firstName">{t("settings.firstNameLabel")}</Label>
               <Input
                 id="firstName"
                 value={form.firstName}
                 onChange={(e) => updateForm({ firstName: e.target.value })}
-                placeholder="Vorname"
+                placeholder={t("settings.firstNamePlaceholder")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName">Nachname</Label>
+              <Label htmlFor="lastName">{t("settings.lastNameLabel")}</Label>
               <Input
                 id="lastName"
                 value={form.lastName}
                 onChange={(e) => updateForm({ lastName: e.target.value })}
-                placeholder="Nachname"
+                placeholder={t("settings.lastNamePlaceholder")}
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">E-Mail</Label>
+            <Label htmlFor="email">{t("settings.emailLabel")}</Label>
             <Input id="email" value={user.email ?? ""} disabled className="bg-muted" />
           </div>
           <Button onClick={savePersonal} disabled={isPending}>
             {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Speichern
+            {t("common.save")}
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Adresse</CardTitle>
-          <CardDescription>Ihre Anschrift</CardDescription>
+          <CardTitle>{t("settings.addressTitle")}</CardTitle>
+          <CardDescription>{t("settings.addressDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="street">Straße und Hausnummer</Label>
+            <Label htmlFor="street">{t("settings.streetLabel")}</Label>
             <Input
               id="street"
               value={form.street}
               onChange={(e) => updateForm({ street: e.target.value })}
-              placeholder="Musterstraße 1"
+              placeholder={t("settings.streetPlaceholder")}
             />
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="postalCode">PLZ</Label>
+              <Label htmlFor="postalCode">{t("settings.postalCodeLabel")}</Label>
               <Input
                 id="postalCode"
                 value={form.postalCode}
                 onChange={(e) => updateForm({ postalCode: e.target.value })}
-                placeholder="12345"
+                placeholder={t("settings.postalCodePlaceholder")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">Ort</Label>
+              <Label htmlFor="city">{t("settings.cityLabel")}</Label>
               <Input
                 id="city"
                 value={form.city}
                 onChange={(e) => updateForm({ city: e.target.value })}
-                placeholder="Berlin"
+                placeholder={t("settings.cityPlaceholder")}
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="country">Land</Label>
+            <Label htmlFor="country">{t("settings.countryLabel")}</Label>
             <Input
               id="country"
               value={form.country}
               onChange={(e) => updateForm({ country: e.target.value })}
-              placeholder="Deutschland"
+              placeholder={t("settings.countryPlaceholder")}
             />
           </div>
           <Button onClick={saveAddress} disabled={isPending}>
             {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Speichern
+            {t("common.save")}
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Rechnungsanschrift</CardTitle>
-          <CardDescription>Für Rechnungen und Abrechnungen</CardDescription>
+          <CardTitle>{t("settings.billingTitle")}</CardTitle>
+          <CardDescription>{t("settings.billingDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-2">
@@ -386,63 +389,63 @@ export default function SettingsPage() {
               onCheckedChange={(checked) => setBillingSameAsAddress(!!checked)}
             />
             <Label htmlFor="billingSame" className="cursor-pointer">
-              Gleich wie Adresse
+              {t("settings.billingSameAsAddress")}
             </Label>
           </div>
           {!billingSameAsAddress && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="billingName">Firma / Name</Label>
+                <Label htmlFor="billingName">{t("settings.billingNameLabel")}</Label>
                 <Input
                   id="billingName"
                   value={form.billingName}
                   onChange={(e) => updateForm({ billingName: e.target.value })}
-                  placeholder="Firma oder Name"
+                  placeholder={t("settings.billingNamePlaceholder")}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="billingStreet">Straße und Hausnummer</Label>
+                <Label htmlFor="billingStreet">{t("settings.streetLabel")}</Label>
                 <Input
                   id="billingStreet"
                   value={form.billingStreet}
                   onChange={(e) => updateForm({ billingStreet: e.target.value })}
-                  placeholder="Musterstraße 1"
+                  placeholder={t("settings.streetPlaceholder")}
                 />
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="billingPostalCode">PLZ</Label>
+                  <Label htmlFor="billingPostalCode">{t("settings.postalCodeLabel")}</Label>
                   <Input
                     id="billingPostalCode"
                     value={form.billingPostalCode}
                     onChange={(e) => updateForm({ billingPostalCode: e.target.value })}
-                    placeholder="12345"
+                    placeholder={t("settings.postalCodePlaceholder")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="billingCity">Ort</Label>
+                  <Label htmlFor="billingCity">{t("settings.cityLabel")}</Label>
                   <Input
                     id="billingCity"
                     value={form.billingCity}
                     onChange={(e) => updateForm({ billingCity: e.target.value })}
-                    placeholder="Berlin"
+                    placeholder={t("settings.cityPlaceholder")}
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="billingCountry">Land</Label>
+                <Label htmlFor="billingCountry">{t("settings.countryLabel")}</Label>
                 <Input
                   id="billingCountry"
                   value={form.billingCountry}
                   onChange={(e) => updateForm({ billingCountry: e.target.value })}
-                  placeholder="Deutschland"
+                  placeholder={t("settings.countryPlaceholder")}
                 />
               </div>
             </>
           )}
           <Button onClick={saveBilling} disabled={isPending}>
             {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Speichern
+            {t("common.save")}
           </Button>
         </CardContent>
       </Card>
@@ -451,10 +454,10 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
-            Newsletter
+            {t("settings.newsletterTitle")}
           </CardTitle>
           <CardDescription>
-            Erhalten Sie Tipps und Neuigkeiten rund um historische Handschriften.
+            {t("settings.newsletterDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -467,7 +470,7 @@ export default function SettingsPage() {
               }}
             />
             <Label htmlFor="newsletterOptIn" className="cursor-pointer">
-              Ich möchte den Newsletter erhalten
+              {t("settings.newsletterOptIn")}
             </Label>
           </div>
         </CardContent>
@@ -477,10 +480,10 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            Rechnungen & Zahlungen
+            {t("settings.invoicesTitle")}
           </CardTitle>
           <CardDescription>
-            Ihre Rechnungen und getätigten Zahlungen. Rechnungen können Sie als PDF herunterladen.
+            {t("settings.invoicesDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -490,10 +493,9 @@ export default function SettingsPage() {
 
       <Card className="border-destructive/50 bg-destructive/5">
         <CardHeader>
-          <CardTitle className="text-destructive">Gefahrenzone</CardTitle>
+          <CardTitle className="text-destructive">{t("settings.dangerZoneTitle")}</CardTitle>
           <CardDescription>
-            Wenn Sie Ihr Konto löschen, werden alle Ihre Daten unwiderruflich gelöscht: Transkriptionen,
-            hochgeladene Dokumente, Support-Nachrichten und Zahlungsinformationen.
+            {t("settings.dangerZoneDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -507,7 +509,7 @@ export default function SettingsPage() {
             ) : (
               <Trash2 className="h-4 w-4 mr-2" />
             )}
-            Konto löschen
+            {t("settings.deleteAccountButton")}
           </Button>
         </CardContent>
       </Card>
@@ -515,19 +517,18 @@ export default function SettingsPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Konto wirklich löschen?</AlertDialogTitle>
+            <AlertDialogTitle>{t("settings.deleteDialogTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Diese Aktion kann nicht rückgängig gemacht werden. Alle Ihre Transkriptionen, Uploads und
-              zugehörigen Daten werden dauerhaft gelöscht.
+              {t("settings.deleteDialogDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => deleteAccountMutation.mutate()}
             >
-              Konto löschen
+              {t("settings.deleteAccountButton")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

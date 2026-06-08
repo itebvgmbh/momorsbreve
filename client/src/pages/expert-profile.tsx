@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -62,6 +63,7 @@ const emptyProfile: ExpertProfile = {
 };
 
 export default function ExpertProfilePage() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [form, setForm] = useState<ExpertProfile>(emptyProfile);
@@ -81,10 +83,10 @@ export default function ExpertProfilePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expert/me"] });
-      toast({ title: "Profil gespeichert" });
+      toast({ title: t("expertProfile.profileSaved") });
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("expertProfile.errorTitle"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -106,7 +108,7 @@ export default function ExpertProfilePage() {
   if (!data?.expert) {
     return (
       <div className="p-4 sm:p-6 max-w-3xl mx-auto">
-        <Card className="p-8 text-center text-muted-foreground">Kein aktives Expertenkonto.</Card>
+        <Card className="p-8 text-center text-muted-foreground">{t("expertProfile.noActiveExpertAccount")}</Card>
       </div>
     );
   }
@@ -115,94 +117,94 @@ export default function ExpertProfilePage() {
     <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-6">
       <Button variant="ghost" onClick={() => navigate("/app/expert")}>
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Zurück
+        {t("expertProfile.back")}
       </Button>
 
       <Card className="p-5 space-y-4">
         <div>
-          <h1 className="font-serif text-xl font-bold">Firmenprofil</h1>
+          <h1 className="font-serif text-xl font-bold">{t("expertProfile.companyProfile")}</h1>
           <p className="text-sm text-muted-foreground">
-            Diese Daten werden Kunden beim Angebot als Vertragspartner angezeigt.
+            {t("expertProfile.companyProfileDescription")}
           </p>
         </div>
 
         <Card className={`p-3 ${data?.canQuote ? "border-emerald-200 bg-emerald-50/60 dark:bg-emerald-950/20" : "border-amber-200 bg-amber-50/60 dark:bg-amber-950/20"}`}>
           <p className="text-sm font-medium">
-            {data?.canQuote ? "Profil vollständig" : "Profil noch unvollständig"}
+            {data?.canQuote ? t("expertProfile.profileComplete") : t("expertProfile.profileIncomplete")}
           </p>
           {!data?.canQuote && (
             <p className="text-xs text-muted-foreground mt-1">
-              Fehlend: {(data?.missingFields ?? []).join(", ")}
+              {t("expertProfile.missing", { fields: (data?.missingFields ?? []).join(", ") })}
             </p>
           )}
         </Card>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Firma" value={form.companyName} onChange={(v) => setField("companyName", v)} />
-          <Field label="Rechtlicher Name" value={form.legalName} onChange={(v) => setField("legalName", v)} />
-          <Field label="Ansprechpartner" value={form.contactName} onChange={(v) => setField("contactName", v)} />
-          <Field label="Rechnungs-E-Mail" value={form.invoiceEmail} onChange={(v) => setField("invoiceEmail", v)} />
-          <Field label="Straße" value={form.street} onChange={(v) => setField("street", v)} />
-          <Field label="PLZ" value={form.postalCode} onChange={(v) => setField("postalCode", v)} />
-          <Field label="Ort" value={form.city} onChange={(v) => setField("city", v)} />
-          <Field label="Land" value={form.country} onChange={(v) => setField("country", v)} />
-          <Field label="USt-IdNr." value={form.vatId} onChange={(v) => setField("vatId", v)} />
-          <Field label="Steuernummer" value={form.taxNumber} onChange={(v) => setField("taxNumber", v)} />
-          <Field label="Website" value={form.website} onChange={(v) => setField("website", v)} />
-          <Field label="Telefon" value={form.phone} onChange={(v) => setField("phone", v)} />
-          <Field label="Anbieterart" value={form.businessType} onChange={(v) => setField("businessType", v)} placeholder="z. B. Einzelunternehmen, GmbH, Freiberufler" />
-          <Field label="Register / Kammer" value={form.tradeRegisterName} onChange={(v) => setField("tradeRegisterName", v)} />
-          <Field label="Registernummer" value={form.tradeRegisterNumber} onChange={(v) => setField("tradeRegisterNumber", v)} />
+          <Field label={t("expertProfile.fieldCompany")} value={form.companyName} onChange={(v) => setField("companyName", v)} />
+          <Field label={t("expertProfile.fieldLegalName")} value={form.legalName} onChange={(v) => setField("legalName", v)} />
+          <Field label={t("expertProfile.fieldContactName")} value={form.contactName} onChange={(v) => setField("contactName", v)} />
+          <Field label={t("expertProfile.fieldInvoiceEmail")} value={form.invoiceEmail} onChange={(v) => setField("invoiceEmail", v)} />
+          <Field label={t("expertProfile.fieldStreet")} value={form.street} onChange={(v) => setField("street", v)} />
+          <Field label={t("expertProfile.fieldPostalCode")} value={form.postalCode} onChange={(v) => setField("postalCode", v)} />
+          <Field label={t("expertProfile.fieldCity")} value={form.city} onChange={(v) => setField("city", v)} />
+          <Field label={t("expertProfile.fieldCountry")} value={form.country} onChange={(v) => setField("country", v)} />
+          <Field label={t("expertProfile.fieldVatId")} value={form.vatId} onChange={(v) => setField("vatId", v)} />
+          <Field label={t("expertProfile.fieldTaxNumber")} value={form.taxNumber} onChange={(v) => setField("taxNumber", v)} />
+          <Field label={t("expertProfile.fieldWebsite")} value={form.website} onChange={(v) => setField("website", v)} />
+          <Field label={t("expertProfile.fieldPhone")} value={form.phone} onChange={(v) => setField("phone", v)} />
+          <Field label={t("expertProfile.fieldBusinessType")} value={form.businessType} onChange={(v) => setField("businessType", v)} placeholder={t("expertProfile.fieldBusinessTypePlaceholder")} />
+          <Field label={t("expertProfile.fieldTradeRegisterName")} value={form.tradeRegisterName} onChange={(v) => setField("tradeRegisterName", v)} />
+          <Field label={t("expertProfile.fieldTradeRegisterNumber")} value={form.tradeRegisterNumber} onChange={(v) => setField("tradeRegisterNumber", v)} />
         </div>
 
         <div className="space-y-3 rounded-lg border border-border p-3">
-          <h2 className="text-sm font-medium">Rechtliche Bestätigungen</h2>
+          <h2 className="text-sm font-medium">{t("expertProfile.legalConfirmations")}</h2>
           <ConfirmCheckbox
             checked={form.actsAsBusinessConfirmed}
             onCheckedChange={(checked) => setBooleanField("actsAsBusinessConfirmed", checked)}
-            label="Ich handle als Unternehmer bzw. selbstständiger Anbieter."
+            label={t("expertProfile.confirmActsAsBusiness")}
           />
           <ConfirmCheckbox
             checked={form.externalBillingConfirmed}
             onCheckedChange={(checked) => setBooleanField("externalBillingConfirmed", checked)}
-            label="Ich stelle Rechnung und wickle Zahlung direkt mit dem Kunden ab."
+            label={t("expertProfile.confirmExternalBilling")}
           />
           <ConfirmCheckbox
             checked={form.legalComplianceConfirmed}
             onCheckedChange={(checked) => setBooleanField("legalComplianceConfirmed", checked)}
-            label="Ich hafte für mein Angebot und meine Leistung und halte geltendes Recht ein."
+            label={t("expertProfile.confirmLegalCompliance")}
           />
           <ConfirmCheckbox
             checked={form.confidentialityConfirmed}
             onCheckedChange={(checked) => setBooleanField("confidentialityConfirmed", checked)}
-            label="Ich behandle Kundendaten und Dokumente vertraulich."
+            label={t("expertProfile.confirmConfidentiality")}
           />
           <ConfirmCheckbox
             checked={form.dataProtectionConfirmed}
             onCheckedChange={(checked) => setBooleanField("dataProtectionConfirmed", checked)}
-            label="Ich verarbeite Kundendaten DSGVO-konform und nur zur Angebotsprüfung bzw. Leistungserbringung."
+            label={t("expertProfile.confirmDataProtection")}
           />
           <ConfirmCheckbox
             checked={form.liabilityInsuranceConfirmed}
             onCheckedChange={(checked) => setBooleanField("liabilityInsuranceConfirmed", checked)}
-            label="Optional: Ich verfüge über eine passende berufliche Haftpflichtversicherung."
+            label={t("expertProfile.confirmLiabilityInsurance")}
           />
         </div>
 
         <div>
-          <Label>Eigene Hinweise / Bedingungen</Label>
+          <Label>{t("expertProfile.termsLabel")}</Label>
           <Textarea
             className="mt-1"
             rows={5}
             value={form.termsText ?? ""}
             onChange={(e) => setField("termsText", e.target.value)}
-            placeholder="Zahlungsziel, Rechnungsstellung, besondere Bedingungen ..."
+            placeholder={t("expertProfile.termsPlaceholder")}
           />
         </div>
 
         <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
           {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-          Speichern
+          {t("common.save")}
         </Button>
       </Card>
     </div>

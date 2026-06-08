@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { updateConsent } from "@/lib/gtag";
@@ -20,6 +21,7 @@ function getStoredConsent(): ConsentStatus {
 }
 
 export function CookieBanner() {
+  const { t } = useTranslation();
   const [consent, setConsent] = useState<ConsentStatus>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -53,25 +55,22 @@ export function CookieBanner() {
     >
       <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Wir verwenden notwendige Cookies, um die Website nutzbar zu machen.
-          {" "}Mit &bdquo;Alle akzeptieren&ldquo; erlauben Sie Analyse- und
-          Marketing-Cookies (Google Analytics, Meta-Pixel), die uns helfen,
-          unser Angebot zu verbessern.
-          Mehr dazu in unserer{" "}
+          {t("cookie.intro")}
+          {" "}
           <Link
             href="/datenschutz"
             className="text-primary underline underline-offset-2 hover:no-underline"
           >
-            Datenschutzerkl&auml;rung
+            {t("cookie.privacyLink")}
           </Link>
           .
         </p>
         <div className="flex flex-col sm:flex-row gap-2 shrink-0">
           <Button variant="outline" size="sm" onClick={handleNecessaryOnly}>
-            Nur notwendige
+            {t("cookie.necessaryOnly")}
           </Button>
           <Button variant="default" size="sm" onClick={handleAcceptAll}>
-            Alle akzeptieren
+            {t("cookie.acceptAll")}
           </Button>
         </div>
       </div>

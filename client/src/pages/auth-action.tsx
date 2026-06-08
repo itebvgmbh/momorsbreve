@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import {
   applyActionCode,
   checkActionCode,
@@ -20,6 +21,7 @@ import { Loader2, CheckCircle2, XCircle, ArrowLeft, KeyRound } from "lucide-reac
 type Status = "loading" | "success" | "error" | "input";
 
 export default function AuthActionPage() {
+  const { t } = useTranslation();
   const params = new URLSearchParams(window.location.search);
   const mode = params.get("mode");
   const oobCode = params.get("oobCode") ?? "";
@@ -39,7 +41,7 @@ export default function AuthActionPage() {
 
   useEffect(() => {
     if (!oobCode) {
-      setError("Ungueltiger Link. Bitte fordern Sie eine neue E-Mail an.");
+      setError(t("authAction.invalidLink"));
       setStatus("error");
       return;
     }
@@ -71,9 +73,7 @@ export default function AuthActionPage() {
 
           setStatus("success");
         } catch {
-          setError(
-            "Der Bestaetigungslink ist ungueltig oder abgelaufen. Bitte fordern Sie eine neue E-Mail an."
-          );
+          setError(t("authAction.verifyLinkInvalid"));
           setStatus("error");
         }
       })();
@@ -84,13 +84,11 @@ export default function AuthActionPage() {
           setStatus("input");
         })
         .catch(() => {
-          setError(
-            "Der Link zum Zuruecksetzen ist ungueltig oder abgelaufen. Bitte fordern Sie einen neuen an."
-          );
+          setError(t("authAction.resetLinkInvalid"));
           setStatus("error");
         });
     } else {
-      setError("Unbekannte Aktion.");
+      setError(t("authAction.unknownAction"));
       setStatus("error");
     }
   }, [mode, oobCode]);
@@ -110,11 +108,11 @@ export default function AuthActionPage() {
     } catch (err: any) {
       const code = err?.code;
       if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
-        setLoginError("Passwort falsch. Bitte versuchen Sie es erneut.");
+        setLoginError(t("authAction.wrongPassword"));
       } else if (code === "auth/too-many-requests") {
-        setLoginError("Zu viele Versuche. Bitte versuchen Sie es spaeter erneut.");
+        setLoginError(t("authAction.tooManyRequests"));
       } else {
-        setLoginError("Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.");
+        setLoginError(t("authAction.loginFailed"));
       }
     } finally {
       setSubmitting(false);
@@ -124,11 +122,11 @@ export default function AuthActionPage() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 6) {
-      setError("Das Passwort muss mindestens 6 Zeichen lang sein.");
+      setError(t("authAction.passwordTooShort"));
       return;
     }
     if (newPassword !== confirmPw) {
-      setError("Die Passwoerter stimmen nicht ueberein.");
+      setError(t("authAction.passwordsMismatch"));
       return;
     }
     setSubmitting(true);
@@ -137,7 +135,7 @@ export default function AuthActionPage() {
       await confirmPasswordReset(auth, oobCode, newPassword);
       setStatus("success");
     } catch {
-      setError("Fehler beim Zuruecksetzen. Bitte fordern Sie einen neuen Link an.");
+      setError(t("authAction.resetFailed"));
       setStatus("error");
     } finally {
       setSubmitting(false);
@@ -146,15 +144,15 @@ export default function AuthActionPage() {
 
   const title =
     mode === "verifyEmail"
-      ? "E-Mail bestaetigen"
+      ? t("authAction.titleVerify")
       : mode === "resetPassword"
-        ? "Passwort zuruecksetzen"
-        : "Auth-Aktion";
+        ? t("authAction.titleReset")
+        : t("authAction.titleDefault");
 
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>{title} – MormorsBreve</title>
+        <title>{t("authAction.metaTitle", { title })}</title>
       </Helmet>
 
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-background/80 border-b border-border">
@@ -170,13 +168,13 @@ export default function AuthActionPage() {
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Zurueck zur Startseite
+          {t("authAction.backToHome")}
         </Link>
 
         {status === "loading" && (
           <div className="flex flex-col items-center text-center py-12 space-y-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-muted-foreground">Wird verarbeitet...</p>
+            <p className="text-muted-foreground">{t("authAction.processing")}</p>
           </div>
         )}
 
@@ -186,25 +184,23 @@ export default function AuthActionPage() {
               <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
             <h1 className="font-serif text-2xl font-bold">
-              E-Mail bestaetigt!
+              {t("authAction.emailVerifiedTitle")}
             </h1>
             {autoLogin ? (
               <>
                 <p className="text-muted-foreground leading-relaxed">
-                  Ihre E-Mail-Adresse wurde erfolgreich verifiziert. Sie werden
-                  automatisch weitergeleitet...
+                  {t("authAction.emailVerifiedAutoRedirect")}
                 </p>
                 <Loader2 className="h-5 w-5 animate-spin text-primary mt-2" />
               </>
             ) : needsLogin ? (
               <>
                 <p className="text-muted-foreground leading-relaxed">
-                  Ihre E-Mail-Adresse wurde erfolgreich verifiziert. Geben Sie
-                  Ihr Passwort ein, um sich direkt anzumelden.
+                  {t("authAction.emailVerifiedEnterPassword")}
                 </p>
                 <form onSubmit={handleQuickLogin} className="w-full max-w-sm space-y-3 mt-2 text-left">
                   <div className="space-y-1.5">
-                    <Label className="text-muted-foreground text-sm">E-Mail</Label>
+                    <Label className="text-muted-foreground text-sm">{t("authAction.emailLabel")}</Label>
                     <Input
                       type="email"
                       value={verifiedEmail}
@@ -213,11 +209,11 @@ export default function AuthActionPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="quick-login-pw">Passwort</Label>
+                    <Label htmlFor="quick-login-pw">{t("authAction.passwordLabel")}</Label>
                     <Input
                       id="quick-login-pw"
                       type="password"
-                      placeholder="Ihr Passwort"
+                      placeholder={t("authAction.passwordPlaceholder")}
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       required
@@ -231,18 +227,17 @@ export default function AuthActionPage() {
                   )}
                   <Button type="submit" className="w-full" disabled={submitting}>
                     {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Anmelden
+                    {t("authAction.signIn")}
                   </Button>
                 </form>
               </>
             ) : (
               <>
                 <p className="text-muted-foreground leading-relaxed">
-                  Ihre E-Mail-Adresse wurde erfolgreich verifiziert. Sie koennen
-                  sich jetzt anmelden.
+                  {t("authAction.emailVerifiedCanLogin")}
                 </p>
                 <Button asChild className="mt-4">
-                  <Link href="/">Zur Anmeldung</Link>
+                  <Link href="/">{t("authAction.toLogin")}</Link>
                 </Button>
               </>
             )}
@@ -255,14 +250,13 @@ export default function AuthActionPage() {
               <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
             <h1 className="font-serif text-2xl font-bold">
-              Passwort geaendert!
+              {t("authAction.passwordChangedTitle")}
             </h1>
             <p className="text-muted-foreground leading-relaxed">
-              Ihr Passwort wurde erfolgreich zurueckgesetzt. Sie koennen sich
-              jetzt mit dem neuen Passwort anmelden.
+              {t("authAction.passwordChangedBody")}
             </p>
             <Button asChild className="mt-4">
-              <Link href="/">Zur Anmeldung</Link>
+              <Link href="/">{t("authAction.toLogin")}</Link>
             </Button>
           </div>
         )}
@@ -274,22 +268,22 @@ export default function AuthActionPage() {
                 <KeyRound className="h-7 w-7 text-primary" />
               </div>
               <h1 className="font-serif text-2xl font-bold">
-                Neues Passwort festlegen
+                {t("authAction.setNewPasswordTitle")}
               </h1>
               {email && (
                 <p className="text-muted-foreground text-sm">
-                  fuer <strong>{email}</strong>
+                  {t("authAction.forEmail")} <strong>{email}</strong>
                 </p>
               )}
             </div>
 
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="new-password">Neues Passwort</Label>
+                <Label htmlFor="new-password">{t("authAction.newPasswordLabel")}</Label>
                 <Input
                   id="new-password"
                   type="password"
-                  placeholder="Mind. 6 Zeichen"
+                  placeholder={t("authAction.minCharsPlaceholder")}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
@@ -298,7 +292,7 @@ export default function AuthActionPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="confirm-password">Passwort wiederholen</Label>
+                <Label htmlFor="confirm-password">{t("authAction.confirmPasswordLabel")}</Label>
                 <Input
                   id="confirm-password"
                   type="password"
@@ -316,7 +310,7 @@ export default function AuthActionPage() {
                 {submitting && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
-                Passwort speichern
+                {t("authAction.savePassword")}
               </Button>
             </form>
           </div>
@@ -328,11 +322,11 @@ export default function AuthActionPage() {
               <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
             </div>
             <h1 className="font-serif text-2xl font-bold">
-              Etwas ist schiefgelaufen
+              {t("authAction.somethingWrong")}
             </h1>
             <p className="text-muted-foreground leading-relaxed">{error}</p>
             <Button asChild variant="outline" className="mt-4">
-              <Link href="/">Zur Startseite</Link>
+              <Link href="/">{t("authAction.toHome")}</Link>
             </Button>
           </div>
         )}

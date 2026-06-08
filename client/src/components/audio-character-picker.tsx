@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import {
   TTS_CHARACTERS,
@@ -217,6 +218,7 @@ export function AudioCharacterPicker({
   compact = false,
   className,
 }: AudioCharacterPickerProps) {
+  const { t } = useTranslation();
   const { playingKey, progress, toggle } = usePreviewPlayer();
 
   const selectedStyleId =
@@ -242,7 +244,7 @@ export function AudioCharacterPicker({
         <div className="flex items-center gap-2">
           <Volume2 className="h-4 w-4 text-primary" />
           <span className="text-xs font-medium text-muted-foreground">
-            Stimme wählen
+            {t("audioPicker.selectVoice")}
           </span>
         </div>
       )}
@@ -264,7 +266,7 @@ export function AudioCharacterPicker({
         <div className="space-y-2">
           {!compact && (
             <span className="text-xs font-medium text-muted-foreground">
-              Vorlesestil wählen
+              {t("audioPicker.selectReadingStyle")}
             </span>
           )}
           <div className={cn("grid grid-cols-2 gap-2", !compact && "lg:grid-cols-4")}>

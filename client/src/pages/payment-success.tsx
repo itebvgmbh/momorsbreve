@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { CheckCircle2, Coins, Loader2, ArrowRight, AlertTriangle } from "lucide-react";
 import { queryClient, getAuthHeaders } from "@/lib/queryClient";
 import { useEffect, useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { trackPurchaseConversion, trackMetaPurchase, ensureConsentRestored } from "@/lib/gtag";
 
 const MAX_POLL_DURATION_MS = 30_000;
@@ -22,6 +23,7 @@ interface PaymentStatus {
 }
 
 export default function PaymentSuccessPage() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
@@ -103,12 +105,12 @@ export default function PaymentSuccessPage() {
       <div className="p-4 sm:p-6 max-w-lg mx-auto mt-12">
         <Card className="p-8 text-center space-y-4">
           <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto" />
-          <h1 className="font-serif text-xl font-bold">Ungültiger Link</h1>
+          <h1 className="font-serif text-xl font-bold">{t("paySuccess.invalidLinkTitle")}</h1>
           <p className="text-muted-foreground text-sm">
-            Diese Seite kann nicht ohne eine gültige Session-ID aufgerufen werden.
+            {t("paySuccess.invalidLinkBody")}
           </p>
           <Button onClick={() => navigate("/app/pricing")}>
-            Zurück zu den Paketen
+            {t("paySuccess.backToPackages")}
           </Button>
         </Card>
       </div>
@@ -120,18 +122,16 @@ export default function PaymentSuccessPage() {
       <div className="p-4 sm:p-6 max-w-lg mx-auto mt-12">
         <Card className="p-8 text-center space-y-4">
           <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto" />
-          <h1 className="font-serif text-xl font-bold">Verarbeitung dauert länger als erwartet</h1>
+          <h1 className="font-serif text-xl font-bold">{t("paySuccess.timeoutTitle")}</h1>
           <p className="text-muted-foreground text-sm">
-            Ihre Zahlung wurde von Stripe entgegengenommen. Die Gutschrift
-            kann in seltenen Fällen einige Minuten dauern. Bitte prüfen Sie Ihr Guthaben
-            auf dem Dashboard.
+            {t("paySuccess.timeoutBody")}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button variant="outline" onClick={() => navigate("/app")}>
-              Zum Dashboard
+              {t("paySuccess.toDashboard")}
             </Button>
             <Button onClick={() => navigate("/app/pricing")}>
-              Zurück zu den Paketen
+              {t("paySuccess.backToPackages")}
             </Button>
           </div>
         </Card>
@@ -144,9 +144,9 @@ export default function PaymentSuccessPage() {
       <div className="p-4 sm:p-6 max-w-lg mx-auto mt-12">
         <Card className="p-8 text-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-          <h1 className="font-serif text-xl font-bold">Zahlung wird verarbeitet...</h1>
+          <h1 className="font-serif text-xl font-bold">{t("paySuccess.processingTitle")}</h1>
           <p className="text-muted-foreground text-sm">
-            Bitte warten Sie einen Moment, Ihre Zahlung wird überprüft.
+            {t("paySuccess.processingBody")}
           </p>
         </Card>
       </div>
@@ -158,12 +158,12 @@ export default function PaymentSuccessPage() {
       <div className="p-4 sm:p-6 max-w-lg mx-auto mt-12">
         <Card className="p-8 text-center space-y-4">
           <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
-          <h1 className="font-serif text-xl font-bold">Zahlung fehlgeschlagen</h1>
+          <h1 className="font-serif text-xl font-bold">{t("paySuccess.failedTitle")}</h1>
           <p className="text-muted-foreground text-sm">
-            Die Zahlung konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut.
+            {t("paySuccess.failedBody")}
           </p>
           <Button onClick={() => navigate("/app/pricing")}>
-            Erneut versuchen
+            {t("paySuccess.retry")}
           </Button>
         </Card>
       </div>
@@ -178,37 +178,37 @@ export default function PaymentSuccessPage() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="font-serif text-2xl font-bold">Zahlung erfolgreich!</h1>
+          <h1 className="font-serif text-2xl font-bold">{t("paySuccess.successTitle")}</h1>
           <p className="text-muted-foreground">
-            Vielen Dank für Ihren Kauf.
+            {t("paySuccess.thankYou")}
           </p>
         </div>
 
         <div className="bg-muted/50 rounded-lg p-4 space-y-2">
           <div className="flex items-center justify-center gap-2 text-lg font-semibold">
             <Coins className="h-5 w-5 text-primary" />
-            <span>+{data?.credits} Credits</span>
+            <span>{t("paySuccess.creditsAdded", { count: data?.credits ?? 0 })}</span>
           </div>
           {data?.packageName && (
             <p className="text-sm text-muted-foreground">
-              Paket: {data.packageName}
+              {t("paySuccess.packageLabel", { name: data.packageName })}
             </p>
           )}
           <p className="text-sm text-muted-foreground">
-            Aktuelles Guthaben:{" "}
+            {t("paySuccess.currentBalance")}{" "}
             <span className="font-semibold text-foreground">
-              {data?.currentCredits} {data?.currentCredits === 1 ? "Credit" : "Credits"}
+              {t("paySuccess.creditsCount", { count: data?.currentCredits ?? 0 })}
             </span>
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button variant="outline" onClick={() => navigate("/app")}>
-            Zum Dashboard
+            {t("paySuccess.toDashboard")}
           </Button>
           <Button onClick={() => navigate("/app/upload")}>
             <ArrowRight className="h-4 w-4 mr-2" />
-            Dokument hochladen
+            {t("paySuccess.uploadDocument")}
           </Button>
         </div>
       </Card>

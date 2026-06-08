@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, Loader2, ArrowRight, AlertTriangle, FileText } from "lucide-react";
@@ -23,6 +24,7 @@ function formatPrice(cents: number): string {
 }
 
 export default function SpecialistPaymentSuccessPage() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
@@ -97,12 +99,12 @@ export default function SpecialistPaymentSuccessPage() {
       <div className="p-4 sm:p-6 max-w-lg mx-auto mt-12">
         <Card className="p-8 text-center space-y-4">
           <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto" />
-          <h1 className="font-serif text-xl font-bold">Ungültiger Link</h1>
+          <h1 className="font-serif text-xl font-bold">{t("specialistPaySuccess.invalidLinkTitle")}</h1>
           <p className="text-muted-foreground text-sm">
-            Diese Seite kann nicht ohne eine gültige Anfrage-ID aufgerufen werden.
+            {t("specialistPaySuccess.invalidLinkBody")}
           </p>
           <Button onClick={() => navigate("/app/human-transcription")}>
-            Zur Auftragsübersicht
+            {t("specialistPaySuccess.toOrders")}
           </Button>
         </Card>
       </div>
@@ -114,18 +116,16 @@ export default function SpecialistPaymentSuccessPage() {
       <div className="p-4 sm:p-6 max-w-lg mx-auto mt-12">
         <Card className="p-8 text-center space-y-4">
           <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto" />
-          <h1 className="font-serif text-xl font-bold">Verarbeitung dauert länger als erwartet</h1>
+          <h1 className="font-serif text-xl font-bold">{t("specialistPaySuccess.timeoutTitle")}</h1>
           <p className="text-muted-foreground text-sm">
-            Ihre Zahlung wurde von Stripe entgegengenommen. Die Bestätigung
-            kann in seltenen Fällen einige Minuten dauern. Bitte prüfen Sie den
-            Status in Ihrer Auftragsübersicht.
+            {t("specialistPaySuccess.timeoutBody")}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button variant="outline" onClick={() => navigate("/app")}>
-              Zum Dashboard
+              {t("specialistPaySuccess.toDashboard")}
             </Button>
             <Button onClick={() => navigate("/app/human-transcription")}>
-              Zur Auftragsübersicht
+              {t("specialistPaySuccess.toOrders")}
             </Button>
           </div>
         </Card>
@@ -138,9 +138,9 @@ export default function SpecialistPaymentSuccessPage() {
       <div className="p-4 sm:p-6 max-w-lg mx-auto mt-12">
         <Card className="p-8 text-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-          <h1 className="font-serif text-xl font-bold">Zahlung wird verarbeitet...</h1>
+          <h1 className="font-serif text-xl font-bold">{t("specialistPaySuccess.processingTitle")}</h1>
           <p className="text-muted-foreground text-sm">
-            Bitte warten Sie einen Moment, Ihre Zahlung wird überprüft.
+            {t("specialistPaySuccess.processingBody")}
           </p>
         </Card>
       </div>
@@ -152,12 +152,12 @@ export default function SpecialistPaymentSuccessPage() {
       <div className="p-4 sm:p-6 max-w-lg mx-auto mt-12">
         <Card className="p-8 text-center space-y-4">
           <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
-          <h1 className="font-serif text-xl font-bold">Fehler bei der Verarbeitung</h1>
+          <h1 className="font-serif text-xl font-bold">{t("specialistPaySuccess.errorTitle")}</h1>
           <p className="text-muted-foreground text-sm">
-            Die Zahlung konnte nicht überprüft werden. Bitte kontaktieren Sie den Support.
+            {t("specialistPaySuccess.errorBody")}
           </p>
           <Button onClick={() => navigate("/app/human-transcription")}>
-            Zur Auftragsübersicht
+            {t("specialistPaySuccess.toOrders")}
           </Button>
         </Card>
       </div>
@@ -172,35 +172,34 @@ export default function SpecialistPaymentSuccessPage() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="font-serif text-2xl font-bold">Zahlung erfolgreich!</h1>
+          <h1 className="font-serif text-2xl font-bold">{t("specialistPaySuccess.successTitle")}</h1>
           <p className="text-muted-foreground">
-            Vielen Dank – Ihr Expertenauftrag wurde bestätigt.
+            {t("specialistPaySuccess.successBody")}
           </p>
         </div>
 
         <div className="bg-muted/50 rounded-lg p-4 space-y-2">
           <div className="flex items-center justify-center gap-2 text-lg font-semibold">
             <FileText className="h-5 w-5 text-primary" />
-            <span>Auftrag #{data?.requestId ?? requestId}</span>
+            <span>{t("specialistPaySuccess.orderNumber", { id: data?.requestId ?? requestId })}</span>
           </div>
           {data?.pricePaid != null && (
             <p className="text-sm text-muted-foreground">
-              Bezahlt: {formatPrice(data.pricePaid)}
+              {t("specialistPaySuccess.paidLabel", { amount: formatPrice(data.pricePaid) })}
             </p>
           )}
           <p className="text-sm text-muted-foreground">
-            Unsere Spezialisten beginnen nun mit der Bearbeitung.
-            Sie werden benachrichtigt, sobald die Transkription fertig ist.
+            {t("specialistPaySuccess.processingNote")}
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button variant="outline" onClick={() => navigate("/app")}>
-            Zum Dashboard
+            {t("specialistPaySuccess.toDashboard")}
           </Button>
           <Button onClick={() => navigate("/app/human-transcription")}>
             <ArrowRight className="h-4 w-4 mr-2" />
-            Zur Auftragsübersicht
+            {t("specialistPaySuccess.toOrders")}
           </Button>
         </div>
       </Card>

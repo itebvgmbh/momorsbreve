@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
@@ -72,12 +73,13 @@ import { getScriptTypeDisplayLabel } from "@shared/models/transcription";
 import type { PromotionConfig } from "@shared/models/transcription";
 
 function StatusBadge({ status, completedPages, totalPages }: { status: string; completedPages?: number; totalPages?: number }) {
+  const { t } = useTranslation();
   switch (status) {
     case "completed":
       return (
         <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="h-3 w-3 mr-1" />
-          Fertig
+          {t("dashboard.statusCompleted")}
         </Badge>
       );
     case "processing":
@@ -85,15 +87,15 @@ function StatusBadge({ status, completedPages, totalPages }: { status: string; c
         <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
           {totalPages && totalPages > 0
-            ? `${completedPages ?? 0}/${totalPages} Seiten`
-            : "Verarbeitung"}
+            ? t("dashboard.statusPagesProgress", { completed: completedPages ?? 0, total: totalPages })
+            : t("dashboard.statusProcessing")}
         </Badge>
       );
     case "preview":
       return (
         <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
           <Clock className="h-3 w-3 mr-1" />
-          Vorschau
+          {t("dashboard.statusPreview")}
         </Badge>
       );
     default:
@@ -107,15 +109,16 @@ function StatusBadge({ status, completedPages, totalPages }: { status: string; c
 }
 
 /** Anzeigename eines Jobs: vom Nutzer vergebener Titel, sonst Textauszug, sonst Schrifttyp/ID. */
-function getJobDisplayLabel(job: TranscriptionJobWithSnippet): string {
+function getJobDisplayLabel(job: TranscriptionJobWithSnippet, t: (key: string, opts?: Record<string, unknown>) => string): string {
   if (job.title && job.title.trim().length > 0) return job.title;
   if (job.textSnippet) {
     return job.textSnippet + (job.textSnippet.length >= 100 ? "…" : "");
   }
-  return getScriptTypeDisplayLabel(job.scriptType) || `Dokument #${job.id}`;
+  return getScriptTypeDisplayLabel(job.scriptType) || t("dashboard.documentFallback", { id: job.id });
 }
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
@@ -219,10 +222,10 @@ export default function DashboardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
       setRenameTarget(null);
-      toast({ title: "Gespeichert", description: "Der Name wurde aktualisiert." });
+      toast({ title: t("dashboard.toastSavedTitle"), description: t("dashboard.toastRenamedBody") });
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("dashboard.toastErrorTitle"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -235,11 +238,11 @@ export default function DashboardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
-      toast({ title: "Gestartet", description: "Alle Seiten werden jetzt ausgewertet." });
+      toast({ title: t("dashboard.toastStartedTitle"), description: t("dashboard.toastStartedBody") });
       setTranscribingJobId(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("dashboard.toastErrorTitle"), description: error.message, variant: "destructive" });
       setTranscribingJobId(null);
     },
   });
@@ -256,10 +259,10 @@ export default function DashboardPage() {
           </Avatar>
           <div>
             <h1 className="font-serif text-2xl font-bold" data-testid="text-welcome">
-              Willkommen{user?.firstName ? `, ${user.firstName}` : ""}
+              {user?.firstName ? t("dashboard.welcomeNamed", { name: user.firstName }) : t("dashboard.welcome")}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Ihre Erinnerungen an einem Ort
+              {t("dashboard.subtitle")}
             </p>
           </div>
         </div>
@@ -270,11 +273,11 @@ export default function DashboardPage() {
               onClick={() => setSelectionMode(true)}
               data-testid="button-enter-selection"
               data-tour="dashboard-combine"
-              title="Mehrere Dokumente auswählen, zusammenfügen und drucken"
+              title={t("dashboard.combineTooltip")}
             >
               <BookOpen className="h-4 w-4 mr-2" />
-              <span className="sm:hidden">Zusammenfügen</span>
-              <span className="hidden sm:inline">Zusammenfügen &amp; drucken</span>
+              <span className="sm:hidden">{t("dashboard.combineShort")}</span>
+              <span className="hidden sm:inline">{t("dashboard.combineLong")}</span>
             </Button>
           )}
           {selectionMode && (
@@ -284,13 +287,13 @@ export default function DashboardPage() {
               onClick={exitSelectionMode}
             >
               <X className="h-4 w-4 mr-2" />
-              Abbrechen
+              {t("dashboard.cancel")}
             </Button>
           )}
           <Link href="/app/upload">
             <Button data-testid="button-new-transcription">
               <Plus className="h-4 w-4 mr-2" />
-              Seiten hochladen
+              {t("dashboard.uploadPages")}
             </Button>
           </Link>
         </div>
@@ -300,7 +303,7 @@ export default function DashboardPage() {
         <Link href="/app/pricing">
           <div className="rounded-lg border border-amber-300/60 dark:border-amber-600/60 bg-amber-50/80 dark:bg-amber-950/30 px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-amber-100/80 dark:hover:bg-amber-900/30 transition-colors">
             <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-              {promotion.label}: Bis zu 55 % auf KI-Transkription!
+              {t("dashboard.promotionText", { label: promotion.label })}
             </p>
             <ArrowRight className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
           </div>
@@ -312,8 +315,7 @@ export default function DashboardPage() {
           <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           <AlertDescription className="flex items-center justify-between gap-3">
             <span className="text-sm text-blue-800 dark:text-blue-200">
-              Willkommen zurück! Gratis-Credits können nur einmal vergeben werden.
-              Sie können jederzeit weitere Credits erwerben.
+              {t("dashboard.returningBanner")}
             </span>
             <Button
               variant="ghost"
@@ -356,7 +358,7 @@ export default function DashboardPage() {
             <Link href="/app/pricing" data-testid="link-credits-card">
               <Card
                 className={`px-4 py-3 flex items-center gap-3 cursor-pointer hover-elevate ${toneCard}`}
-                aria-label={isEmpty ? "Kein Guthaben – jetzt aufladen" : isLow ? "Wenig Guthaben – jetzt aufladen" : "Guthaben verwalten"}
+                aria-label={isEmpty ? t("dashboard.creditsAriaEmpty") : isLow ? t("dashboard.creditsAriaLow") : t("dashboard.creditsAriaManage")}
               >
                 <div className={`p-1.5 rounded-md shrink-0 ${toneIconBg}`}>
                   {isLow ? (
@@ -373,7 +375,7 @@ export default function DashboardPage() {
                       {creditCount}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {isEmpty ? "Kein Guthaben – aufladen" : isLow ? "Wenig Guthaben – aufladen" : "Guthaben"}
+                      {isEmpty ? t("dashboard.creditsEmpty") : isLow ? t("dashboard.creditsLow") : t("dashboard.credits")}
                     </p>
                   </div>
                 )}
@@ -396,7 +398,7 @@ export default function DashboardPage() {
               <p className="font-serif text-xl font-bold leading-tight" data-testid="text-jobs-count">
                 {jobs?.length ?? 0}
               </p>
-              <p className="text-xs text-muted-foreground">Dokumente</p>
+              <p className="text-xs text-muted-foreground">{t("dashboard.documents")}</p>
             </div>
           )}
         </Card>
@@ -412,7 +414,7 @@ export default function DashboardPage() {
               <p className="font-serif text-xl font-bold leading-tight" data-testid="text-completed-pages">
                 {jobs?.filter((j) => j.status === "completed").reduce((sum, j) => sum + j.totalPages, 0) ?? 0}
               </p>
-              <p className="text-xs text-muted-foreground">Fertige Seiten</p>
+              <p className="text-xs text-muted-foreground">{t("dashboard.completedPages")}</p>
             </div>
           )}
         </Card>
@@ -420,7 +422,7 @@ export default function DashboardPage() {
 
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 className="font-serif text-xl font-semibold">Meine Transkriptionen</h2>
+          <h2 className="font-serif text-xl font-semibold">{t("dashboard.myTranscriptions")}</h2>
           {jobs && jobs.length > 0 && !selectionMode && (
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative">
@@ -428,7 +430,7 @@ export default function DashboardPage() {
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Durchsuchen…"
+                  placeholder={t("dashboard.searchPlaceholder")}
                   className="h-9 w-44 sm:w-56 pl-8 pr-8"
                   data-testid="input-search-jobs"
                 />
@@ -437,7 +439,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => setSearchQuery("")}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label="Suche zurücksetzen"
+                    aria-label={t("dashboard.clearSearch")}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -448,10 +450,10 @@ export default function DashboardPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  <SelectItem value="completed">Fertig</SelectItem>
-                  <SelectItem value="preview">Vorschau</SelectItem>
-                  <SelectItem value="processing">In Arbeit</SelectItem>
+                  <SelectItem value="all">{t("dashboard.filterAll")}</SelectItem>
+                  <SelectItem value="completed">{t("dashboard.filterCompleted")}</SelectItem>
+                  <SelectItem value="preview">{t("dashboard.filterPreview")}</SelectItem>
+                  <SelectItem value="processing">{t("dashboard.filterProcessing")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -469,7 +471,7 @@ export default function DashboardPage() {
               <Card className="p-8 text-center">
                 <Search className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground mb-3">
-                  Keine Transkriptionen entsprechen den Filterkriterien.
+                  {t("dashboard.noFilterResults")}
                 </p>
                 <Button
                   variant="outline"
@@ -479,7 +481,7 @@ export default function DashboardPage() {
                     setStatusFilter("all");
                   }}
                 >
-                  Filter zurücksetzen
+                  {t("dashboard.resetFilters")}
                 </Button>
               </Card>
             ) : (
@@ -518,13 +520,13 @@ export default function DashboardPage() {
                         </div>
                         <div className="min-w-0">
                           <p className="font-medium text-sm truncate">
-                            {getJobDisplayLabel(job)}
+                            {getJobDisplayLabel(job, t)}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {getScriptTypeDisplayLabel(job.scriptType) && (
                               <>{getScriptTypeDisplayLabel(job.scriptType)} &middot;{" "}</>
                             )}
-                            {job.totalPages} {job.totalPages === 1 ? "Seite" : "Seiten"} &middot;{" "}
+                            {job.totalPages === 1 ? t("dashboard.pageOne", { count: job.totalPages }) : t("dashboard.pageMany", { count: job.totalPages })} &middot;{" "}
                             {job.createdAt
                               ? new Date(job.createdAt).toLocaleDateString("de-DE", {
                                   day: "numeric",
@@ -550,8 +552,10 @@ export default function DashboardPage() {
                                 const needed = Math.max(0, job.totalPages - 1);
                                 if (currentCr < needed) {
                                   toast({
-                                    title: "Nicht genügend Guthaben",
-                                    description: `Sie benötigen noch ${needed - currentCr} weitere ${needed - currentCr === 1 ? "Credit" : "Credits"}.`,
+                                    title: t("dashboard.insufficientCreditsTitle"),
+                                    description: needed - currentCr === 1
+                                      ? t("dashboard.insufficientCreditsBodyOne", { count: needed - currentCr })
+                                      : t("dashboard.insufficientCreditsBodyMany", { count: needed - currentCr }),
                                     variant: "destructive",
                                   });
                                   return;
@@ -565,7 +569,7 @@ export default function DashboardPage() {
                               ) : (
                                 <Sparkles className="h-3.5 w-3.5 mr-1" />
                               )}
-                              Komplett transkribieren
+                              {t("dashboard.transcribeFull")}
                             </Button>
                           )}
                           <StatusBadge status={job.status} completedPages={job.completedPages} totalPages={job.totalPages} />
@@ -573,7 +577,7 @@ export default function DashboardPage() {
                             <Link href={`/app/result/${job.id}`} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                               <Badge variant="outline" className="text-[10px] cursor-pointer hover:bg-primary/5 gap-1">
                                 <Headphones className="h-3 w-3" />
-                                Vorlesen
+                                {t("dashboard.readAloud")}
                               </Badge>
                             </Link>
                           )}
@@ -583,7 +587,7 @@ export default function DashboardPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-9 w-9 sm:h-8 sm:w-8 text-muted-foreground"
-                                aria-label="Weitere Aktionen"
+                                aria-label={t("dashboard.moreActions")}
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -608,14 +612,14 @@ export default function DashboardPage() {
                                 data-testid={`menu-open-${job.id}`}
                               >
                                 <ExternalLink className="h-4 w-4 mr-2" />
-                                Öffnen
+                                {t("dashboard.open")}
                               </DropdownMenuItem>
                               {job.status === "completed" && !job.hasAudio && (
                                 <DropdownMenuItem
                                   onSelect={() => navigate(`/app/result/${job.id}`)}
                                 >
                                   <Headphones className="h-4 w-4 mr-2" />
-                                  Vorlesen
+                                  {t("dashboard.readAloud")}
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem
@@ -626,7 +630,7 @@ export default function DashboardPage() {
                                 data-testid={`menu-rename-${job.id}`}
                               >
                                 <Pencil className="h-4 w-4 mr-2" />
-                                Umbenennen
+                                {t("dashboard.rename")}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -635,7 +639,7 @@ export default function DashboardPage() {
                                 data-testid={`menu-delete-${job.id}`}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Löschen
+                                {t("dashboard.delete")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -651,18 +655,20 @@ export default function DashboardPage() {
             <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Dokument löschen?</AlertDialogTitle>
+                  <AlertDialogTitle>{t("dashboard.deleteTitle")}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Dieses Dokument und alle zugehörigen Transkriptionen werden unwiderruflich gelöscht.
+                    {t("dashboard.deleteBody")}
                     {deleteTarget && deleteTarget.totalPages > 0 && (
                       <span className="block mt-1 font-medium">
-                        {deleteTarget.totalPages} {deleteTarget.totalPages === 1 ? "Seite wird" : "Seiten werden"} entfernt.
+                        {deleteTarget.totalPages === 1
+                          ? t("dashboard.deletePagesOne", { count: deleteTarget.totalPages })
+                          : t("dashboard.deletePagesMany", { count: deleteTarget.totalPages })}
                       </span>
                     )}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel disabled={deleteMutation.isPending}>Abbrechen</AlertDialogCancel>
+                  <AlertDialogCancel disabled={deleteMutation.isPending}>{t("dashboard.cancel")}</AlertDialogCancel>
                   <AlertDialogAction
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     disabled={deleteMutation.isPending}
@@ -671,10 +677,10 @@ export default function DashboardPage() {
                     {deleteMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Wird gelöscht…
+                        {t("dashboard.deleting")}
                       </>
                     ) : (
-                      "Endgültig löschen"
+                      t("dashboard.deleteConfirm")
                     )}
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -685,16 +691,15 @@ export default function DashboardPage() {
           <Card className="p-10 text-center">
             <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
             <h3 className="font-serif text-lg font-semibold mb-2">
-              Noch keine Dokumente
+              {t("dashboard.emptyTitle")}
             </h3>
             <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
-              Laden Sie Ihre ersten Seiten hoch – einzelne Fotos, Scans oder ein
-              mehrseitiges PDF. Wir machen sie für Sie lesbar.
+              {t("dashboard.emptyBody")}
             </p>
             <Link href="/app/upload">
               <Button data-testid="button-first-upload">
                 <Upload className="h-4 w-4 mr-2" />
-                Erste Seiten hochladen
+                {t("dashboard.firstUpload")}
               </Button>
             </Link>
           </Card>
@@ -704,14 +709,13 @@ export default function DashboardPage() {
       <Dialog open={!!renameTarget} onOpenChange={(open) => !open && setRenameTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Transkription umbenennen</DialogTitle>
+            <DialogTitle>{t("dashboard.renameTitle")}</DialogTitle>
             <DialogDescription>
-              Vergeben Sie einen eigenen Namen. Leer lassen, um wieder den
-              automatischen Textauszug anzuzeigen.
+              {t("dashboard.renameBody")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="rename-input">Name</Label>
+            <Label htmlFor="rename-input">{t("dashboard.nameLabel")}</Label>
             <Input
               id="rename-input"
               value={renameValue}
@@ -719,7 +723,7 @@ export default function DashboardPage() {
               maxLength={200}
               placeholder={
                 renameTarget
-                  ? renameTarget.textSnippet?.slice(0, 60) || "z. B. Brief von Oma"
+                  ? renameTarget.textSnippet?.slice(0, 60) || t("dashboard.renamePlaceholder")
                   : ""
               }
               onKeyDown={(e) => {
@@ -737,7 +741,7 @@ export default function DashboardPage() {
               onClick={() => setRenameTarget(null)}
               disabled={renameMutation.isPending}
             >
-              Abbrechen
+              {t("dashboard.cancel")}
             </Button>
             <Button
               onClick={() =>
@@ -750,10 +754,10 @@ export default function DashboardPage() {
               {renameMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Speichern…
+                  {t("dashboard.saving")}
                 </>
               ) : (
-                "Speichern"
+                t("dashboard.save")
               )}
             </Button>
           </DialogFooter>
@@ -768,9 +772,11 @@ export default function DashboardPage() {
                 {selectedJobIds.size}
               </Badge>
               <span>
-                {selectedJobIds.size === 1 ? "Dokument" : "Dokumente"} ausgewählt
+                {selectedJobIds.size === 1 ? t("dashboard.selectedOne") : t("dashboard.selectedMany")}
                 <span className="text-muted-foreground ml-1">
-                  ({selectedTotalPages} {selectedTotalPages === 1 ? "Seite" : "Seiten"})
+                  ({selectedTotalPages === 1
+                    ? t("dashboard.pageOne", { count: selectedTotalPages })
+                    : t("dashboard.pageMany", { count: selectedTotalPages })})
                 </span>
               </span>
             </div>
@@ -780,7 +786,7 @@ export default function DashboardPage() {
                 size="sm"
                 onClick={exitSelectionMode}
               >
-                Auswahl aufheben
+                {t("dashboard.clearSelection")}
               </Button>
               <Button
                 size="sm"
@@ -794,7 +800,7 @@ export default function DashboardPage() {
                 {...(selectedJobIds.size >= 2 ? { "data-tour-ready": "combine" } : {})}
               >
                 <BookOpen className="h-4 w-4 mr-2" />
-                Als PDF zusammenführen
+                {t("dashboard.mergeAsPdf")}
               </Button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient, getAuthHeaders } from "@/lib/queryClient";
@@ -47,6 +48,7 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 export default function UploadPage() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,8 +79,8 @@ export default function UploadPage() {
       );
       if (validFiles.length === 0) {
         toast({
-          title: "Ungültiges Format",
-          description: "Bitte nur Fotos (JPG, PNG) oder PDF-Dateien auswählen.",
+          title: t("upload.invalidFormatTitle"),
+          description: t("upload.invalidFormatDesc"),
           variant: "destructive",
         });
         return;
@@ -88,8 +90,8 @@ export default function UploadPage() {
       if (tooLarge.length > 0) {
         const names = tooLarge.map((f) => f.name).join(", ");
         toast({
-          title: "Datei zu groß",
-          description: `Maximale Dateigröße pro Datei: 50 MB. Zu groß: ${names}`,
+          title: t("upload.fileTooLargeTitle"),
+          description: t("upload.fileTooLargeDesc", { names }),
           variant: "destructive",
         });
       }
@@ -102,8 +104,8 @@ export default function UploadPage() {
       const newSize = filesToAdd.reduce((sum, f) => sum + f.size, 0);
       if (existingSize + newSize > MAX_TOTAL_SIZE) {
         toast({
-          title: "Gesamtgröße überschritten",
-          description: "Pro Transkriptionsjob können max. 50 MB hochgeladen werden. Bitte teilen Sie Ihre Dateien auf mehrere Transkriptionsjobs auf.",
+          title: t("upload.totalSizeExceededTitle"),
+          description: t("upload.maxSizeDesc"),
           variant: "destructive",
         });
         return;
@@ -164,7 +166,7 @@ export default function UploadPage() {
     mutationFn: async () => {
       const totalSize = files.reduce((sum, f) => sum + f.size, 0);
       if (totalSize > MAX_TOTAL_SIZE) {
-        throw new Error("Pro Transkriptionsjob können max. 50 MB hochgeladen werden. Bitte teilen Sie Ihre Dateien auf mehrere Transkriptionsjobs auf.");
+        throw new Error(t("upload.maxSizeDesc"));
       }
 
       // WAF-Workaround: Replits Deployment-Edge blockt Multipart-PDF-Uploads (erkennt
@@ -195,7 +197,7 @@ export default function UploadPage() {
         }),
       });
       if (!res.ok) {
-        let errorMsg = "Upload fehlgeschlagen";
+        let errorMsg = t("upload.uploadFailed");
         try {
           const text = await res.text();
           if (text) {
@@ -220,7 +222,7 @@ export default function UploadPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Fehler beim Upload",
+        title: t("upload.uploadErrorTitle"),
         description: error.message,
         variant: "destructive",
       });
@@ -231,11 +233,10 @@ export default function UploadPage() {
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="font-serif text-2xl font-bold mb-1" data-testid="text-upload-title">
-          Seiten hochladen
+          {t("upload.title")}
         </h1>
         <p className="text-muted-foreground">
-          Laden Sie alle Seiten Ihres Dokuments auf einmal hoch – mehrere Fotos, Scans oder ein
-          PDF mit beliebig vielen Seiten. So erkennt die KI den Zusammenhang besser.
+          {t("upload.subtitle")}
         </p>
       </div>
 
@@ -268,13 +269,13 @@ export default function UploadPage() {
         >
           <Images className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="font-medium mb-1">
-            Alle Seiten hierher ziehen oder zum Auswählen klicken
+            {t("upload.dropzoneTitle")}
           </p>
           <p className="text-sm text-muted-foreground mb-2">
-            Fotos (JPG, PNG) oder PDF (auch mehrseitig) – max. 50 MB gesamt
+            {t("upload.dropzoneHint")}
           </p>
           <Badge variant="secondary" className="text-xs">
-            Bis zu 50 Dateien gleichzeitig
+            {t("upload.dropzoneBadge")}
           </Badge>
         </div>
       )}
@@ -283,7 +284,7 @@ export default function UploadPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-serif text-lg font-semibold">
-              Hochgeladene Dateien ({files.length})
+              {t("upload.uploadedFiles", { count: files.length })}
             </h2>
             <Button
               variant="ghost"
@@ -293,7 +294,7 @@ export default function UploadPage() {
               }}
               data-testid="button-clear-files"
             >
-              Alle entfernen
+              {t("upload.removeAll")}
             </Button>
           </div>
           <Card className={cn(
@@ -308,14 +309,14 @@ export default function UploadPage() {
                 <div>
                   <p className="text-sm">
                     {files.length === 1 && !files.some((f) => f.type === "application/pdf")
-                      ? <>Die Transkription kostet <span className="font-medium">1 Credit</span></>
-                      : <>Die Transkription der ersten Seite kostet <span className="font-medium">1 Credit</span></>
+                      ? <>{t("upload.costPrefix")} <span className="font-medium">{t("upload.costOneCredit")}</span></>
+                      : <>{t("upload.costFirstPagePrefix")} <span className="font-medium">{t("upload.costOneCredit")}</span></>
                     }
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Ihr Guthaben: {currentCredits} {currentCredits === 1 ? "Credit" : "Credits"}
+                    {t("upload.yourBalance")}: {currentCredits} {currentCredits === 1 ? t("upload.creditOne") : t("upload.creditMany")}
                     {files.length > 1 && (
-                      <span> · Für alle {files.length} Seiten werden weitere Credits benötigt</span>
+                      <span> {t("upload.moreCreditsNeeded", { count: files.length })}</span>
                     )}
                   </p>
                 </div>
@@ -325,7 +326,7 @@ export default function UploadPage() {
                   <div className="flex items-center gap-2 mr-2">
                     <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
                     <span className="text-sm text-destructive font-medium">
-                      Nicht genügend Guthaben
+                      {t("upload.notEnoughBalance")}
                     </span>
                   </div>
                 )}
@@ -335,7 +336,7 @@ export default function UploadPage() {
                     navigate("/app/pricing");
                   }}>
                     <Coins className="h-4 w-4 mr-2" />
-                    Credits kaufen
+                    {t("upload.buyCredits")}
                   </Button>
                 )}
                 <Button
@@ -348,11 +349,11 @@ export default function UploadPage() {
                   {uploadMutation.isPending ? (
                     <>
                       <UploadIcon className="h-4 w-4 mr-2 animate-spin" />
-                      Wird hochgeladen...
+                      {t("upload.uploading")}
                     </>
                   ) : (
                     <>
-                      {files.length === 1 ? "Transkription starten" : "Weiter zur Vorschau"}
+                      {files.length === 1 ? t("upload.startTranscription") : t("upload.continueToPreview")}
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </>
                   )}
@@ -362,7 +363,7 @@ export default function UploadPage() {
           </Card>
 
           <p className="text-sm text-muted-foreground">
-            Reihenfolge mit den Pfeilen anpassen – so werden die Seiten transkribiert.
+            {t("upload.reorderHint")}
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {entries.map((entry, idx) => {
@@ -398,7 +399,7 @@ export default function UploadPage() {
                   </p>
                   <div className="flex items-center justify-between mt-1">
                     <Badge variant="secondary" className="text-[10px]">
-                      S. {idx + 1}
+                      {t("upload.pageAbbrev", { n: idx + 1 })}
                     </Badge>
                     <span className="text-[10px] text-muted-foreground">
                       {file.size < 1024 * 1024
@@ -417,7 +418,7 @@ export default function UploadPage() {
                         e.stopPropagation();
                         moveFile(idx, idx - 1);
                       }}
-                      title="Nach links"
+                      title={t("upload.moveLeft")}
                       data-testid={`button-move-up-${idx}`}
                     >
                       <ArrowLeft className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
@@ -432,7 +433,7 @@ export default function UploadPage() {
                         e.stopPropagation();
                         moveFile(idx, idx + 1);
                       }}
-                      title="Nach rechts"
+                      title={t("upload.moveRight")}
                       data-testid={`button-move-down-${idx}`}
                     >
                       <ArrowRight className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
@@ -462,7 +463,7 @@ export default function UploadPage() {
               data-tour="upload-add-more"
             >
               <Plus className="h-8 w-8 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-medium">Weitere Seiten</span>
+              <span className="text-xs text-muted-foreground font-medium">{t("upload.morePages")}</span>
             </button>
           </div>
 
@@ -470,9 +471,8 @@ export default function UploadPage() {
             <div className="flex items-start gap-2.5 rounded-md border border-primary/20 bg-primary/[0.03] p-3">
               <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">Haben Sie weitere Seiten?</span>{" "}
-                Klicken Sie auf das „+" rechts, um weitere Seiten hinzuzufügen.
-                Mehrere Seiten zusammen ergeben eine bessere Transkription.
+                <span className="font-medium text-foreground">{t("upload.morePagesQuestion")}</span>{" "}
+                {t("upload.morePagesInfo")}
               </p>
             </div>
           )}
@@ -481,16 +481,16 @@ export default function UploadPage() {
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3" data-tour="upload-translation-select">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-          <label className="text-sm text-muted-foreground whitespace-nowrap">In andere Sprache übersetzen:</label>
+          <label className="text-sm text-muted-foreground whitespace-nowrap">{t("upload.translateToOtherLanguage")}</label>
           <Select
             value={translationLanguage}
             onValueChange={setTranslationLanguage}
           >
             <SelectTrigger className="w-full sm:w-64" data-testid="select-translation-language">
-              <SelectValue placeholder="Keine Übersetzung" />
+              <SelectValue placeholder={t("upload.noTranslation")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">Keine Übersetzung</SelectItem>
+              <SelectItem value="none">{t("upload.noTranslation")}</SelectItem>
               {translationLanguages.map((lang) => (
                 <SelectItem key={lang.code} value={lang.code}>
                   {lang.label}

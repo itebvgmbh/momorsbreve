@@ -27,6 +27,7 @@ import {
   Minimize2,
   Globe,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { getAuthHeaders } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { getTranslationLanguageLabel } from "@shared/models/transcription";
@@ -66,6 +67,7 @@ export function PdfExportDialog({
   publicMode = false,
 }: PdfExportDialogProps) {
   const isCombined = !!(jobIds && jobIds.length > 0);
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const [textVersion, setTextVersion] = useState(initialTextVersion);
@@ -148,21 +150,21 @@ export function PdfExportDialog({
         headers,
         body: JSON.stringify(buildBody()),
       });
-      if (!res.ok) throw new Error("Vorschau fehlgeschlagen.");
+      if (!res.ok) throw new Error(t("pdfExport.previewFailed"));
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       previewUrlRef.current = url;
       setPreviewUrl(url);
     } catch (e) {
       toast({
-        title: "Fehler",
-        description: e instanceof Error ? e.message : "Vorschau fehlgeschlagen.",
+        title: t("pdfExport.errorTitle"),
+        description: e instanceof Error ? e.message : t("pdfExport.previewFailed"),
         variant: "destructive",
       });
     } finally {
       setIsGeneratingPreview(false);
     }
-  }, [jobId, isCombined, publicMode, buildBody, toast]);
+  }, [jobId, isCombined, publicMode, buildBody, toast, t]);
 
   // Sofort Vorschau beim Öffnen; bei Einstellungsänderung debounced neu laden
   useEffect(() => {
@@ -223,7 +225,7 @@ export function PdfExportDialog({
         headers,
         body: JSON.stringify(buildBody()),
       });
-      if (!res.ok) throw new Error("Export fehlgeschlagen.");
+      if (!res.ok) throw new Error(t("pdfExport.exportFailed"));
       const blob = await res.blob();
       const disposition = res.headers.get("Content-Disposition");
       const match = disposition?.match(/filename="?([^";\n]+)"?/);
@@ -235,11 +237,11 @@ export function PdfExportDialog({
       a.download = filename;
       a.click();
       URL.revokeObjectURL(objectUrl);
-      toast({ title: "Export", description: "PDF wird heruntergeladen." });
+      toast({ title: t("pdfExport.exportTitle"), description: t("pdfExport.downloadStarted") });
     } catch (e) {
       toast({
-        title: "Fehler",
-        description: e instanceof Error ? e.message : "Export fehlgeschlagen.",
+        title: t("pdfExport.errorTitle"),
+        description: e instanceof Error ? e.message : t("pdfExport.exportFailed"),
         variant: "destructive",
       });
     } finally {
@@ -264,12 +266,12 @@ export function PdfExportDialog({
         <DialogHeader>
           <DialogTitle className="font-serif text-xl flex items-center gap-2">
             <BookOpen className="h-5 w-5" />
-            {isCombined ? "Sammel-PDF gestalten" : "PDF-Export gestalten"}
+            {isCombined ? t("pdfExport.titleCombined") : t("pdfExport.titleSingle")}
           </DialogTitle>
           <DialogDescription>
             {isCombined
-              ? `${jobIds!.length} Dokumente werden zu einem PDF zusammengefügt.`
-              : "Gestalten Sie Ihr PDF mit optionalem Deckblatt und Vorschau."}
+              ? t("pdfExport.descriptionCombined", { count: jobIds!.length })
+              : t("pdfExport.descriptionSingle")}
           </DialogDescription>
         </DialogHeader>
 
@@ -280,8 +282,8 @@ export function PdfExportDialog({
           className="md:hidden"
         >
           <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="settings">Einstellungen</TabsTrigger>
-            <TabsTrigger value="preview">Vorschau</TabsTrigger>
+            <TabsTrigger value="settings">{t("pdfExport.tabSettings")}</TabsTrigger>
+            <TabsTrigger value="preview">{t("pdfExport.tabPreview")}</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -289,14 +291,14 @@ export function PdfExportDialog({
           <div className={`space-y-5 ${mobileTab === "settings" ? "block" : "hidden md:block"}`}>
             {translationLanguage && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Sprache für PDF</Label>
+                <Label className="text-sm font-medium">{t("pdfExport.pdfLanguage")}</Label>
                 <Tabs
                   value={pdfLanguage}
                   onValueChange={(v) => setPdfLanguage(v as "de" | "translation")}
                 >
                   <TabsList className="w-full">
                     <TabsTrigger value="de" className="flex-1 text-xs">
-                      Deutsch
+                      {t("pdfExport.german")}
                     </TabsTrigger>
                     <TabsTrigger value="translation" className="flex-1 text-xs">
                       <Globe className="h-3 w-3 mr-1" />
@@ -309,7 +311,7 @@ export function PdfExportDialog({
 
             {(anyPageHasCompleted || anyPageHasInterpreted) && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Textversion</Label>
+                <Label className="text-sm font-medium">{t("pdfExport.textVersion")}</Label>
                 <Tabs
                   value={textVersion}
                   onValueChange={(v) => setTextVersion(v as "original" | "completed" | "interpreted")}
@@ -317,15 +319,15 @@ export function PdfExportDialog({
                   <TabsList className="w-full">
                     <TabsTrigger value="original" className="flex-1 text-xs">
                       <FileText className="h-3 w-3 mr-1" />
-                      Originaltreu
+                      {t("pdfExport.versionFaithful")}
                     </TabsTrigger>
                     <TabsTrigger value="completed" className="flex-1 text-xs">
                       <Sparkles className="h-3 w-3 mr-1" />
-                      Ergänzt
+                      {t("pdfExport.versionCompleted")}
                     </TabsTrigger>
                     <TabsTrigger value="interpreted" className="flex-1 text-xs">
                       <Wand2 className="h-3 w-3 mr-1" />
-                      Interpretation
+                      {t("pdfExport.versionInterpreted")}
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -334,7 +336,7 @@ export function PdfExportDialog({
 
             <div className="flex items-center justify-between">
               <Label htmlFor="continuous-flow" className="text-sm font-medium cursor-pointer">
-                Fortlaufender Textfluss
+                {t("pdfExport.continuousFlow")}
               </Label>
               <Switch
                 id="continuous-flow"
@@ -344,12 +346,12 @@ export function PdfExportDialog({
               />
             </div>
             <p className="text-xs text-muted-foreground -mt-3">
-              Text fließt fortlaufend statt jede Quellseite auf einer neuen PDF-Seite zu beginnen.
+              {t("pdfExport.continuousFlowHint")}
             </p>
 
             <div className="flex items-center justify-between">
               <Label htmlFor="show-page-labels" className="text-sm font-medium cursor-pointer">
-                Seitenangaben
+                {t("pdfExport.pageLabels")}
               </Label>
               <Switch
                 id="show-page-labels"
@@ -359,12 +361,12 @@ export function PdfExportDialog({
               />
             </div>
             <p className="text-xs text-muted-foreground -mt-3">
-              Zeigt an, von welcher Originalseite der Text stammt (z.B. „Seite 1").
+              {t("pdfExport.pageLabelsHint")}
             </p>
 
             <div className="flex items-center justify-between">
               <Label htmlFor="merge-lines" className="text-sm font-medium cursor-pointer">
-                Fließtext
+                {t("pdfExport.mergeLines")}
               </Label>
               <Switch
                 id="merge-lines"
@@ -374,12 +376,12 @@ export function PdfExportDialog({
               />
             </div>
             <p className="text-xs text-muted-foreground -mt-3">
-              Aufeinanderfolgende Zeilen zu Absätzen verbinden. Aus: jede Originalzeile bleibt erhalten.
+              {t("pdfExport.mergeLinesHint")}
             </p>
 
             <div className="flex items-center justify-between">
               <Label htmlFor="justified" className="text-sm font-medium cursor-pointer">
-                Blocksatz
+                {t("pdfExport.justified")}
               </Label>
               <Switch
                 id="justified"
@@ -389,12 +391,12 @@ export function PdfExportDialog({
               />
             </div>
             <p className="text-xs text-muted-foreground -mt-3">
-              Text wird auf volle Breite ausgerichtet (wie im Buchdruck).
+              {t("pdfExport.justifiedHint")}
             </p>
 
             <div className="flex items-center justify-between">
               <Label htmlFor="font-size" className="text-sm font-medium">
-                Schriftgröße
+                {t("pdfExport.fontSize")}
               </Label>
               <select
                 id="font-size"
@@ -415,7 +417,7 @@ export function PdfExportDialog({
 
             <div className="flex items-center justify-between">
               <Label htmlFor="enable-cover" className="text-sm font-medium cursor-pointer">
-                Deckblatt hinzufügen
+                {t("pdfExport.enableCover")}
               </Label>
               <Switch
                 id="enable-cover"
@@ -428,10 +430,10 @@ export function PdfExportDialog({
             {enableCover && (
               <div className="space-y-4 pl-1">
                 <div className="space-y-1.5">
-                  <Label htmlFor="cover-title" className="text-xs">Titel</Label>
+                  <Label htmlFor="cover-title" className="text-xs">{t("pdfExport.coverTitle")}</Label>
                   <Input
                     id="cover-title"
-                    placeholder="z.B. MormorsBreve"
+                    placeholder={t("pdfExport.coverTitlePlaceholder")}
                     value={cover.title}
                     onChange={(e) => setCover({ ...cover, title: e.target.value })}
                     data-testid="input-cover-title"
@@ -439,10 +441,10 @@ export function PdfExportDialog({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="cover-subtitle" className="text-xs">Untertitel</Label>
+                  <Label htmlFor="cover-subtitle" className="text-xs">{t("pdfExport.coverSubtitle")}</Label>
                   <Input
                     id="cover-subtitle"
-                    placeholder="z.B. Erinnerungen aus dem Jahr 1920"
+                    placeholder={t("pdfExport.coverSubtitlePlaceholder")}
                     value={cover.subtitle}
                     onChange={(e) => setCover({ ...cover, subtitle: e.target.value })}
                     data-testid="input-cover-subtitle"
@@ -450,10 +452,10 @@ export function PdfExportDialog({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="cover-author" className="text-xs">Autor / Verfasser</Label>
+                  <Label htmlFor="cover-author" className="text-xs">{t("pdfExport.coverAuthor")}</Label>
                   <Input
                     id="cover-author"
-                    placeholder="z.B. Maria Müller"
+                    placeholder={t("pdfExport.coverAuthorPlaceholder")}
                     value={cover.author}
                     onChange={(e) => setCover({ ...cover, author: e.target.value })}
                     data-testid="input-cover-author"
@@ -461,7 +463,7 @@ export function PdfExportDialog({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs">Deckblatt-Stil</Label>
+                  <Label className="text-xs">{t("pdfExport.coverStyle")}</Label>
                   <RadioGroup
                     value={cover.style}
                     onValueChange={(v) => setCover({ ...cover, style: v as CoverPageOptions["style"] })}
@@ -469,15 +471,15 @@ export function PdfExportDialog({
                   >
                     <div className="flex items-center gap-1.5">
                       <RadioGroupItem value="classic" id="style-classic" />
-                      <Label htmlFor="style-classic" className="text-xs cursor-pointer">Klassisch</Label>
+                      <Label htmlFor="style-classic" className="text-xs cursor-pointer">{t("pdfExport.styleClassic")}</Label>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <RadioGroupItem value="elegant" id="style-elegant" />
-                      <Label htmlFor="style-elegant" className="text-xs cursor-pointer">Elegant</Label>
+                      <Label htmlFor="style-elegant" className="text-xs cursor-pointer">{t("pdfExport.styleElegant")}</Label>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <RadioGroupItem value="minimal" id="style-minimal" />
-                      <Label htmlFor="style-minimal" className="text-xs cursor-pointer">Schlicht</Label>
+                      <Label htmlFor="style-minimal" className="text-xs cursor-pointer">{t("pdfExport.styleMinimal")}</Label>
                     </div>
                   </RadioGroup>
                 </div>
@@ -498,7 +500,7 @@ export function PdfExportDialog({
                 ) : (
                   <Download className="h-4 w-4 mr-2" />
                 )}
-                Herunterladen
+                {t("common.download")}
               </Button>
             </div>
           </div>
@@ -507,7 +509,7 @@ export function PdfExportDialog({
             {isGeneratingPreview && !previewUrl ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
                 <Loader2 className="h-10 w-10 animate-spin" />
-                <span className="text-sm">PDF-Vorschau wird geladen…</span>
+                <span className="text-sm">{t("pdfExport.previewLoading")}</span>
               </div>
             ) : null}
             {previewUrl ? (
@@ -518,7 +520,7 @@ export function PdfExportDialog({
                     variant="outline"
                     className="h-7 w-7 bg-background/80 backdrop-blur-sm"
                     onClick={() => setFullscreen(true)}
-                    title="Vollbild"
+                    title={t("pdfExport.fullscreen")}
                     data-testid="button-fullscreen-preview"
                   >
                     <Maximize2 className="h-3.5 w-3.5" />
@@ -527,7 +529,7 @@ export function PdfExportDialog({
                 <iframe
                   src={previewUrl}
                   className="w-full h-full min-h-[400px] md:min-h-[500px]"
-                  title="PDF Vorschau"
+                  title={t("pdfExport.previewIframeTitle")}
                   data-testid="iframe-pdf-preview"
                 />
               </>
@@ -548,13 +550,13 @@ export function PdfExportDialog({
             ) : (
               <Download className="h-4 w-4 mr-2" />
             )}
-            Herunterladen
+            {t("common.download")}
           </Button>
         </div>
 
         <DialogFooter className="sm:justify-start hidden md:flex">
           <p className="text-xs text-muted-foreground">
-            Tipp: Nutzen Sie die Vorschau, um das Ergebnis vor dem Herunterladen zu prüfen.
+            {t("pdfExport.footerTip")}
           </p>
         </DialogFooter>
       </DialogContent>
@@ -572,7 +574,7 @@ export function PdfExportDialog({
           <div className="flex items-center justify-between px-4 py-3 border-b bg-background shrink-0">
             <h3 className="font-serif text-lg flex items-center gap-2">
               <Eye className="h-5 w-5" />
-              PDF-Vorschau
+              {t("pdfExport.previewHeading")}
             </h3>
             <div className="flex items-center gap-2">
               <Button
@@ -586,14 +588,14 @@ export function PdfExportDialog({
                 ) : (
                   <Download className="h-4 w-4 mr-2" />
                 )}
-                Herunterladen
+                {t("common.download")}
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => setFullscreen(false)}
-                title="Vollbild beenden"
+                title={t("pdfExport.exitFullscreen")}
                 data-testid="button-exit-fullscreen"
               >
                 <Minimize2 className="h-4 w-4" />
@@ -604,7 +606,7 @@ export function PdfExportDialog({
             src={previewUrl}
             className="flex-1 w-full border-0"
             style={{ minHeight: 0 }}
-            title="PDF Vorschau (Vollbild)"
+            title={t("pdfExport.previewIframeFullscreenTitle")}
             data-testid="iframe-pdf-fullscreen"
           />
         </div>,

@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useParams, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -146,8 +148,8 @@ function getPageHasEdited(page: TranscriptionPage & Record<string, unknown>, ver
 }
 
 /** Capture only the transcription text card as PNG (hides UI chrome during capture) */
-async function downloadResultPageAsImage(containerEl: HTMLDivElement | null, pageNumber: number): Promise<void> {
-  if (!containerEl) throw new Error("Seite nicht geladen.");
+async function downloadResultPageAsImage(containerEl: HTMLDivElement | null, pageNumber: number, t: TFunction): Promise<void> {
+  if (!containerEl) throw new Error(t("result.errorPageNotLoaded"));
   const hiddenEls = containerEl.querySelectorAll<HTMLElement>("[data-export-hide]");
   hiddenEls.forEach((el) => (el.style.display = "none"));
   try {
@@ -162,7 +164,7 @@ async function downloadResultPageAsImage(containerEl: HTMLDivElement | null, pag
       canvas.toBlob(
         (blob) => {
           if (!blob) {
-            reject(new Error("Bild konnte nicht erstellt werden."));
+            reject(new Error(t("result.errorImageFailed")));
             return;
           }
           const a = document.createElement("a");
@@ -192,6 +194,7 @@ function PageNavigator({
   pages?: TranscriptionPage[];
   onPageChange: (page: number) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-2">
       <Button
@@ -200,7 +203,7 @@ function PageNavigator({
         className="h-10 w-10 sm:h-8 sm:w-8 shrink-0"
         disabled={currentPage <= 0}
         onClick={() => onPageChange(currentPage - 1)}
-        aria-label="Vorherige Seite"
+        aria-label={t("result.prevPage")}
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
@@ -227,7 +230,7 @@ function PageNavigator({
                   ) : pageStatus === "pending" ? (
                     <span className="h-3 w-3 rounded-full border border-muted-foreground/30 inline-block shrink-0" />
                   ) : null}
-                  Seite {i + 1} von {totalPages}
+                  {t("result.pageOf", { n: i + 1, total: totalPages })}
                 </span>
               </SelectItem>
             );
@@ -241,7 +244,7 @@ function PageNavigator({
         className="h-10 w-10 sm:h-8 sm:w-8 shrink-0"
         disabled={currentPage >= totalPages - 1}
         onClick={() => onPageChange(currentPage + 1)}
-        aria-label="Nächste Seite"
+        aria-label={t("result.nextPage")}
       >
         <ChevronRight className="h-4 w-4" />
       </Button>
@@ -253,6 +256,7 @@ export default function ResultPage() {
   const params = useParams<{ id: string }>();
   const search = useSearch();
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [currentPageIdx, setCurrentPageIdx] = useState(0);
   const [textVersion, setTextVersion] = useState<"original" | "completed" | "interpreted">("original");
@@ -348,10 +352,10 @@ export default function ResultPage() {
       const reason = newlyFailed[0]?.failReason;
       const isOverloaded = reason && /überlastet|overloaded|503/i.test(reason);
       toast({
-        title: "Vorlese-Service nicht verfügbar",
+        title: t("result.ttsServiceUnavailableTitle"),
         description: isOverloaded
-          ? "Der Dienst ist momentan überlastet. Bitte versuchen Sie es in einigen Minuten erneut. Ihr Guthaben wurde nicht belastet."
-          : "Bei der Audio-Erzeugung ist ein Fehler aufgetreten. Ihr Guthaben wurde nicht belastet. Bitte versuchen Sie es erneut.",
+          ? t("result.ttsOverloadedBody")
+          : t("result.ttsAudioErrorBody"),
         variant: "destructive",
       });
     }
@@ -396,8 +400,8 @@ export default function ResultPage() {
       if (prevStatus && prevStatus !== "failed" && page.status === "failed") {
         queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
         toast({
-          title: "Transkription fehlgeschlagen",
-          description: page.transcription || "Die Transkription konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+          title: t("result.transcriptionFailedTitle"),
+          description: page.transcription || t("result.transcriptionFailedRetryBody"),
           variant: "destructive",
         });
       }
@@ -413,7 +417,7 @@ export default function ResultPage() {
         if (translationError && !shownTranslationErrors.current.has(page.id)) {
           shownTranslationErrors.current.add(page.id);
           toast({
-            title: "Übersetzung fehlgeschlagen",
+            title: t("result.translationFailedTitle"),
             description: translationError,
             variant: "destructive",
           });
@@ -434,8 +438,8 @@ export default function ResultPage() {
     sessionStorage.setItem(key, "1");
     const timer = setTimeout(() => {
       toast({
-        title: "Tipp: Vorlesen lassen",
-        description: "Lassen Sie Ihre Transkription vorlesen — mit verschiedenen Stimmen, ideal als Geschenk für die Familie.",
+        title: t("result.tipReadAloudTitle"),
+        description: t("result.tipReadAloudBody"),
       });
     }, 2000);
     return () => clearTimeout(timer);
@@ -456,11 +460,11 @@ export default function ResultPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/jobs", params.id, "tts-history"] });
       if (body.creditsUsed > 0) {
         queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
-        toast({ title: "Vorlesen", description: `${body.creditsUsed} ${body.creditsUsed === 1 ? "Credit" : "Credits"} verwendet. Audio wird generiert…` });
+        toast({ title: t("result.ttsToastTitle"), description: t("result.ttsCreditsUsed", { count: body.creditsUsed, credits: body.creditsUsed === 1 ? t("result.creditOne") : t("result.creditMany") }) });
       }
     },
     onError: (error: Error) => {
-      toast({ title: "Vorlesen fehlgeschlagen", description: error.message, variant: "destructive" });
+      toast({ title: t("result.ttsFailedTitle"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -473,11 +477,11 @@ export default function ResultPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
       queryClient.invalidateQueries({ queryKey: ["/api/jobs", params.id, "result"] });
-      toast({ title: "Gestartet", description: "Ihre Seiten werden jetzt ausgewertet." });
+      toast({ title: t("result.startedTitle"), description: t("result.pagesEvaluatingBody") });
     },
     onError: (error: Error) => {
       toast({
-        title: "Fehler",
+        title: t("result.errorTitle"),
         description: error.message,
         variant: "destructive",
       });
@@ -495,13 +499,13 @@ export default function ResultPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/jobs", params.id, "result"] });
       const n = body.refundedCredits ?? 0;
       toast({
-        title: "Verarbeitung abgebrochen",
-        description: n > 0 ? `${n} ${n === 1 ? "Seite wurde" : "Seiten wurden"} erstattet.` : "Die Verarbeitung wurde beendet.",
+        title: t("result.cancelledTitle"),
+        description: n > 0 ? t("result.pagesRefunded", { count: n }) : t("result.processingStopped"),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Fehler",
+        title: t("result.errorTitle"),
         description: error.message,
         variant: "destructive",
       });
@@ -516,10 +520,10 @@ export default function ResultPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/jobs", params.id, "result"] });
       queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
-      toast({ title: "Gestartet", description: "Die Seite wird erneut transkribiert." });
+      toast({ title: t("result.startedTitle"), description: t("result.pageRetryingBody") });
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("result.errorTitle"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -531,16 +535,16 @@ export default function ResultPage() {
     onSuccess: (body) => {
       queryClient.invalidateQueries({ queryKey: ["/api/jobs", params.id, "result"] });
       queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
-      toast({ title: "Gestartet", description: `${body.pageCount} ${body.pageCount === 1 ? "Seite wird" : "Seiten werden"} erneut transkribiert.` });
+      toast({ title: t("result.startedTitle"), description: t("result.pagesRetrying", { count: body.pageCount }) });
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("result.errorTitle"), description: error.message, variant: "destructive" });
     },
   });
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "Kopiert", description: "Text in die Zwischenablage kopiert." });
+    toast({ title: t("common.copied"), description: t("common.copiedToClipboard") });
   };
 
   const updatePageMutation = useMutation({
@@ -557,10 +561,10 @@ export default function ResultPage() {
       setEditingPageId(null);
       setEditingVersion(null);
       setEditedTextDraft("");
-      toast({ title: "Gespeichert", description: "Ihre Änderungen wurden übernommen." });
+      toast({ title: t("result.savedTitle"), description: t("result.changesSavedBody") });
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("result.errorTitle"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -595,7 +599,7 @@ export default function ResultPage() {
       .filter((p) => p.transcription)
       .map((p) => {
         const text = getPageDisplayText(p as TranscriptionPage & Record<string, unknown>, textVersion, effectiveDisplayLanguage);
-        return `--- Seite ${p.pageNumber} ---\n${text ?? ""}`;
+        return `--- ${t("result.pageSeparator", { n: p.pageNumber })} ---\n${text ?? ""}`;
       })
       .join("\n\n");
     copyToClipboard(fullText);
@@ -611,7 +615,7 @@ export default function ResultPage() {
         ? `/api/jobs/${params.id}/export-pdf?version=${textVersion}${langParam}`
         : `/api/jobs/${params.id}/export?version=${textVersion}${langParam}`;
       const res = await fetch(url, { headers });
-      if (!res.ok) throw new Error(res.status === 401 ? "Bitte erneut anmelden." : "Export fehlgeschlagen.");
+      if (!res.ok) throw new Error(res.status === 401 ? t("result.errorReLogin") : t("result.errorExportFailed"));
       const blob = await res.blob();
       const disposition = res.headers.get("Content-Disposition");
       const match = disposition?.match(/filename="?([^";\n]+)"?/);
@@ -622,9 +626,9 @@ export default function ResultPage() {
       a.download = filename;
       a.click();
       URL.revokeObjectURL(objectUrl);
-      toast({ title: "Export", description: type === "pdf" ? "PDF wird heruntergeladen." : "Text wird heruntergeladen." });
+      toast({ title: t("result.exportTitle"), description: type === "pdf" ? t("result.pdfDownloading") : t("result.textDownloading") });
     } catch (e) {
-      toast({ title: "Fehler", description: e instanceof Error ? e.message : "Export fehlgeschlagen.", variant: "destructive" });
+      toast({ title: t("result.errorTitle"), description: e instanceof Error ? e.message : t("result.errorExportFailed"), variant: "destructive" });
     } finally {
       setExporting(null);
     }
@@ -642,15 +646,15 @@ export default function ResultPage() {
   if (!data) {
     return (
       <div className="p-4 sm:p-6 max-w-5xl mx-auto text-center">
-        <p className="text-muted-foreground">Ergebnis nicht gefunden.</p>
+        <p className="text-muted-foreground">{t("result.notFound")}</p>
       </div>
     );
   }
 
   if (data.expertResult?.results?.length) {
     const label = data.expertResult.request.serviceLevel === "ki_geprueft"
-      ? "KI-geprüfte Transkription"
-      : "Expertentranskription";
+      ? t("result.aiVerifiedTranscription")
+      : t("result.expertTranscription");
     const resultPages = data.expertResult.results;
     const selectedResult = resultPages[Math.min(currentPageIdx, resultPages.length - 1)];
     const sourcePage = data.pages.find((p) => p.pageNumber === selectedResult.pageNumber) ?? data.pages[0];
@@ -663,25 +667,25 @@ export default function ResultPage() {
               <h1 className="font-serif text-2xl font-bold">{label}</h1>
               <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                Fertig
+                {t("result.statusDone")}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              {data.job.totalPages} {data.job.totalPages === 1 ? "Seite" : "Seiten"} · finale Fassung des Expertenauftrags
+              {t("result.expertFinalVersion", { count: data.job.totalPages })}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Button variant="ghost" size="sm" onClick={() => navigate("/app")}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Dashboard
+              {t("result.dashboard")}
             </Button>
             <Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => downloadExport("text")}>
               {exporting === "text" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
-              Text-Export
+              {t("result.textExport")}
             </Button>
             <Button size="sm" onClick={() => setShowPdfExport(true)}>
               <BookOpen className="h-4 w-4 mr-2" />
-              PDF-Export
+              {t("result.pdfExport")}
             </Button>
           </div>
         </div>
@@ -694,12 +698,12 @@ export default function ResultPage() {
 
         <div className="grid lg:grid-cols-2 gap-6 items-start">
           <div>
-            <h2 className="font-serif text-lg font-semibold mb-3">Original</h2>
+            <h2 className="font-serif text-lg font-semibold mb-3">{t("result.original")}</h2>
             <Card>
               {sourcePage ? (
-                <DocumentPreview src={sourcePage.imageUrl} alt={`Original Seite ${selectedResult.pageNumber}`} />
+                <DocumentPreview src={sourcePage.imageUrl} alt={t("result.originalAlt", { n: selectedResult.pageNumber })} />
               ) : (
-                <div className="p-8 text-center text-muted-foreground">Kein Originalbild verfügbar.</div>
+                <div className="p-8 text-center text-muted-foreground">{t("result.noOriginalImage")}</div>
               )}
             </Card>
           </div>
@@ -708,7 +712,7 @@ export default function ResultPage() {
               <h2 className="font-serif text-lg font-semibold">{label}</h2>
               <Button size="sm" variant="ghost" onClick={() => copyToClipboard(selectedResult.text)}>
                 <Copy className="h-4 w-4 mr-2" />
-                Kopieren
+                {t("common.copy")}
               </Button>
             </div>
             <Card className="p-5">
@@ -796,10 +800,10 @@ export default function ResultPage() {
     const handleSaveImage = async () => {
       setSavingImagePageId(page.id);
       try {
-        await downloadResultPageAsImage(transcriptionColRef.current, page.pageNumber);
-        toast({ title: "Gespeichert", description: `Ergebnisseite ${page.pageNumber} wurde als Bild heruntergeladen.` });
+        await downloadResultPageAsImage(transcriptionColRef.current, page.pageNumber, t);
+        toast({ title: t("result.savedTitle"), description: t("result.resultPageImageSaved", { n: page.pageNumber }) });
       } catch (e) {
-        toast({ variant: "destructive", title: "Fehler", description: (e as Error).message });
+        toast({ variant: "destructive", title: t("result.errorTitle"), description: (e as Error).message });
       } finally {
         setSavingImagePageId(null);
       }
@@ -808,18 +812,18 @@ export default function ResultPage() {
     return (
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         <div className="order-2 lg:order-1">
-          <h2 className="font-serif text-lg font-semibold mb-3">Original</h2>
+          <h2 className="font-serif text-lg font-semibold mb-3">{t("result.original")}</h2>
           <Card ref={originalColRef}>
             <DocumentPreview
               src={page.imageUrl}
-              alt={`Original Seite ${page.pageNumber}`}
+              alt={t("result.originalAlt", { n: page.pageNumber })}
               data-testid={`img-original-${page.pageNumber}`}
             />
           </Card>
         </div>
         <div ref={transcriptionColRef} className="order-1 lg:order-2 min-w-0">
           <div data-export-hide className="flex items-center justify-between gap-2 mb-2">
-            <h2 className="font-serif text-lg font-semibold">Transkription</h2>
+            <h2 className="font-serif text-lg font-semibold">{t("result.transcription")}</h2>
             {hasTranscription && !isEditingThis && (
               <div className="flex items-center gap-1">
                 <TooltipProvider>
@@ -829,7 +833,7 @@ export default function ResultPage() {
                         <Copy className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Kopieren</TooltipContent>
+                    <TooltipContent>{t("common.copy")}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -837,7 +841,7 @@ export default function ResultPage() {
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Bearbeiten</TooltipContent>
+                    <TooltipContent>{t("common.edit")}</TooltipContent>
                   </Tooltip>
                   {hasEditedThis && (
                     <Tooltip>
@@ -846,7 +850,7 @@ export default function ResultPage() {
                           <RotateCcw className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Original wiederherstellen</TooltipContent>
+                      <TooltipContent>{t("result.restoreOriginal")}</TooltipContent>
                     </Tooltip>
                   )}
                 </TooltipProvider>
@@ -861,7 +865,7 @@ export default function ResultPage() {
               >
                 <TabsList className="h-9 sm:h-8">
                   <TabsTrigger value="de" className="text-xs px-3 h-7 sm:h-6 whitespace-nowrap">
-                    Original
+                    {t("result.original")}
                   </TabsTrigger>
                   <TabsTrigger value="translation" className="text-xs px-3 h-7 sm:h-6 whitespace-nowrap">
                     <Globe className="h-3 w-3 mr-1" />
@@ -887,7 +891,7 @@ export default function ResultPage() {
                     data-testid="result-tab-original"
                   >
                     <FileText className="h-3 w-3 mr-1" />
-                    Originaltreu
+                    {t("result.faithful")}
                   </TabsTrigger>
                   <TabsTrigger
                     value="completed"
@@ -896,7 +900,7 @@ export default function ResultPage() {
                     data-testid="result-tab-completed"
                   >
                     <Sparkles className="h-3 w-3 mr-1" />
-                    Ergänzt
+                    {t("result.completed")}
                   </TabsTrigger>
                   <TabsTrigger
                     value="interpreted"
@@ -905,7 +909,7 @@ export default function ResultPage() {
                     data-testid="result-tab-interpreted"
                   >
                     <Wand2 className="h-3 w-3 mr-1" />
-                    Interpretation
+                    {t("result.interpretation")}
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -921,10 +925,10 @@ export default function ResultPage() {
                       data-testid={`button-save-image-page-${page.pageNumber}`}
                     >
                       {savingImage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                      Als Bild speichern
+                      {t("result.saveAsImage")}
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Ergebnistext als Bild herunterladen</TooltipContent>
+                  <TooltipContent>{t("result.saveAsImageTooltip")}</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
@@ -942,10 +946,10 @@ export default function ResultPage() {
                       data-testid={`button-save-image-page-${page.pageNumber}`}
                     >
                       {savingImage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                      Als Bild speichern
+                      {t("result.saveAsImage")}
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Ergebnistext als Bild herunterladen</TooltipContent>
+                  <TooltipContent>{t("result.saveAsImageTooltip")}</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
@@ -953,9 +957,9 @@ export default function ResultPage() {
           {isLockedPage ? (
             <Card className="p-8 text-center">
               <Lock className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-              <h3 className="font-serif font-semibold mb-1">Diese Seite ist noch nicht ausgewertet</h3>
+              <h3 className="font-serif font-semibold mb-1">{t("result.lockedPageTitle")}</h3>
               <p className="text-sm text-muted-foreground">
-                Alle Seiten als Text erhalten – dafür bitte unten „Jetzt alle Seiten lesbar machen“ wählen.
+                {t("result.lockedPageBody")}
               </p>
             </Card>
           ) : page.status === "failed" ? (
@@ -963,9 +967,9 @@ export default function ResultPage() {
               <div className="flex flex-col items-center gap-3 py-4 text-center">
                 <XCircle className="h-8 w-8 text-destructive" />
                 <div>
-                  <h3 className="font-serif font-semibold mb-1">Transkription fehlgeschlagen</h3>
+                  <h3 className="font-serif font-semibold mb-1">{t("result.transcriptionFailedTitle")}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {page.transcription || "Die Transkription konnte nicht erstellt werden."}
+                    {page.transcription || t("result.transcriptionFailedBody")}
                   </p>
                 </div>
                 <Button
@@ -978,7 +982,7 @@ export default function ResultPage() {
                   ) : (
                     <RefreshCw className="h-4 w-4 mr-2" />
                   )}
-                  Seite erneut transkribieren (1 Credit)
+                  {t("result.retryPage")}
                 </Button>
               </div>
             </Card>
@@ -987,23 +991,23 @@ export default function ResultPage() {
               {hasTranscription && textVersion === "completed" && page.transcriptionCompleted && !isEditingThis && (
                 <div className="flex items-center gap-1.5 mb-3 text-xs text-amber-600 dark:text-amber-400">
                   <Sparkles className="h-3 w-3" />
-                  <span>Lücken wurden sinnvoll ergänzt</span>
+                  <span>{t("result.gapsFilled")}</span>
                 </div>
               )}
               {hasTranscription && textVersion === "interpreted" && (interpretedText || page.transcriptionCompleted) && !isEditingThis && (
                 <div className="flex items-center gap-1.5 mb-3 text-xs text-amber-600 dark:text-amber-400">
                   <Wand2 className="h-3 w-3" />
-                  <span>Text wurde sinngemäß interpretiert</span>
+                  <span>{t("result.interpretedNote")}</span>
                 </div>
               )}
               {hasTranscription && hasEditedThis && !isEditingThis && (
-                <Badge variant="secondary" className="mb-3 text-xs">Bearbeitet</Badge>
+                <Badge variant="secondary" className="mb-3 text-xs">{t("result.editedBadge")}</Badge>
               )}
               {!displayText && (page.status === "pending" || page.status === "processing") ? (
                 <div className="flex flex-col items-center justify-center py-4 text-muted-foreground">
                   <Loader2 className="h-6 w-6 animate-spin mb-2 text-primary" />
                   <p className="font-serif text-sm">
-                    {page.status === "processing" ? "Seite wird transkribiert…" : "Warte auf Verarbeitung…"}
+                    {page.status === "processing" ? t("result.pageTranscribing") : t("result.waitingForProcessing")}
                   </p>
                   <TranscriptionBackgroundHint className="mt-1 text-center max-w-xs" />
                 </div>
@@ -1019,10 +1023,10 @@ export default function ResultPage() {
                   <div className="flex gap-2">
                     <Button size="sm" onClick={saveEditing} disabled={updatePageMutation.isPending} data-testid={`button-save-page-${page.pageNumber}`}>
                       {updatePageMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
-                      Speichern
+                      {t("common.save")}
                     </Button>
                     <Button size="sm" variant="outline" onClick={cancelEditing} disabled={updatePageMutation.isPending}>
-                      Abbrechen
+                      {t("common.cancel")}
                     </Button>
                   </div>
                 </div>
@@ -1031,7 +1035,7 @@ export default function ResultPage() {
                   className="font-serif text-sm leading-relaxed whitespace-pre-wrap"
                   data-testid={`text-transcription-${page.pageNumber}`}
                 >
-                  {displayText || "Noch kein Text für diese Seite."}
+                  {displayText || t("result.noTextForPage")}
                 </div>
               )}
             </Card>
@@ -1047,22 +1051,22 @@ export default function ResultPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="font-serif text-2xl font-bold" data-testid="text-result-title">
-              Ergebnis
+              {t("result.title")}
             </h1>
             {isProcessing ? (
               <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
                 <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                Verarbeitung
+                {t("result.statusProcessing")}
               </Badge>
             ) : isPreviewOnly ? (
               <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
                 <FileText className="h-3 w-3 mr-1" />
-                Vorschau
+                {t("result.statusPreview")}
               </Badge>
             ) : (
               <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                Fertig
+                {t("result.statusDone")}
               </Badge>
             )}
           </div>
@@ -1070,16 +1074,16 @@ export default function ResultPage() {
             {getScriptTypeDisplayLabel(data.job.scriptType) && (
               <>{getScriptTypeDisplayLabel(data.job.scriptType)} &middot;{" "}</>
             )}
-            {data.job.totalPages} {data.job.totalPages === 1 ? "Seite" : "Seiten"}
+            {t("result.pageCount", { count: data.job.totalPages })}
           </p>
           <p className="text-xs text-muted-foreground/70 mt-1">
-            KI-generierte Transkription – kann Ungenauigkeiten enthalten und ist nicht für rechtlich oder urkundlich relevante Zwecke geeignet.
+            {t("result.disclaimer")}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="ghost" size="sm" className="shrink-0" onClick={() => navigate("/app")} data-testid="button-back">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Dashboard
+            {t("result.dashboard")}
           </Button>
           {!isProcessing && !isPreviewOnly && (
             <>
@@ -1096,8 +1100,8 @@ export default function ResultPage() {
                 ) : (
                   <FileText className="h-4 w-4 mr-1.5 sm:mr-2" />
                 )}
-                <span className="sm:hidden">Text</span>
-                <span className="hidden sm:inline">Text-Export</span>
+                <span className="sm:hidden">{t("result.textShort")}</span>
+                <span className="hidden sm:inline">{t("result.textExport")}</span>
               </Button>
               <Button
                 size="sm"
@@ -1107,8 +1111,8 @@ export default function ResultPage() {
                 onClick={() => setShowPdfExport(true)}
               >
                 <BookOpen className="h-4 w-4 mr-1.5 sm:mr-2" />
-                <span className="sm:hidden">PDF</span>
-                <span className="hidden sm:inline">PDF-Export</span>
+                <span className="sm:hidden">{t("result.pdfShort")}</span>
+                <span className="hidden sm:inline">{t("result.pdfExport")}</span>
               </Button>
             </>
           )}
@@ -1126,23 +1130,21 @@ export default function ResultPage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h3 className="font-serif font-semibold mb-1">
-                  Alle {data.pages.length} Seiten als Text erhalten
+                  {t("result.getAllPagesAsText", { count: data.pages.length })}
                 </h3>
                 {remainingPages > 0 ? (
                   <>
                     <p className="text-sm text-muted-foreground">
-                      Noch {remainingPages}{" "}
-                      {remainingPages === 1 ? "Credit" : "Credits"}{" "}
-                      nötig
+                      {t("result.creditsNeeded", { count: remainingPages })}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       <Coins className="h-3 w-3 inline mr-1" />
-                      Ihr Guthaben: {currentCredits} {currentCredits === 1 ? "Credit" : "Credits"}
+                      {t("result.yourBalance", { count: currentCredits })}
                     </p>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Guthaben ausreichend – starten Sie jetzt die Transkription.
+                    {t("result.balanceSufficient")}
                   </p>
                 )}
               </div>
@@ -1153,7 +1155,7 @@ export default function ResultPage() {
                     navigate("/app/pricing");
                   }}>
                     <Coins className="h-4 w-4 mr-2" />
-                    Credits kaufen
+                    {t("result.buyCredits")}
                   </Button>
                 )}
                 <Button
@@ -1164,16 +1166,16 @@ export default function ResultPage() {
                   {purchaseMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Wird verarbeitet...
+                      {t("result.processingEllipsis")}
                     </>
                   ) : !hasEnoughCredits ? (
                     <>
                       <Lock className="h-4 w-4 mr-2" />
-                      Nicht genug Guthaben
+                      {t("result.notEnoughCredits")}
                     </>
                   ) : (
                     <>
-                      Jetzt alle Seiten lesbar machen
+                      {t("result.makeAllReadable")}
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </>
                   )}
@@ -1192,10 +1194,10 @@ export default function ResultPage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h3 className="font-serif font-semibold mb-1 text-sm">
-                  Alternativ: Experten beauftragen
+                  {t("result.alternativeExpertTitle")}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Nur bei extrem schwer lesbaren Dokumenten nötig. Wir vermitteln Ihnen eine erfahrene Fachkraft.
+                  {t("result.alternativeExpertBody")}
                 </p>
               </div>
               <Button
@@ -1204,7 +1206,7 @@ export default function ResultPage() {
                 className="shrink-0"
               >
                 <User className="h-4 w-4 mr-2" />
-                Experten fragen
+                {t("result.askExperts")}
               </Button>
             </div>
           </Card>
@@ -1218,7 +1220,7 @@ export default function ResultPage() {
               <div className="flex items-center gap-2 mb-2">
                 <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />
                 <h3 className="font-serif font-semibold text-sm">
-                  Seiten werden ausgewertet…
+                  {t("result.pagesBeingEvaluated")}
                 </h3>
               </div>
               <Progress
@@ -1226,12 +1228,12 @@ export default function ResultPage() {
                 className="h-2 mb-1.5"
               />
               <p className="text-xs text-muted-foreground">
-                {data.progress.completed} von {data.progress.total} {data.progress.total === 1 ? "Seite" : "Seiten"} fertig
+                {t("result.progressDone", { completed: data.progress.completed, total: data.progress.total, count: data.progress.total })}
                 {data.progress.processing > 0 && (
-                  <span> – Seite {data.progress.completed + 1} wird ausgewertet…</span>
+                  <span> {t("result.progressPageEvaluating", { n: data.progress.completed + 1 })}</span>
                 )}
                 {data.progress.failed > 0 && (
-                  <span className="text-destructive"> · {data.progress.failed} fehlgeschlagen</span>
+                  <span className="text-destructive"> {t("result.progressFailed", { count: data.progress.failed })}</span>
                 )}
               </p>
               <TranscriptionBackgroundHint />
@@ -1247,7 +1249,7 @@ export default function ResultPage() {
               ) : (
                 <StopCircle className="h-3.5 w-3.5 mr-1.5" />
               )}
-              Abbrechen
+              {t("common.cancel")}
             </Button>
           </div>
         </Card>
@@ -1256,20 +1258,18 @@ export default function ResultPage() {
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Verarbeitung abbrechen?</AlertDialogTitle>
+            <AlertDialogTitle>{t("result.cancelDialogTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Die Transkription wird sofort gestoppt. Guthaben für noch nicht
-              transkribierte Seiten wird Ihnen automatisch zurückerstattet.
-              Bereits fertige Seiten bleiben erhalten.
+              {t("result.cancelDialogBody")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Weiter transkribieren</AlertDialogCancel>
+            <AlertDialogCancel>{t("result.continueTranscribing")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => cancelMutation.mutate()}
             >
-              Abbrechen und Guthaben erstatten
+              {t("result.cancelAndRefund")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1282,12 +1282,12 @@ export default function ResultPage() {
               <XCircle className="h-5 w-5 text-destructive shrink-0" />
               <div>
                 <h3 className="font-serif font-semibold text-sm">
-                  {failedCount} {failedCount === 1 ? "Seite" : "Seiten"} fehlgeschlagen
+                  {t("result.pagesFailed", { count: failedCount })}
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   {failedCount === 1
-                    ? "Eine Seite konnte nicht transkribiert werden. Sie können es erneut versuchen."
-                    : `${failedCount} Seiten konnten nicht transkribiert werden. Sie können alle auf einmal erneut versuchen.`}
+                    ? t("result.pagesFailedBodyOne")
+                    : t("result.pagesFailedBodyMany", { count: failedCount })}
                 </p>
               </div>
             </div>
@@ -1301,7 +1301,7 @@ export default function ResultPage() {
               ) : (
                 <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
               )}
-              Alle erneut versuchen ({failedCount} {failedCount === 1 ? "Credit" : "Credits"})
+              {t("result.retryAll", { count: failedCount })}
             </Button>
           </div>
         </Card>
@@ -1342,28 +1342,28 @@ export default function ResultPage() {
                   <Button size="sm" variant="ghost" className="h-8 text-xs" asChild>
                     <a href={latestAudio.audioUrl} download={latestAudio.audioUrl.split("/").pop() ?? undefined}>
                       <Download className="h-3.5 w-3.5 mr-1" />
-                      Download
+                      {t("common.download")}
                     </a>
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowTtsSheet(true)}>
-                    Weitere Stimmen
+                    {t("result.moreVoices")}
                   </Button>
                 </div>
               </div>
             ) : isGenerating ? (
               <div className="flex items-center gap-3">
                 <Loader2 className="h-5 w-5 text-primary animate-spin shrink-0" />
-                <p className="text-sm">Audio wird generiert…</p>
+                <p className="text-sm">{t("result.audioGenerating")}</p>
               </div>
             ) : (
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <Headphones className="h-5 w-5 text-primary shrink-0" />
                   <div>
-                    <p className="text-sm font-medium">Diesen Text vorlesen lassen</p>
+                    <p className="text-sm font-medium">{t("result.readThisTextTitle")}</p>
                     <p className="text-xs text-muted-foreground">
-                      6 Stimmen, 4 Vorlesestile — ideal als Geschenk
-                      {pageCredits > 0 && ` · ab ${pageCredits} ${pageCredits === 1 ? "Credit" : "Credits"}`}
+                      {t("result.ttsTeaserBody")}
+                      {pageCredits > 0 && t("result.ttsTeaserFrom", { count: pageCredits })}
                     </p>
                   </div>
                 </div>
@@ -1374,7 +1374,7 @@ export default function ResultPage() {
                   data-testid="button-tts-open"
                 >
                   <Volume2 className="h-3.5 w-3.5 mr-1.5" />
-                  Stimme wählen
+                  {t("result.chooseVoice")}
                 </Button>
               </div>
             )}
@@ -1388,19 +1388,19 @@ export default function ResultPage() {
           <SheetHeader>
             <SheetTitle className="font-serif flex items-center gap-2">
               <Headphones className="h-5 w-5" />
-              Vorlesen
+              {t("result.ttsSheetTitle")}
             </SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-5">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Ihr Guthaben: {currentCredits} {currentCredits === 1 ? "Credit" : "Credits"}</span>
+                <span>{t("result.yourBalance", { count: currentCredits })}</span>
                 <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary" onClick={() => { trackBeginCheckout(); navigate("/app/pricing"); }}>
-                  Credits kaufen
+                  {t("result.buyCredits")}
                 </Button>
               </div>
               <p className="text-[11px] text-muted-foreground/60">
-                1 Credit = 1.000 Zeichen Vorlesen (oder 1 Transkriptionsseite)
+                {t("result.creditExplanation")}
               </p>
             </div>
 
@@ -1420,11 +1420,11 @@ export default function ResultPage() {
               return (
                 <div className="space-y-3 border-t pt-4">
                   <p className="text-xs text-muted-foreground">
-                    Diese Seite: {pageChars.toLocaleString("de-DE")} Zeichen = {pgCredits} {pgCredits === 1 ? "Credit" : "Credits"}
+                    {t("result.thisPageChars", { chars: pageChars.toLocaleString("de-DE"), count: pgCredits })}
                   </p>
                   {data!.pages.length > 1 && ttsCostAll && (
                     <p className="text-xs text-muted-foreground">
-                      Alle {data!.pages.length} Seiten: {ttsCostAll.totalCharacters.toLocaleString("de-DE")} Zeichen = {ttsCostAll.creditsRequired} {ttsCostAll.creditsRequired === 1 ? "Credit" : "Credits"}
+                      {t("result.allPagesChars", { pages: data!.pages.length, chars: ttsCostAll.totalCharacters.toLocaleString("de-DE"), count: ttsCostAll.creditsRequired })}
                     </p>
                   )}
                   <div className="flex flex-wrap gap-2">
@@ -1437,7 +1437,7 @@ export default function ResultPage() {
                       }}
                     >
                       {ttsGeneratingForPage ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Volume2 className="h-3.5 w-3.5 mr-1.5" />}
-                      {ttsGeneratingForPage ? "Wird generiert…" : `Diese Seite vorlesen (${pgCredits} Cr.)`}
+                      {ttsGeneratingForPage ? t("result.generating") : t("result.readThisPage", { credits: pgCredits })}
                     </Button>
                     {data!.pages.length > 1 && ttsCostAll && (
                       <Button
@@ -1450,7 +1450,7 @@ export default function ResultPage() {
                         }}
                       >
                         {ttsGeneratingForAll ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Volume2 className="h-3.5 w-3.5 mr-1.5" />}
-                        {ttsGeneratingForAll ? "Wird generiert…" : `Alle Seiten vorlesen (${ttsCostAll.creditsRequired} Cr.)`}
+                        {ttsGeneratingForAll ? t("result.generating") : t("result.readAllPages", { credits: ttsCostAll.creditsRequired })}
                       </Button>
                     )}
                   </div>
@@ -1460,7 +1460,7 @@ export default function ResultPage() {
 
             {(ttsCompletedForPage.length > 0 || ttsCompletedForAll.length > 0) && (
               <div className="space-y-3 border-t pt-4">
-                <p className="text-xs font-semibold text-muted-foreground">Vorhandene Audios</p>
+                <p className="text-xs font-semibold text-muted-foreground">{t("result.existingAudios")}</p>
                 {[...ttsCompletedForPage, ...ttsCompletedForAll].map((gen) => {
                   const voiceMeta = TTS_VOICES.find((v) => v.name === gen.voice);
                   const styleLabel = gen.style ? TTS_STYLE_PRESETS.find((p) => p.value === gen.style)?.label ?? (gen.style || "").slice(0, 30) : null;
@@ -1473,13 +1473,13 @@ export default function ResultPage() {
                           {voiceMeta ? ` (${voiceMeta.gender})` : ""}
                           {styleLabel ? ` · ${styleLabel}` : ""}
                         </p>
-                        <Badge variant="secondary" className="text-[10px]">{isAll ? "Alle Seiten" : `Seite ${(gen.pages as number[])?.[0] ?? "?"}`}</Badge>
+                        <Badge variant="secondary" className="text-[10px]">{isAll ? t("result.allPagesBadge") : t("result.pageBadge", { n: (gen.pages as number[])?.[0] ?? "?" })}</Badge>
                       </div>
                       <audio controls className="w-full h-9" src={gen.audioUrl!} />
                       <Button size="sm" variant="ghost" className="h-7 text-xs px-2" asChild>
                         <a href={gen.audioUrl!} download={gen.audioUrl!.split("/").pop() ?? undefined}>
                           <Download className="h-3 w-3 mr-1" />
-                          Herunterladen
+                          {t("common.download")}
                         </a>
                       </Button>
                     </div>
@@ -1504,14 +1504,14 @@ export default function ResultPage() {
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                <h3 className="font-serif font-semibold text-sm">KI-Geprüft</h3>
+                <h3 className="font-serif font-semibold text-sm">{t("result.aiVerifiedTitle")}</h3>
               </div>
               <p className="text-xs text-muted-foreground">
-                Lassen Sie Ihre Transkription von Experten prüfen und korrigieren. Lieferzeit 2–3 Werktage.
+                {t("result.aiVerifiedBody")}
               </p>
               <p className="text-sm font-semibold">
                 {(data.pages.length * 8.99).toFixed(2).replace(".", ",")} EUR
-                <span className="text-muted-foreground font-normal text-xs ml-1">(8,99 EUR/Seite)</span>
+                <span className="text-muted-foreground font-normal text-xs ml-1">{t("result.aiVerifiedPerPage")}</span>
               </p>
               <Button
                 variant="outline"
@@ -1519,7 +1519,7 @@ export default function ResultPage() {
                 className="mt-auto"
                 onClick={() => navigate(`/app/human-transcription/${params.id}?tier=ki_geprueft`)}
               >
-                KI-Geprüft anfragen
+                {t("result.aiVerifiedRequest")}
               </Button>
             </div>
           </Card>
@@ -1534,14 +1534,14 @@ export default function ResultPage() {
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <User className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
-                <h3 className="font-serif font-semibold text-sm">Experten-Transkription</h3>
+                <h3 className="font-serif font-semibold text-sm">{t("result.expertTitle")}</h3>
               </div>
               <p className="text-xs text-muted-foreground">
-                Vollständige menschliche Transkription durch erfahrene Fachkräfte. Lieferzeit 5–7 Werktage.
+                {t("result.expertBody")}
               </p>
               <p className="text-sm font-semibold">
-                ab 14,90 EUR/Seite
-                <span className="text-muted-foreground font-normal text-xs block">Individuelles Angebot</span>
+                {t("result.expertPrice")}
+                <span className="text-muted-foreground font-normal text-xs block">{t("result.expertIndividualOffer")}</span>
               </p>
               <Button
                 variant="outline"
@@ -1549,7 +1549,7 @@ export default function ResultPage() {
                 className="mt-auto border-amber-400 dark:border-amber-600"
                 onClick={() => navigate(`/app/human-transcription/${params.id}?tier=experten`)}
               >
-                Experten anfragen
+                {t("result.expertRequest")}
               </Button>
             </div>
           </Card>
@@ -1571,20 +1571,18 @@ export default function ResultPage() {
       <AlertDialog open={!!showResetDialog} onOpenChange={(open) => !open && setShowResetDialog(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Original wiederherstellen?</AlertDialogTitle>
+            <AlertDialogTitle>{t("result.resetDialogTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Ihre Bearbeitungen für diese Textversion werden verworfen und die
-              ursprüngliche KI-Transkription wird wieder angezeigt. Dieser Schritt
-              kann nicht rückgängig gemacht werden.
+              {t("result.resetDialogBody")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={resetToOriginal}
             >
-              Verwerfen und Original anzeigen
+              {t("result.discardAndShowOriginal")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

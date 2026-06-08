@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import { HelpCircle, BookOpen, MessageSquare, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,7 @@ import { tourOrder, tours, type TourId } from "@/data/tours";
 import { cn } from "@/lib/utils";
 
 export function HelpMenu() {
+  const { t } = useTranslation();
   const { startTour, state } = useTour();
 
   const handleStart = (id: TourId) => {
@@ -28,7 +30,7 @@ export function HelpMenu() {
           variant="ghost"
           data-tour="help-button"
           data-testid="button-help-menu"
-          aria-label="Hilfe und Touren"
+          aria-label={t("tourHelp.helpAndToursAria")}
         >
           <HelpCircle className="h-5 w-5" />
         </Button>
@@ -36,7 +38,7 @@ export function HelpMenu() {
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuLabel className="flex items-center gap-2 text-base">
           <Compass className="h-4 w-4 text-primary" />
-          Geführte Touren
+          {t("tourHelp.guidedTours")}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {tourOrder.map((id) => {
@@ -54,7 +56,7 @@ export function HelpMenu() {
                 <span className="font-medium text-sm">{tour.shortLabel}</span>
                 {isCompleted && (
                   <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    Gesehen
+                    {t("tourHelp.seen")}
                   </span>
                 )}
               </div>
@@ -73,13 +75,13 @@ export function HelpMenu() {
         <DropdownMenuItem asChild className="cursor-pointer">
           <Link href="/faq" data-testid="menu-help-faq">
             <BookOpen className="h-4 w-4 mr-2" />
-            <span>Häufige Fragen</span>
+            <span>{t("tourHelp.faq")}</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="cursor-pointer">
           <Link href="/app/support" data-testid="menu-help-support">
             <MessageSquare className="h-4 w-4 mr-2" />
-            <span>Support kontaktieren</span>
+            <span>{t("tourHelp.contactSupport")}</span>
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>

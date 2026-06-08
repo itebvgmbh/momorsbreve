@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -253,6 +254,7 @@ function MagnifierToggleButton({
   active: boolean;
   onToggle: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -262,10 +264,10 @@ function MagnifierToggleButton({
           ? "bg-amber-600 text-white hover:bg-amber-700"
           : "bg-background/90 text-foreground hover:bg-background border border-border/50"
       }`}
-      title={active ? "Lupe deaktivieren" : "Lupe aktivieren"}
+      title={active ? t("documentPreview.magnifierDeactivate") : t("documentPreview.magnifierActivate")}
     >
       <Search className="h-3.5 w-3.5" />
-      {active ? "Lupe aus" : "Lupe"}
+      {active ? t("documentPreview.magnifierOff") : t("documentPreview.magnifier")}
     </button>
   );
 }
@@ -287,6 +289,7 @@ function MagnifierToolbar({
   onEnter: () => void;
   onLeave: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       className="flex items-center gap-2 rounded-xl bg-background/95 backdrop-blur-sm border border-border/50 shadow-lg px-2.5 py-1.5"
@@ -301,7 +304,7 @@ function MagnifierToolbar({
         className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium bg-amber-600 text-white hover:bg-amber-700 transition-colors shrink-0"
       >
         <Search className="h-3 w-3" />
-        Aus
+        {t("documentPreview.off")}
       </button>
 
       <div className="w-px h-3.5 bg-border" />
@@ -314,7 +317,7 @@ function MagnifierToolbar({
           }
           disabled={zoom <= MAGNIFIER_MIN_ZOOM}
           className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors"
-          title="Vergrößerung verringern"
+          title={t("documentPreview.zoomDecrease")}
         >
           <Minus className="h-3 w-3" />
         </button>
@@ -333,7 +336,7 @@ function MagnifierToolbar({
           }
           disabled={zoom >= MAGNIFIER_MAX_ZOOM}
           className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors"
-          title="Vergrößerung erhöhen"
+          title={t("documentPreview.zoomIncrease")}
         >
           <Plus className="h-3 w-3" />
         </button>
@@ -345,7 +348,7 @@ function MagnifierToolbar({
       <div className="w-px h-3.5 bg-border" />
 
       <div className="flex items-center gap-1">
-        <span className="text-[10px] text-muted-foreground whitespace-nowrap">Größe</span>
+        <span className="text-[10px] text-muted-foreground whitespace-nowrap">{t("documentPreview.size")}</span>
         <Slider
           min={MAGNIFIER_MIN_SIZE}
           max={MAGNIFIER_MAX_SIZE}
@@ -412,19 +415,21 @@ function MagnifierLens({
 
 export function DocumentPreview({
   src,
-  alt = "Dokument",
+  alt,
   className = "",
   hidePageNav = false,
   hideZoom = false,
   ...props
 }: DocumentPreviewProps) {
+  const { t } = useTranslation();
+  const resolvedAlt = alt ?? t("documentPreview.documentAlt");
   const isPdf = src.toLowerCase().endsWith(".pdf");
 
   if (!isPdf) {
     return (
       <ImageWithFallback
         src={src}
-        alt={alt}
+        alt={resolvedAlt}
         className={className}
         hideZoom={hideZoom}
         data-testid={props["data-testid"]}
@@ -449,7 +454,7 @@ export function DocumentPreview({
 
 function ImageWithFallback({
   src,
-  alt = "Dokument",
+  alt,
   className = "",
   hideZoom = false,
   ...props
@@ -460,6 +465,8 @@ function ImageWithFallback({
   hideZoom?: boolean;
   "data-testid"?: string;
 }) {
+  const { t } = useTranslation();
+  const resolvedAlt = alt ?? t("documentPreview.documentAlt");
   const [error, setError] = useState(false);
   const [scale, setScale] = useState(1.0);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -498,11 +505,10 @@ function ImageWithFallback({
       >
         <ImageOff className="h-12 w-12 text-muted-foreground/50" />
         <p className="text-sm font-medium text-muted-foreground">
-          Bild nicht mehr verfügbar
+          {t("documentPreview.imageUnavailable")}
         </p>
         <p className="text-xs text-muted-foreground text-center max-w-xs">
-          Die Original-Datei konnte nicht geladen werden. Bitte laden Sie das
-          Dokument erneut hoch.
+          {t("documentPreview.imageLoadFailed")}
         </p>
       </div>
     );
@@ -521,14 +527,14 @@ function ImageWithFallback({
               className="h-7 w-7"
               disabled={scale <= MIN_ZOOM}
               onClick={zoomOut}
-              aria-label="Verkleinern"
+              aria-label={t("documentPreview.zoomOut")}
             >
               <ZoomOut className="h-3.5 w-3.5" />
             </Button>
             <button
               className="text-xs tabular-nums min-w-[48px] text-center hover:underline cursor-pointer bg-transparent border-0"
               onClick={resetZoom}
-              title="Zoom zurücksetzen"
+              title={t("documentPreview.zoomReset")}
             >
               {Math.round(scale * 100)}%
             </button>
@@ -538,7 +544,7 @@ function ImageWithFallback({
               className="h-7 w-7"
               disabled={scale >= MAX_ZOOM}
               onClick={zoomIn}
-              aria-label="Vergrößern"
+              aria-label={t("documentPreview.zoomIn")}
             >
               <ZoomIn className="h-3.5 w-3.5" />
             </Button>
@@ -547,7 +553,7 @@ function ImageWithFallback({
               size="icon"
               className="h-7 w-7"
               onClick={resetZoom}
-              aria-label="Zoom zurücksetzen"
+              aria-label={t("documentPreview.zoomReset")}
             >
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
@@ -600,7 +606,7 @@ function ImageWithFallback({
           <img
             ref={imgRef}
             src={src}
-            alt={alt}
+            alt={resolvedAlt}
             className={`rounded-xl ${className}`}
             style={{
               ...(scale <= 1 ? {
@@ -661,6 +667,7 @@ function PdfViewer({
   hideZoom = false,
   ...props
 }: PdfViewerProps) {
+  const { t } = useTranslation();
   const [numPages, setNumPages] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.0);
@@ -764,7 +771,7 @@ function PdfViewer({
       >
         <FileText className="h-16 w-16 text-red-500" />
         <p className="text-sm font-medium text-muted-foreground">
-          PDF konnte nicht geladen werden
+          {t("documentPreview.pdfLoadFailed")}
         </p>
         <a
           href={src}
@@ -772,7 +779,7 @@ function PdfViewer({
           rel="noopener noreferrer"
           className="text-sm text-primary underline hover:no-underline"
         >
-          PDF in neuem Tab öffnen
+          {t("documentPreview.pdfOpenNewTab")}
         </a>
       </div>
     );
@@ -832,7 +839,7 @@ function PdfViewer({
                 className="h-7 w-7"
                 disabled={currentPage <= 1}
                 onClick={goToPrev}
-                aria-label="Vorherige Seite"
+                aria-label={t("documentPreview.prevPage")}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -845,7 +852,7 @@ function PdfViewer({
                 className="h-7 w-7"
                 disabled={currentPage >= numPages}
                 onClick={goToNext}
-                aria-label="Nächste Seite"
+                aria-label={t("documentPreview.nextPage")}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -853,7 +860,7 @@ function PdfViewer({
           ) : (
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-muted-foreground">
-                {numPages === 1 ? "1 Seite" : `${numPages} Seiten`}
+                {t("documentPreview.pageCount", { count: numPages })}
               </span>
             </div>
           )}
@@ -866,14 +873,14 @@ function PdfViewer({
                 className="h-7 w-7"
                 disabled={scale <= MIN_ZOOM}
                 onClick={zoomOut}
-                aria-label="Verkleinern"
+                aria-label={t("documentPreview.zoomOut")}
               >
                 <ZoomOut className="h-3.5 w-3.5" />
               </Button>
               <button
                 className="text-xs tabular-nums min-w-[48px] text-center hover:underline cursor-pointer bg-transparent border-0"
                 onClick={resetZoom}
-                title="Zoom zurücksetzen"
+                title={t("documentPreview.zoomReset")}
               >
                 {Math.round(scale * 100)}%
               </button>
@@ -883,7 +890,7 @@ function PdfViewer({
                 className="h-7 w-7"
                 disabled={scale >= MAX_ZOOM}
                 onClick={zoomIn}
-                aria-label="Vergrößern"
+                aria-label={t("documentPreview.zoomIn")}
               >
                 <ZoomIn className="h-3.5 w-3.5" />
               </Button>
@@ -892,7 +899,7 @@ function PdfViewer({
                 size="icon"
                 className="h-7 w-7"
                 onClick={resetZoom}
-                aria-label="Zoom zurücksetzen"
+                aria-label={t("documentPreview.zoomReset")}
               >
                 <Maximize2 className="h-3.5 w-3.5" />
               </Button>
@@ -920,7 +927,7 @@ function PdfViewer({
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="h-8 w-8 text-primary animate-spin" />
               <span className="text-sm text-muted-foreground">
-                PDF wird geladen...
+                {t("documentPreview.pdfLoading")}
               </span>
             </div>
           </div>

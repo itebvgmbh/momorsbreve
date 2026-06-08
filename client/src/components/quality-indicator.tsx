@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -24,6 +25,7 @@ export interface QualityDetails {
 }
 
 export function QualityIndicator({ quality, deepAnalysis }: { quality: QualityDetails; deepAnalysis?: boolean }) {
+  const { t } = useTranslation();
   const [hinweiseOpen, setHinweiseOpen] = useState(false);
   const tips = deepAnalysis ? (quality.optimizationTips?.filter(Boolean) ?? []) : [];
   const [tippsOpen, setTippsOpen] = useState(() => tips.length > 0);
@@ -32,19 +34,19 @@ export function QualityIndicator({ quality, deepAnalysis }: { quality: QualityDe
       bg: "bg-emerald-100 dark:bg-emerald-900/30",
       text: "text-emerald-700 dark:text-emerald-400",
       icon: CheckCircle2,
-      label: "Gut lesbar",
+      label: t("quality.levelGreen"),
     },
     yellow: {
       bg: "bg-amber-100 dark:bg-amber-900/30",
       text: "text-amber-700 dark:text-amber-400",
       icon: AlertTriangle,
-      label: "Teilweise lesbar",
+      label: t("quality.levelYellow"),
     },
     red: {
       bg: "bg-red-100 dark:bg-red-900/30",
       text: "text-red-700 dark:text-red-400",
       icon: XCircle,
-      label: "Sehr schwer lesbar – Ergebnis kann eingeschränkt sein",
+      label: t("quality.levelRed"),
     },
   };
 
@@ -66,7 +68,7 @@ export function QualityIndicator({ quality, deepAnalysis }: { quality: QualityDe
         {deepAnalysis && (
           <Badge variant="secondary" className="gap-1 text-xs shrink-0 hidden sm:inline-flex">
             <Sparkles className="h-3 w-3" />
-            KI-Tiefenanalyse
+            {t("quality.deepAnalysisBadge")}
           </Badge>
         )}
       </div>
@@ -81,7 +83,7 @@ export function QualityIndicator({ quality, deepAnalysis }: { quality: QualityDe
       <div className="space-y-3">
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-sm">Wie gut lesbar ist die Vorlage?</span>
+            <span className="text-sm">{t("quality.readabilityQuestion")}</span>
             <div className="flex gap-0.5">
               {[1, 2, 3, 4, 5].map((s) => (
                 <Star
@@ -99,7 +101,7 @@ export function QualityIndicator({ quality, deepAnalysis }: { quality: QualityDe
 
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-sm">Sicherheit der Erkennung</span>
+            <span className="text-sm">{t("quality.recognitionConfidence")}</span>
             <span className="text-sm font-medium">{quality.confidence}%</span>
           </div>
           <Progress value={quality.confidence} className="h-2" />
@@ -113,7 +115,7 @@ export function QualityIndicator({ quality, deepAnalysis }: { quality: QualityDe
               className="flex items-center gap-1.5 text-sm font-medium hover:text-foreground transition-colors w-full"
             >
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${hinweiseOpen ? "rotate-0" : "-rotate-90"}`} />
-              Hinweise ({quality.issues.length})
+              {t("quality.issuesToggle", { count: quality.issues.length })}
             </button>
             {hinweiseOpen && (
               <div className="space-y-1 mt-2 ml-5.5 pl-1">
@@ -137,7 +139,7 @@ export function QualityIndicator({ quality, deepAnalysis }: { quality: QualityDe
             >
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${tippsOpen ? "rotate-0" : "-rotate-90"}`} />
               <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
-              Tipps für ein besseres Ergebnis ({tips.length})
+              {t("quality.tipsToggle", { count: tips.length })}
             </button>
             {tippsOpen && (
               <div className="space-y-1.5 mt-2 ml-5.5 pl-1">

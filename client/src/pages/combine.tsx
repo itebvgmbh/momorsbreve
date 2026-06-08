@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, getAuthHeaders } from "@/lib/queryClient";
@@ -81,6 +82,7 @@ interface CoverPageOptions {
 }
 
 export default function CombinePage() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const search = useSearch();
   const { toast } = useToast();
@@ -265,17 +267,17 @@ export default function CombinePage() {
         headers,
         body: JSON.stringify(buildBody()),
       });
-      if (!res.ok) throw new Error("Vorschau fehlgeschlagen.");
+      if (!res.ok) throw new Error(t("combine.previewFailed"));
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       previewUrlRef.current = url;
       setPreviewUrl(url);
     } catch {
-      toast({ title: "Fehler", description: "PDF-Vorschau fehlgeschlagen.", variant: "destructive" });
+      toast({ title: t("combine.errorTitle"), description: t("combine.previewToast"), variant: "destructive" });
     } finally {
       setIsGeneratingPreview(false);
     }
-  }, [orderedJobIds, textDirty, buildBody, toast]);
+  }, [orderedJobIds, textDirty, buildBody, toast, t]);
 
   useEffect(() => {
     if (orderedJobIds.length === 0 && !textDirty) return;
@@ -312,7 +314,7 @@ export default function CombinePage() {
         headers,
         body: JSON.stringify(buildBody()),
       });
-      if (!res.ok) throw new Error("Export fehlgeschlagen.");
+      if (!res.ok) throw new Error(t("combine.exportFailed"));
       const blob = await res.blob();
       const disposition = res.headers.get("Content-Disposition");
       const match = disposition?.match(/filename="?([^";\n]+)"?/);
@@ -323,9 +325,9 @@ export default function CombinePage() {
       a.download = filename;
       a.click();
       URL.revokeObjectURL(objectUrl);
-      toast({ title: "Export", description: "PDF wird heruntergeladen." });
+      toast({ title: t("combine.exportTitle"), description: t("combine.exportToast") });
     } catch {
-      toast({ title: "Fehler", description: "PDF-Export fehlgeschlagen.", variant: "destructive" });
+      toast({ title: t("combine.errorTitle"), description: t("combine.exportErrorToast"), variant: "destructive" });
     } finally {
       setIsDownloading(false);
     }
@@ -342,10 +344,10 @@ export default function CombinePage() {
   if (jobIdsParam.length === 0) {
     return (
       <div className="p-6 max-w-5xl mx-auto text-center">
-        <p className="text-muted-foreground">Keine Dokumente ausgewählt.</p>
+        <p className="text-muted-foreground">{t("combine.noDocuments")}</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate("/app")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Zurück zum Dashboard
+          {t("combine.backToDashboard")}
         </Button>
       </div>
     );
@@ -364,22 +366,22 @@ export default function CombinePage() {
             }
           }}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Dashboard
+            {t("combine.dashboard")}
           </Button>
           <Separator orientation="vertical" className="h-6" />
-          <h1 className="font-serif text-lg font-semibold hidden sm:block">Sammel-PDF erstellen</h1>
+          <h1 className="font-serif text-lg font-semibold hidden sm:block">{t("combine.title")}</h1>
           <Badge variant="secondary" className="text-xs">
-            {orderedJobIds.length} {orderedJobIds.length === 1 ? "Dokument" : "Dokumente"}, {totalPages} Seiten
+            {orderedJobIds.length === 1 ? t("combine.docCountOne", { count: orderedJobIds.length }) : t("combine.docCountMany", { count: orderedJobIds.length })}, {t("combine.pageCount", { count: totalPages })}
           </Badge>
         </div>
         <div className="hidden md:flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={downloadAsText} title="Als Text speichern">
+          <Button variant="outline" size="sm" onClick={downloadAsText} title={t("combine.saveAsText")}>
             <FileText className="h-4 w-4 mr-1.5" />
-            Text
+            {t("combine.text")}
           </Button>
           <Button size="sm" onClick={downloadPdf} disabled={isDownloading}>
             {isDownloading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
-            PDF herunterladen
+            {t("combine.downloadPdf")}
           </Button>
         </div>
       </div>
@@ -388,9 +390,9 @@ export default function CombinePage() {
       <div className="md:hidden border-b px-4 py-2">
         <Tabs value={mobilePanel} onValueChange={(v) => setMobilePanel(v as typeof mobilePanel)}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="settings" className="text-xs" data-tour="combine-tab-settings">Einstellungen</TabsTrigger>
-            <TabsTrigger value="editor" className="text-xs">Editor</TabsTrigger>
-            <TabsTrigger value="preview" className="text-xs">Vorschau</TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs" data-tour="combine-tab-settings">{t("combine.tabSettings")}</TabsTrigger>
+            <TabsTrigger value="editor" className="text-xs">{t("combine.tabEditor")}</TabsTrigger>
+            <TabsTrigger value="preview" className="text-xs">{t("combine.tabPreview")}</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -403,7 +405,7 @@ export default function CombinePage() {
           <div data-tour="combine-order">
             <h2 className="text-sm font-semibold mb-2 flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
-              Reihenfolge
+              {t("combine.order")}
             </h2>
             {jobQueries.isLoading ? (
               <div className="space-y-2">{orderedJobIds.map((id) => <Skeleton key={id} className="h-14" />)}</div>
@@ -418,7 +420,7 @@ export default function CombinePage() {
                       <Badge variant="secondary" className="text-[10px] shrink-0">{idx + 1}</Badge>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium truncate">{snippet || getScriptTypeDisplayLabel(r?.job?.scriptType ?? "auto")}</p>
-                        <p className="text-[10px] text-muted-foreground">{r?.job?.totalPages ?? "?"} Seiten</p>
+                        <p className="text-[10px] text-muted-foreground">{t("combine.pagesLabel", { count: r?.job?.totalPages ?? 0 })}</p>
                       </div>
                       <div className="flex gap-0.5 shrink-0">
                         <Button size="icon" variant="ghost" className="h-6 w-6" disabled={idx === 0} onClick={() => moveJob(idx, idx - 1)}>
@@ -439,17 +441,17 @@ export default function CombinePage() {
 
           {/* Text version */}
           <div className="space-y-2" data-tour="combine-textversion">
-            <Label className="text-sm font-semibold">Textversion</Label>
+            <Label className="text-sm font-semibold">{t("combine.textVersion")}</Label>
             <Tabs value={textVersion} onValueChange={(v) => changeTextVersion(v as TextVersion)}>
               <TabsList className="w-full">
                 <TabsTrigger value="original" className="flex-1 text-xs">
-                  <FileText className="h-3 w-3 mr-1" />Original
+                  <FileText className="h-3 w-3 mr-1" />{t("combine.versionOriginal")}
                 </TabsTrigger>
                 <TabsTrigger value="completed" className="flex-1 text-xs">
-                  <Sparkles className="h-3 w-3 mr-1" />Ergänzt
+                  <Sparkles className="h-3 w-3 mr-1" />{t("combine.versionCompleted")}
                 </TabsTrigger>
                 <TabsTrigger value="interpreted" className="flex-1 text-xs">
-                  <Wand2 className="h-3 w-3 mr-1" />Interpretation
+                  <Wand2 className="h-3 w-3 mr-1" />{t("combine.versionInterpreted")}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -459,26 +461,26 @@ export default function CombinePage() {
 
           {/* PDF settings */}
           <div className="space-y-4" data-tour="combine-settings">
-            <Label className="text-sm font-semibold">PDF-Einstellungen</Label>
+            <Label className="text-sm font-semibold">{t("combine.pdfSettings")}</Label>
 
             <div className="flex items-center justify-between">
-              <Label htmlFor="cf" className="text-xs cursor-pointer">Fortlaufender Textfluss</Label>
+              <Label htmlFor="cf" className="text-xs cursor-pointer">{t("combine.continuousFlow")}</Label>
               <Switch id="cf" checked={continuousFlow} onCheckedChange={setContinuousFlow} />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="spl" className="text-xs cursor-pointer">Seitenangaben</Label>
+              <Label htmlFor="spl" className="text-xs cursor-pointer">{t("combine.pageLabels")}</Label>
               <Switch id="spl" checked={showPageLabels} onCheckedChange={setShowPageLabels} />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="ml" className="text-xs cursor-pointer">Fließtext</Label>
+              <Label htmlFor="ml" className="text-xs cursor-pointer">{t("combine.mergeLines")}</Label>
               <Switch id="ml" checked={mergeLines} onCheckedChange={setMergeLines} />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="jst" className="text-xs cursor-pointer">Blocksatz</Label>
+              <Label htmlFor="jst" className="text-xs cursor-pointer">{t("combine.justified")}</Label>
               <Switch id="jst" checked={justified} onCheckedChange={setJustified} />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="fs" className="text-xs">Schriftgröße</Label>
+              <Label htmlFor="fs" className="text-xs">{t("combine.fontSize")}</Label>
               <select
                 id="fs"
                 value={fontSize}
@@ -495,30 +497,30 @@ export default function CombinePage() {
           {/* Cover */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label htmlFor="ec" className="text-sm font-semibold cursor-pointer">Deckblatt</Label>
+              <Label htmlFor="ec" className="text-sm font-semibold cursor-pointer">{t("combine.coverPage")}</Label>
               <Switch id="ec" checked={enableCover} onCheckedChange={setEnableCover} />
             </div>
             {enableCover && (
               <div className="space-y-3 pl-1">
                 <div className="space-y-1">
-                  <Label htmlFor="ct" className="text-xs">Titel</Label>
-                  <Input id="ct" placeholder="z.B. MormorsBreve" value={cover.title} onChange={(e) => setCover({ ...cover, title: e.target.value })} className="h-8 text-xs" />
+                  <Label htmlFor="ct" className="text-xs">{t("combine.coverTitle")}</Label>
+                  <Input id="ct" placeholder={t("combine.coverTitlePlaceholder")} value={cover.title} onChange={(e) => setCover({ ...cover, title: e.target.value })} className="h-8 text-xs" />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="cs" className="text-xs">Untertitel</Label>
-                  <Input id="cs" placeholder="z.B. Erinnerungen 1920" value={cover.subtitle} onChange={(e) => setCover({ ...cover, subtitle: e.target.value })} className="h-8 text-xs" />
+                  <Label htmlFor="cs" className="text-xs">{t("combine.coverSubtitle")}</Label>
+                  <Input id="cs" placeholder={t("combine.coverSubtitlePlaceholder")} value={cover.subtitle} onChange={(e) => setCover({ ...cover, subtitle: e.target.value })} className="h-8 text-xs" />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="ca" className="text-xs">Autor</Label>
-                  <Input id="ca" placeholder="z.B. Maria Müller" value={cover.author} onChange={(e) => setCover({ ...cover, author: e.target.value })} className="h-8 text-xs" />
+                  <Label htmlFor="ca" className="text-xs">{t("combine.coverAuthor")}</Label>
+                  <Input id="ca" placeholder={t("combine.coverAuthorPlaceholder")} value={cover.author} onChange={(e) => setCover({ ...cover, author: e.target.value })} className="h-8 text-xs" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Stil</Label>
+                  <Label className="text-xs">{t("combine.coverStyle")}</Label>
                   <RadioGroup value={cover.style} onValueChange={(v) => setCover({ ...cover, style: v as CoverPageOptions["style"] })} className="flex gap-3">
                     {(["classic", "elegant", "minimal"] as const).map((s) => (
                       <div key={s} className="flex items-center gap-1">
                         <RadioGroupItem value={s} id={`st-${s}`} />
-                        <Label htmlFor={`st-${s}`} className="text-xs cursor-pointer capitalize">{s === "classic" ? "Klassisch" : s === "elegant" ? "Elegant" : "Schlicht"}</Label>
+                        <Label htmlFor={`st-${s}`} className="text-xs cursor-pointer capitalize">{s === "classic" ? t("combine.styleClassic") : s === "elegant" ? t("combine.styleElegant") : t("combine.styleMinimal")}</Label>
                       </div>
                     ))}
                   </RadioGroup>
@@ -533,11 +535,11 @@ export default function CombinePage() {
           <div className="space-y-2 pt-1" data-tour="combine-download">
             <Button className="w-full" onClick={downloadPdf} disabled={isDownloading}>
               {isDownloading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-              PDF herunterladen
+              {t("combine.downloadPdf")}
             </Button>
             <Button variant="outline" className="w-full" onClick={downloadAsText}>
               <FileText className="h-4 w-4 mr-2" />
-              Als Text speichern
+              {t("combine.saveAsText")}
             </Button>
           </div>
         </div>
@@ -545,9 +547,9 @@ export default function CombinePage() {
         {/* Middle column: Editor */}
         <div className={`flex-1 flex flex-col min-w-0 ${mobilePanel === "editor" ? "flex" : "hidden md:flex"}`}>
           <div className="flex items-center justify-between px-4 py-2 border-b">
-            <h2 className="text-sm font-semibold">Text-Editor</h2>
+            <h2 className="text-sm font-semibold">{t("combine.textEditor")}</h2>
             {textDirty && (
-              <Badge variant="secondary" className="text-[10px]">Bearbeitet</Badge>
+              <Badge variant="secondary" className="text-[10px]">{t("combine.edited")}</Badge>
             )}
           </div>
           <div className="flex-1 overflow-hidden p-2">
@@ -563,7 +565,7 @@ export default function CombinePage() {
                   setCombinedText(e.target.value);
                   setTextDirty(true);
                 }}
-                placeholder="Der zusammengeführte Text erscheint hier..."
+                placeholder={t("combine.editorPlaceholder")}
               />
             )}
           </div>
@@ -574,11 +576,11 @@ export default function CombinePage() {
           <div className="flex items-center justify-between px-3 py-2 border-b">
             <h2 className="text-sm font-semibold flex items-center gap-1.5">
               <Eye className="h-3.5 w-3.5" />
-              PDF-Vorschau
+              {t("combine.pdfPreview")}
             </h2>
             <div className="flex items-center gap-1">
               {isGeneratingPreview && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setFullscreen(true)} title="Vollbild">
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setFullscreen(true)} title={t("combine.fullscreen")}>
                 <Maximize2 className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -587,18 +589,18 @@ export default function CombinePage() {
             {isGeneratingPreview && !previewUrl ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
                 <Loader2 className="h-10 w-10 animate-spin" />
-                <span className="text-sm">PDF wird geladen…</span>
+                <span className="text-sm">{t("combine.pdfLoading")}</span>
               </div>
             ) : null}
             {previewUrl ? (
               <iframe
                 src={previewUrl}
                 className="w-full h-full"
-                title="PDF Vorschau"
+                title={t("combine.pdfPreview")}
               />
             ) : !isGeneratingPreview ? (
               <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
-                Vorschau wird generiert…
+                {t("combine.previewGenerating")}
               </div>
             ) : null}
           </div>
@@ -609,9 +611,9 @@ export default function CombinePage() {
       <AlertDialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ungespeicherte Änderungen</AlertDialogTitle>
+            <AlertDialogTitle>{t("combine.unsavedTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Sie haben den Text im Editor bearbeitet. Durch diese Aktion wird der Text aus den Originaldokumenten neu zusammengesetzt und Ihre Änderungen gehen verloren.
+              {t("combine.unsavedBody")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-wrap gap-2">
@@ -620,16 +622,16 @@ export default function CombinePage() {
               size="sm"
               onClick={() => {
                 downloadAsText();
-                toast({ title: "Gespeichert", description: "Text wurde als Datei heruntergeladen." });
+                toast({ title: t("combine.savedTitle"), description: t("combine.savedToast") });
                 const action = pendingAction;
                 setPendingAction(null);
                 action?.();
               }}
             >
               <FileText className="h-3.5 w-3.5 mr-1.5" />
-              Speichern & fortfahren
+              {t("combine.saveAndContinue")}
             </Button>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
@@ -638,7 +640,7 @@ export default function CombinePage() {
                 action?.();
               }}
             >
-              Ohne Speichern fortfahren
+              {t("combine.continueWithoutSaving")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -656,19 +658,19 @@ export default function CombinePage() {
           <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
             <h3 className="font-serif text-lg flex items-center gap-2">
               <Eye className="h-5 w-5" />
-              PDF-Vorschau
+              {t("combine.pdfPreview")}
             </h3>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={downloadPdf} disabled={isDownloading}>
                 {isDownloading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-                Herunterladen
+                {t("combine.download")}
               </Button>
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setFullscreen(false)} title="Vollbild beenden">
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setFullscreen(false)} title={t("combine.exitFullscreen")}>
                 <Minimize2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
-          <iframe src={previewUrl} className="flex-1 w-full border-0" style={{ minHeight: 0 }} title="PDF Vorschau (Vollbild)" />
+          <iframe src={previewUrl} className="flex-1 w-full border-0" style={{ minHeight: 0 }} title={t("combine.pdfPreviewFullscreen")} />
         </div>,
         document.body,
       )}

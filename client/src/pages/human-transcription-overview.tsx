@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -68,34 +70,42 @@ interface HumanTranscriptionRequest {
   expert?: ExpertAccount | null;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Anfrage gestellt",
-  quoted: "Angebot erhalten",
-  accepted: "Angenommen",
-  in_progress: "In Bearbeitung",
-  completed: "Abgeschlossen",
-  declined: "Abgelehnt",
-  cancelled: "Storniert",
-};
+function statusLabels(t: TFunction): Record<string, string> {
+  return {
+    pending: t("htOverview.statusPending"),
+    quoted: t("htOverview.statusQuoted"),
+    accepted: t("htOverview.statusAccepted"),
+    in_progress: t("htOverview.statusInProgress"),
+    completed: t("htOverview.statusCompleted"),
+    declined: t("htOverview.statusDeclined"),
+    cancelled: t("htOverview.statusCancelled"),
+  };
+}
 
-const URGENCY_LABELS: Record<string, string> = {
-  standard: "Standard (ca. 2 Wochen)",
-  express: "Express (ca. 1 Woche)",
-  priority: "Priorität (ca. 3 Tage)",
-};
+function urgencyLabels(t: TFunction): Record<string, string> {
+  return {
+    standard: t("htOverview.urgencyStandard"),
+    express: t("htOverview.urgencyExpress"),
+    priority: t("htOverview.urgencyPriority"),
+  };
+}
 
-const ACCURACY_LABELS: Record<string, string> = {
-  reading: "Lesetranskription",
-  scientific: "Wissenschaftlich-diplomatisch",
-};
+function accuracyLabels(t: TFunction): Record<string, string> {
+  return {
+    reading: t("htOverview.accuracyReading"),
+    scientific: t("htOverview.accuracyScientific"),
+  };
+}
 
-const BUDGET_LABELS: Record<string, string> = {
-  bis_100: "Bis 100 €",
-  "100_250": "100 € – 250 €",
-  "250_500": "250 € – 500 €",
-  "500_plus": "Über 500 €",
-  flexible: "Flexibel",
-};
+function budgetLabels(t: TFunction): Record<string, string> {
+  return {
+    bis_100: t("htOverview.budgetUpTo100"),
+    "100_250": t("htOverview.budget100to250"),
+    "250_500": t("htOverview.budget250to500"),
+    "500_plus": t("htOverview.budgetOver500"),
+    flexible: t("htOverview.budgetFlexible"),
+  };
+}
 
 function formatDate(s: string | null): string {
   if (!s) return "–";
@@ -111,11 +121,12 @@ function formatPrice(cents: number | null): string {
   }).format(cents / 100);
 }
 
-function getExpertDisplayName(expert: ExpertAccount | null | undefined): string {
-  return expert?.companyName || expert?.legalName || expert?.contactName || "Experte";
+function getExpertDisplayName(expert: ExpertAccount | null | undefined, t: TFunction): string {
+  return expert?.companyName || expert?.legalName || expert?.contactName || t("htOverview.expertFallback");
 }
 
 export default function HumanTranscriptionOverviewPage() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [acceptingRequest, setAcceptingRequest] = useState<HumanTranscriptionRequest | null>(null);
@@ -137,12 +148,12 @@ export default function HumanTranscriptionOverviewPage() {
       setAcceptingRequest(null);
       setExternalNoticeAccepted(false);
       toast({
-        title: "Angebot angenommen",
-        description: "Der Auftrag wurde kostenpflichtig beim Experten beauftragt. Die Abrechnung erfolgt direkt durch den Experten.",
+        title: t("htOverview.toastAcceptedTitle"),
+        description: t("htOverview.toastAcceptedDescription"),
       });
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("htOverview.toastErrorTitle"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -155,10 +166,10 @@ export default function HumanTranscriptionOverviewPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/human-transcription/requests"] });
-      toast({ title: "Angebot abgelehnt" });
+      toast({ title: t("htOverview.toastDeclinedTitle") });
     },
     onError: (error: Error) => {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+      toast({ title: t("htOverview.toastErrorTitle"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -171,29 +182,33 @@ export default function HumanTranscriptionOverviewPage() {
   }
 
   const list = requests ?? [];
+  const STATUS_LABELS = statusLabels(t);
+  const URGENCY_LABELS = urgencyLabels(t);
+  const ACCURACY_LABELS = accuracyLabels(t);
+  const BUDGET_LABELS = budgetLabels(t);
 
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-6">
       <div className="flex items-center justify-between gap-4">
         <Button variant="ghost" onClick={() => navigate("/app")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Dashboard
+          {t("htOverview.dashboard")}
         </Button>
-        <h1 className="font-serif text-xl font-bold">Experten-Anfragen</h1>
+        <h1 className="font-serif text-xl font-bold">{t("htOverview.title")}</h1>
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Hier sehen Sie Ihre Anfragen an menschliche Transkriptoren und eventuelle Angebote.
+        {t("htOverview.intro")}
       </p>
 
       {list.length === 0 ? (
         <Card className="p-8 text-center">
           <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground">
-            Sie haben noch keine Experten-Anfrage gestellt.
+            {t("htOverview.emptyTitle")}
           </p>
           <p className="text-sm text-muted-foreground mt-1">
-            Nach einer Vorschau können Sie unter „Experten beauftragen“ eine Anfrage starten.
+            {t("htOverview.emptyBody")}
           </p>
         </Card>
       ) : (
@@ -203,16 +218,16 @@ export default function HumanTranscriptionOverviewPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium">Auftrag #{req.id}</span>
+                    <span className="font-medium">{t("htOverview.orderNumber", { id: req.id })}</span>
                     <Badge variant="secondary">{STATUS_LABELS[req.status] ?? req.status}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Dringlichkeit: {URGENCY_LABELS[req.urgency] ?? req.urgency} ·{" "}
+                    {t("htOverview.urgencyLabel")}: {URGENCY_LABELS[req.urgency] ?? req.urgency} ·{" "}
                     {ACCURACY_LABELS[req.accuracyLevel] ?? req.accuracyLevel} ·{" "}
                     {BUDGET_LABELS[req.budgetRange] ?? req.budgetRange}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Erstellt am {formatDate(req.createdAt)}
+                    {t("htOverview.createdOn", { date: formatDate(req.createdAt) })}
                   </p>
                 </div>
                 <Button
@@ -220,7 +235,7 @@ export default function HumanTranscriptionOverviewPage() {
                   size="sm"
                   onClick={() => navigate(`/app/result/${req.jobId}`)}
                 >
-                  Zum Dokument
+                  {t("htOverview.toDocument")}
                 </Button>
               </div>
 
@@ -228,7 +243,7 @@ export default function HumanTranscriptionOverviewPage() {
                 <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border">
                   <h4 className="text-sm font-medium flex items-center gap-2 mb-2">
                     <MessageSquare className="h-4 w-4" />
-                    Ihr Angebot
+                    {t("htOverview.yourQuote")}
                   </h4>
                   {req.quotePriceEur != null && (
                     <p className="flex items-center gap-2 text-sm">
@@ -239,7 +254,7 @@ export default function HumanTranscriptionOverviewPage() {
                   {req.quoteDeadline && (
                     <p className="flex items-center gap-2 text-sm mt-1">
                       <Calendar className="h-4 w-4" />
-                      Voraussichtlich: {formatDate(req.quoteDeadline)}
+                      {t("htOverview.expectedBy", { date: formatDate(req.quoteDeadline) })}
                     </p>
                   )}
                   {req.quoteMessage && (
@@ -261,7 +276,7 @@ export default function HumanTranscriptionOverviewPage() {
                       ) : (
                         <CreditCard className="h-3 w-3 mr-1" />
                       )}
-                      Angebot prüfen und annehmen
+                      {t("htOverview.reviewAndAccept")}
                     </Button>
                     <Button
                       size="sm"
@@ -274,7 +289,7 @@ export default function HumanTranscriptionOverviewPage() {
                       ) : (
                         <X className="h-3 w-3 mr-1" />
                       )}
-                      Ablehnen
+                      {t("htOverview.decline")}
                     </Button>
                   </div>
                 </div>
@@ -284,11 +299,11 @@ export default function HumanTranscriptionOverviewPage() {
                 <div className="mt-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
                   <p className="text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
                     <Check className="h-4 w-4" />
-                    Auftrag angenommen – der Experte bearbeitet Ihre Anfrage
+                    {t("htOverview.acceptedExpertWorking")}
                   </p>
                   {req.quotePriceEur != null && (
                     <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1 ml-6">
-                      Preis laut Angebot: {formatPrice(req.quotePriceEur)}. Abrechnung direkt durch den Experten.
+                      {t("htOverview.priceBilledByExpert", { price: formatPrice(req.quotePriceEur) })}
                     </p>
                   )}
                 </div>
@@ -297,7 +312,7 @@ export default function HumanTranscriptionOverviewPage() {
               {req.status === "completed" && req.completedAt && (
                 <p className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-600" />
-                  Abgeschlossen am {formatDate(req.completedAt)}
+                  {t("htOverview.completedOn", { date: formatDate(req.completedAt) })}
                 </p>
               )}
             </Card>
@@ -313,25 +328,24 @@ export default function HumanTranscriptionOverviewPage() {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Kostenpflichtig beim Experten beauftragen</DialogTitle>
+            <DialogTitle>{t("htOverview.dialogTitle")}</DialogTitle>
             <DialogDescription>
-              Sie nehmen das Angebot verbindlich an. Vertragspartner ist der angezeigte Experte bzw. dessen Firma.
+              {t("htOverview.dialogDescription")}
             </DialogDescription>
           </DialogHeader>
           {acceptingRequest && (
             <div className="space-y-3 text-sm">
               <p>
-                Angebot: <strong>{formatPrice(acceptingRequest.quotePriceEur)}</strong>
+                {t("htOverview.quoteLabel")}: <strong>{formatPrice(acceptingRequest.quotePriceEur)}</strong>
               </p>
               {acceptingRequest.expert && (
                 <div className="rounded-md border border-border bg-background p-3">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Vertragspartner</p>
-                  <p className="font-medium">{getExpertDisplayName(acceptingRequest.expert)}</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">{t("htOverview.contractPartner")}</p>
+                  <p className="font-medium">{getExpertDisplayName(acceptingRequest.expert, t)}</p>
                 </div>
               )}
               <p className="text-muted-foreground">
-                MormorsBreve.de startet keine Zahlung und stellt für diesen Auftrag keine Rechnung.
-                Zahlung, Rechnung, Leistung und Haftung liegen direkt beim Experten.
+                {t("htOverview.noPaymentNotice")}
               </p>
               {acceptingRequest.expert && (
                 <Collapsible className="rounded-md border border-border bg-muted/30">
@@ -340,14 +354,14 @@ export default function HumanTranscriptionOverviewPage() {
                       type="button"
                       className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm font-medium"
                     >
-                      <span>Kontaktdaten des Experten anzeigen</span>
+                      <span>{t("htOverview.showExpertContact")}</span>
                       <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     </button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="px-3 pb-3 text-sm text-muted-foreground">
                     <div className="border-t border-border pt-3 space-y-1">
                       <p className="font-medium text-foreground">
-                        {getExpertDisplayName(acceptingRequest.expert)}
+                        {getExpertDisplayName(acceptingRequest.expert, t)}
                       </p>
                       {(acceptingRequest.expert.street || acceptingRequest.expert.postalCode || acceptingRequest.expert.city) && (
                         <p>
@@ -357,11 +371,11 @@ export default function HumanTranscriptionOverviewPage() {
                         </p>
                       )}
                       {acceptingRequest.expert.country && <p>{acceptingRequest.expert.country}</p>}
-                      {acceptingRequest.expert.invoiceEmail && <p>E-Mail: {acceptingRequest.expert.invoiceEmail}</p>}
-                      {acceptingRequest.expert.phone && <p>Telefon: {acceptingRequest.expert.phone}</p>}
-                      {acceptingRequest.expert.vatId && <p>USt-IdNr.: {acceptingRequest.expert.vatId}</p>}
+                      {acceptingRequest.expert.invoiceEmail && <p>{t("htOverview.emailLabel")}: {acceptingRequest.expert.invoiceEmail}</p>}
+                      {acceptingRequest.expert.phone && <p>{t("htOverview.phoneLabel")}: {acceptingRequest.expert.phone}</p>}
+                      {acceptingRequest.expert.vatId && <p>{t("htOverview.vatLabel")}: {acceptingRequest.expert.vatId}</p>}
                       {acceptingRequest.expert.tradeRegisterName && (
-                        <p>Register: {acceptingRequest.expert.tradeRegisterName}{acceptingRequest.expert.tradeRegisterNumber ? `, ${acceptingRequest.expert.tradeRegisterNumber}` : ""}</p>
+                        <p>{t("htOverview.registerLabel")}: {acceptingRequest.expert.tradeRegisterName}{acceptingRequest.expert.tradeRegisterNumber ? `, ${acceptingRequest.expert.tradeRegisterNumber}` : ""}</p>
                       )}
                     </div>
                   </CollapsibleContent>
@@ -373,22 +387,21 @@ export default function HumanTranscriptionOverviewPage() {
                   onCheckedChange={(checked) => setExternalNoticeAccepted(checked === true)}
                 />
                 <span>
-                  Ich bestätige, dass ich den Auftrag kostenpflichtig beim Experten beauftrage
-                  und dass der Vertrag mit dem genannten Experten zustande kommt. Die Abrechnung erfolgt außerhalb der Plattform direkt durch den Experten.
+                  {t("htOverview.confirmCheckbox")}
                 </span>
               </label>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setAcceptingRequest(null)}>
-              Abbrechen
+              {t("common.cancel")}
             </Button>
             <Button
               disabled={!externalNoticeAccepted || acceptMutation.isPending || !acceptingRequest}
               onClick={() => acceptingRequest && acceptMutation.mutate(acceptingRequest.id)}
             >
               {acceptMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Zahlungspflichtig beim Experten bestellen
+              {t("htOverview.orderPaidAtExpert")}
             </Button>
           </DialogFooter>
         </DialogContent>

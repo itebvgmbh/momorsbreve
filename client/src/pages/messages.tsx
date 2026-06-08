@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -50,34 +52,46 @@ type ConversationDetail = {
   messages: SupportMessage[];
 };
 
-const categoryLabels: Record<string, { label: string; icon: React.ReactNode }> = {
-  hilfe: { label: "Hilfe", icon: <HelpCircle className="h-3.5 w-3.5" /> },
-  feedback: { label: "Feedback", icon: <MessageCircle className="h-3.5 w-3.5" /> },
-  fehler: { label: "Fehlermeldung", icon: <Bug className="h-3.5 w-3.5" /> },
-  sonstiges: { label: "Sonstiges", icon: <MoreHorizontal className="h-3.5 w-3.5" /> },
+const categoryIcons: Record<string, React.ReactNode> = {
+  hilfe: <HelpCircle className="h-3.5 w-3.5" />,
+  feedback: <MessageCircle className="h-3.5 w-3.5" />,
+  fehler: <Bug className="h-3.5 w-3.5" />,
+  sonstiges: <MoreHorizontal className="h-3.5 w-3.5" />,
 };
 
+const categoryLabelKeys: Record<string, string> = {
+  hilfe: "messages.categoryHilfe",
+  feedback: "messages.categoryFeedback",
+  fehler: "messages.categoryFehler",
+  sonstiges: "messages.categorySonstiges",
+};
+
+function getCategoryLabel(category: string, t: TFunction) {
+  return t(categoryLabelKeys[category] || categoryLabelKeys.sonstiges);
+}
+
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   switch (status) {
     case "open":
       return (
         <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs">
           <Clock className="h-3 w-3 mr-1" />
-          Offen
+          {t("messages.statusOpen")}
         </Badge>
       );
     case "answered":
       return (
         <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs">
           <CheckCircle2 className="h-3 w-3 mr-1" />
-          Beantwortet
+          {t("messages.statusAnswered")}
         </Badge>
       );
     case "closed":
       return (
         <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs">
           <XCircle className="h-3 w-3 mr-1" />
-          Geschlossen
+          {t("messages.statusClosed")}
         </Badge>
       );
     default:
@@ -95,7 +109,7 @@ function formatDate(date: string | Date) {
   });
 }
 
-function formatShortDate(date: string | Date) {
+function formatShortDate(date: string | Date, t: TFunction) {
   const d = new Date(date);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
@@ -104,7 +118,7 @@ function formatShortDate(date: string | Date) {
   if (diffDays === 0) {
     return d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
   }
-  if (diffDays === 1) return "Gestern";
+  if (diffDays === 1) return t("messages.yesterday");
   if (diffDays < 7) {
     return d.toLocaleDateString("de-DE", { weekday: "short" });
   }
@@ -112,6 +126,7 @@ function formatShortDate(date: string | Date) {
 }
 
 export default function MessagesPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
@@ -142,10 +157,10 @@ export default function MessagesPage() {
       setNewCategory("hilfe");
       setNewContent("");
       setSelectedId(convo.id);
-      toast({ title: "Nachricht gesendet", description: "Wir melden uns schnellstmöglich bei Ihnen." });
+      toast({ title: t("messages.toastSentTitle"), description: t("messages.toastSentBody") });
     },
     onError: () => {
-      toast({ title: "Fehler", description: "Nachricht konnte nicht gesendet werden.", variant: "destructive" });
+      toast({ title: t("messages.toastErrorTitle"), description: t("messages.toastCreateErrorBody"), variant: "destructive" });
     },
   });
 
@@ -160,7 +175,7 @@ export default function MessagesPage() {
       setReplyContent("");
     },
     onError: () => {
-      toast({ title: "Fehler", description: "Antwort konnte nicht gesendet werden.", variant: "destructive" });
+      toast({ title: t("messages.toastErrorTitle"), description: t("messages.toastReplyErrorBody"), variant: "destructive" });
     },
   });
 
@@ -180,52 +195,52 @@ export default function MessagesPage() {
     <div className="p-4 sm:p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-serif text-2xl font-bold">Support</h1>
+          <h1 className="font-serif text-2xl font-bold">{t("messages.title")}</h1>
           <p className="text-sm text-muted-foreground">
-            Schreiben Sie uns – wir helfen Ihnen gerne weiter.
+            {t("messages.subtitle")}
           </p>
         </div>
         <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Neue Nachricht
+              {t("messages.newMessage")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle className="font-serif">Neue Nachricht</DialogTitle>
+              <DialogTitle className="font-serif">{t("messages.newMessage")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-2">
               <div className="space-y-2">
-                <Label htmlFor="category">Kategorie</Label>
+                <Label htmlFor="category">{t("messages.categoryLabel")}</Label>
                 <Select value={newCategory} onValueChange={setNewCategory}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="hilfe">Hilfe</SelectItem>
-                    <SelectItem value="feedback">Feedback</SelectItem>
-                    <SelectItem value="fehler">Fehlermeldung</SelectItem>
-                    <SelectItem value="sonstiges">Sonstiges</SelectItem>
+                    <SelectItem value="hilfe">{t("messages.categoryHilfe")}</SelectItem>
+                    <SelectItem value="feedback">{t("messages.categoryFeedback")}</SelectItem>
+                    <SelectItem value="fehler">{t("messages.categoryFehler")}</SelectItem>
+                    <SelectItem value="sonstiges">{t("messages.categorySonstiges")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="subject">Betreff</Label>
+                <Label htmlFor="subject">{t("messages.subjectLabel")}</Label>
                 <Input
                   id="subject"
-                  placeholder="Worum geht es?"
+                  placeholder={t("messages.subjectPlaceholder")}
                   value={newSubject}
                   onChange={(e) => setNewSubject(e.target.value)}
                   maxLength={200}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="content">Nachricht</Label>
+                <Label htmlFor="content">{t("messages.contentLabel")}</Label>
                 <Textarea
                   id="content"
-                  placeholder="Beschreiben Sie Ihr Anliegen..."
+                  placeholder={t("messages.contentPlaceholder")}
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
                   rows={5}
@@ -238,7 +253,7 @@ export default function MessagesPage() {
                 disabled={createMutation.isPending || !newSubject.trim() || !newContent.trim()}
               >
                 <Send className="h-4 w-4 mr-2" />
-                {createMutation.isPending ? "Wird gesendet..." : "Nachricht senden"}
+                {createMutation.isPending ? t("messages.sending") : t("messages.sendMessage")}
               </Button>
             </div>
           </DialogContent>
@@ -259,7 +274,7 @@ export default function MessagesPage() {
               <ScrollArea className="h-[calc(100vh-240px)]">
                 <div className="divide-y">
                   {conversations.map((convo) => {
-                    const cat = categoryLabels[convo.category] || categoryLabels.sonstiges;
+                    const catIcon = categoryIcons[convo.category] || categoryIcons.sonstiges;
                     return (
                       <button
                         key={convo.id}
@@ -273,13 +288,13 @@ export default function MessagesPage() {
                             {convo.subject}
                           </span>
                           <span className="text-[11px] text-muted-foreground shrink-0">
-                            {formatShortDate(convo.updatedAt)}
+                            {formatShortDate(convo.updatedAt, t)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            {cat.icon}
-                            {cat.label}
+                            {catIcon}
+                            {getCategoryLabel(convo.category, t)}
                           </span>
                           <StatusBadge status={convo.status} />
                           {convo.unreadCount > 0 && (
@@ -288,7 +303,7 @@ export default function MessagesPage() {
                         </div>
                         {convo.lastMessage && (
                           <p className="text-xs text-muted-foreground line-clamp-1">
-                            {convo.lastMessage.isAdmin ? "Support: " : "Sie: "}
+                            {convo.lastMessage.isAdmin ? t("messages.prefixSupport") : t("messages.prefixYou")}
                             {convo.lastMessage.content}
                           </p>
                         )}
@@ -300,13 +315,13 @@ export default function MessagesPage() {
             ) : (
               <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                 <Inbox className="h-12 w-12 text-muted-foreground/40 mb-4" />
-                <h3 className="font-serif text-lg font-semibold mb-1">Noch keine Support-Anfragen</h3>
+                <h3 className="font-serif text-lg font-semibold mb-1">{t("messages.emptyTitle")}</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Haben Sie eine Frage oder Feedback? Wir freuen uns auf Ihre Nachricht.
+                  {t("messages.emptyBody")}
                 </p>
                 <Button variant="outline" onClick={() => setNewDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Erste Nachricht schreiben
+                  {t("messages.emptyCta")}
                 </Button>
               </div>
             )}
@@ -331,7 +346,7 @@ export default function MessagesPage() {
                     <h2 className="font-medium text-sm truncate">{detail.conversation.subject}</h2>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs text-muted-foreground">
-                        {categoryLabels[detail.conversation.category]?.label || "Sonstiges"}
+                        {getCategoryLabel(detail.conversation.category, t)}
                       </span>
                       <StatusBadge status={detail.conversation.status} />
                     </div>
@@ -353,7 +368,7 @@ export default function MessagesPage() {
                           }`}
                         >
                           {msg.isAdmin && (
-                            <p className="text-[11px] font-medium mb-1 opacity-70">Support</p>
+                            <p className="text-[11px] font-medium mb-1 opacity-70">{t("messages.senderSupport")}</p>
                           )}
                           <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                           <p className={`text-[10px] mt-1 ${msg.isAdmin ? "text-muted-foreground" : "text-primary-foreground/70"}`}>
@@ -369,7 +384,7 @@ export default function MessagesPage() {
                   <div className="border-t p-4">
                     <div className="flex gap-2">
                       <Textarea
-                        placeholder="Antwort schreiben..."
+                        placeholder={t("messages.replyPlaceholder")}
                         value={replyContent}
                         onChange={(e) => setReplyContent(e.target.value)}
                         rows={2}
@@ -390,7 +405,7 @@ export default function MessagesPage() {
                       </Button>
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-1.5">
-                      Strg+Enter zum Senden
+                      {t("messages.sendHint")}
                     </p>
                   </div>
                 )}
@@ -398,7 +413,7 @@ export default function MessagesPage() {
                 {detail.conversation.status === "closed" && (
                   <div className="border-t p-4 text-center">
                     <p className="text-sm text-muted-foreground">
-                      Diese Konversation wurde geschlossen.
+                      {t("messages.conversationClosed")}
                     </p>
                   </div>
                 )}
@@ -413,7 +428,7 @@ export default function MessagesPage() {
               <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                 <MessageSquare className="h-12 w-12 text-muted-foreground/30 mb-4" />
                 <p className="text-sm text-muted-foreground">
-                  Wählen Sie eine Konversation aus oder schreiben Sie eine neue Nachricht.
+                  {t("messages.selectConversation")}
                 </p>
               </div>
             )}

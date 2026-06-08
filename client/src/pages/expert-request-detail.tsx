@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useParams } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -46,14 +47,14 @@ interface ExpertMe {
   expert: { isActive?: boolean } | null;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Offen",
-  quoted: "Angebot gesendet",
-  accepted: "Angenommen",
-  in_progress: "In Bearbeitung",
-  completed: "Abgeschlossen",
-  declined: "Abgelehnt",
-  cancelled: "Storniert",
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  pending: "expertRequestDetail.statusPending",
+  quoted: "expertRequestDetail.statusQuoted",
+  accepted: "expertRequestDetail.statusAccepted",
+  in_progress: "expertRequestDetail.statusInProgress",
+  completed: "expertRequestDetail.statusCompleted",
+  declined: "expertRequestDetail.statusDeclined",
+  cancelled: "expertRequestDetail.statusCancelled",
 };
 
 function formatPriceInput(cents: number | null): string {
@@ -62,6 +63,7 @@ function formatPriceInput(cents: number | null): string {
 }
 
 export default function ExpertRequestDetailPage() {
+  const { t } = useTranslation();
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -119,9 +121,9 @@ export default function ExpertRequestDetailPage() {
     },
     onSuccess: () => {
       invalidate();
-      toast({ title: "Angebot gesendet" });
+      toast({ title: t("expertRequestDetail.toastQuoteSent") });
     },
-    onError: (error: Error) => toast({ title: "Fehler", description: error.message, variant: "destructive" }),
+    onError: (error: Error) => toast({ title: t("expertRequestDetail.toastError"), description: error.message, variant: "destructive" }),
   });
 
   const saveMutation = useMutation({
@@ -138,9 +140,9 @@ export default function ExpertRequestDetailPage() {
     },
     onSuccess: () => {
       invalidate();
-      toast({ title: "Ergebnis gespeichert" });
+      toast({ title: t("expertRequestDetail.toastResultSaved") });
     },
-    onError: (error: Error) => toast({ title: "Fehler", description: error.message, variant: "destructive" }),
+    onError: (error: Error) => toast({ title: t("expertRequestDetail.toastError"), description: error.message, variant: "destructive" }),
   });
 
   const completeMutation = useMutation({
@@ -150,18 +152,18 @@ export default function ExpertRequestDetailPage() {
     },
     onSuccess: () => {
       invalidate();
-      toast({ title: "Auftrag abgeschlossen" });
+      toast({ title: t("expertRequestDetail.toastOrderCompleted") });
     },
-    onError: (error: Error) => toast({ title: "Fehler", description: error.message, variant: "destructive" }),
+    onError: (error: Error) => toast({ title: t("expertRequestDetail.toastError"), description: error.message, variant: "destructive" }),
   });
 
   const canQuote = data?.request.status === "pending" && expertMe?.canQuote === true;
   const canEdit = data ? ["accepted", "in_progress", "completed"].includes(data.request.status) : false;
   const canComplete = data ? ["accepted", "in_progress"].includes(data.request.status) : false;
   const resultLabel = useMemo(() => {
-    if (!data) return "Ergebnis";
-    return data.request.serviceLevel === "ki_geprueft" ? "KI-geprüfte Transkription" : "Expertentranskription";
-  }, [data]);
+    if (!data) return t("expertRequestDetail.resultDefault");
+    return data.request.serviceLevel === "ki_geprueft" ? t("expertRequestDetail.resultKiChecked") : t("expertRequestDetail.resultExpert");
+  }, [data, t]);
 
   const getVersionText = (page: RequestDetail["pages"][number]) => {
     if (textVersion === "interpreted") {
@@ -175,7 +177,7 @@ export default function ExpertRequestDetailPage() {
 
   const copyText = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "Kopiert", description: "Text wurde in die Zwischenablage kopiert." });
+    toast({ title: t("common.copied"), description: t("common.copiedToClipboard") });
   };
 
   if (isLoading || !data) {
@@ -190,18 +192,18 @@ export default function ExpertRequestDetailPage() {
     <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
       <Button variant="ghost" onClick={() => navigate("/app/expert")}>
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Zurück
+        {t("expertRequestDetail.back")}
       </Button>
 
       <Card className="p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="font-serif text-xl font-bold">Anfrage #{data.request.id}</h1>
+            <h1 className="font-serif text-xl font-bold">{t("expertRequestDetail.requestNumber", { id: data.request.id })}</h1>
             <p className="text-sm text-muted-foreground">
-              {data.request.serviceLevel === "ki_geprueft" ? "KI-geprüft" : "Expertentranskription"} · {data.job?.totalPages ?? data.pages.length} Seite(n)
+              {data.request.serviceLevel === "ki_geprueft" ? t("expertRequestDetail.serviceKiChecked") : t("expertRequestDetail.resultExpert")} · {t("expertRequestDetail.pagesCount", { count: data.job?.totalPages ?? data.pages.length })}
             </p>
           </div>
-          <Badge variant="secondary">{STATUS_LABELS[data.request.status] ?? data.request.status}</Badge>
+          <Badge variant="secondary">{STATUS_LABEL_KEYS[data.request.status] ? t(STATUS_LABEL_KEYS[data.request.status]) : data.request.status}</Badge>
         </div>
         {data.request.customerNotes && (
           <p className="text-sm text-muted-foreground mt-3 whitespace-pre-wrap">{data.request.customerNotes}</p>
@@ -211,28 +213,28 @@ export default function ExpertRequestDetailPage() {
       <Card className="p-4 space-y-4 border-primary/20">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-semibold">Dokument und KI-Transkription prüfen</h2>
+            <h2 className="font-semibold">{t("expertRequestDetail.reviewTitle")}</h2>
             <p className="text-sm text-muted-foreground">
-              Dieser Bereich entspricht dem Ergebnisfenster des Kunden: Originalbild, vorhandene KI-Fassungen und Bearbeitung der finalen Expertenfassung.
+              {t("expertRequestDetail.reviewDescription")}
             </p>
           </div>
           <Button variant="outline" onClick={() => navigate(`/app/result/${data.request.jobId}`)}>
-            Im Ergebnisfenster öffnen
+            {t("expertRequestDetail.openInResultWindow")}
           </Button>
         </div>
         <Tabs value={textVersion} onValueChange={(value) => setTextVersion(value as "original" | "completed" | "interpreted")}>
           <TabsList>
             <TabsTrigger value="original">
               <FileText className="h-3 w-3 mr-1" />
-              Originaltreu
+              {t("expertRequestDetail.tabFaithful")}
             </TabsTrigger>
             <TabsTrigger value="completed">
               <Sparkles className="h-3 w-3 mr-1" />
-              Ergänzt
+              {t("expertRequestDetail.tabCompleted")}
             </TabsTrigger>
             <TabsTrigger value="interpreted">
               <Wand2 className="h-3 w-3 mr-1" />
-              Interpretation
+              {t("expertRequestDetail.tabInterpretation")}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -240,46 +242,46 @@ export default function ExpertRequestDetailPage() {
 
       {canQuote && (
         <Card className="p-4 space-y-3">
-          <h2 className="font-semibold">Angebot erstellen</h2>
+          <h2 className="font-semibold">{t("expertRequestDetail.createQuoteTitle")}</h2>
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <Label>Preis (EUR)</Label>
-              <Input value={quotePrice} onChange={(e) => setQuotePrice(e.target.value)} placeholder="z. B. 150,00" />
+              <Label>{t("expertRequestDetail.priceLabel")}</Label>
+              <Input value={quotePrice} onChange={(e) => setQuotePrice(e.target.value)} placeholder={t("expertRequestDetail.pricePlaceholder")} />
             </div>
             <div>
-              <Label>Voraussichtliches Lieferdatum</Label>
+              <Label>{t("expertRequestDetail.expectedDeliveryLabel")}</Label>
               <Input type="date" value={quoteDeadline} onChange={(e) => setQuoteDeadline(e.target.value)} />
             </div>
           </div>
           <div>
-            <Label>Nachricht an den Kunden</Label>
+            <Label>{t("expertRequestDetail.messageToCustomerLabel")}</Label>
             <Textarea rows={4} value={quoteMessage} onChange={(e) => setQuoteMessage(e.target.value)} />
           </div>
           <Button onClick={() => quoteMutation.mutate()} disabled={quoteMutation.isPending}>
             {quoteMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Euro className="h-4 w-4 mr-2" />}
-            Angebot senden
+            {t("expertRequestDetail.sendQuote")}
           </Button>
         </Card>
       )}
       {data.request.status === "pending" && expertMe?.canQuote === false && (
         <Card className="p-4 border-amber-200 bg-amber-50/60 dark:bg-amber-950/20">
-          <h2 className="font-semibold">Angebot noch nicht möglich</h2>
+          <h2 className="font-semibold">{t("expertRequestDetail.quoteNotPossibleTitle")}</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Bitte vervollständigen Sie zuerst Ihr Expertenprofil. Fehlend: {(expertMe.missingFields ?? []).join(", ")}
+            {t("expertRequestDetail.quoteNotPossibleBody", { fields: (expertMe.missingFields ?? []).join(", ") })}
           </p>
           <Button variant="outline" className="mt-3" onClick={() => navigate("/app/expert/profile")}>
-            Profil bearbeiten
+            {t("expertRequestDetail.editProfile")}
           </Button>
         </Card>
       )}
 
       <Card className="p-4 space-y-4">
         <div>
-          <h2 className="font-semibold">{canEdit ? `${resultLabel} bearbeiten` : "Arbeitsbereich"}</h2>
+          <h2 className="font-semibold">{canEdit ? t("expertRequestDetail.editResultTitle", { label: resultLabel }) : t("expertRequestDetail.workspaceTitle")}</h2>
           <p className="text-sm text-muted-foreground">
             {canEdit
-              ? "Speichern Sie die finale Fassung. Der Kunde sieht nach Abschluss nur diese Ergebnisart."
-              : "Vor Annahme können Sie alle vorhandenen Seiten und KI-Fassungen prüfen. Die finale Bearbeitung wird nach Annahme des Angebots freigeschaltet."}
+              ? t("expertRequestDetail.editResultDescription")
+              : t("expertRequestDetail.workspaceDescription")}
           </p>
         </div>
         {data.pages.map((page) => {
@@ -287,24 +289,24 @@ export default function ExpertRequestDetailPage() {
           return (
             <div key={page.id} className="grid lg:grid-cols-2 gap-4 border-t border-border pt-4">
               <div>
-                <p className="text-sm font-medium mb-2">Original Seite {page.pageNumber}</p>
-                <DocumentPreview src={page.imageUrl} alt={`Seite ${page.pageNumber}`} className="rounded border" />
+                <p className="text-sm font-medium mb-2">{t("expertRequestDetail.originalPage", { n: page.pageNumber })}</p>
+                <DocumentPreview src={page.imageUrl} alt={t("expertRequestDetail.pageAlt", { n: page.pageNumber })} className="rounded border" />
               </div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <Label>KI-Fassung zur Prüfung</Label>
+                  <Label>{t("expertRequestDetail.kiVersionLabel")}</Label>
                   <Button size="sm" variant="ghost" onClick={() => copyText(versionText)} disabled={!versionText}>
                     <Copy className="h-3 w-3 mr-1" />
-                    Kopieren
+                    {t("common.copy")}
                   </Button>
                 </div>
                 <Card className="p-3 bg-muted/40 min-h-[160px]">
                   <p className="font-serif text-sm leading-relaxed whitespace-pre-wrap">
-                    {versionText || (page.status === "completed" ? "Für diese Version liegt kein Text vor." : "Diese Seite wurde noch nicht vollständig transkribiert.")}
+                    {versionText || (page.status === "completed" ? t("expertRequestDetail.noTextForVersion") : t("expertRequestDetail.pageNotFullyTranscribed"))}
                   </p>
                 </Card>
                 <div className="space-y-2">
-                  <Label>Finale Expertenfassung</Label>
+                  <Label>{t("expertRequestDetail.finalExpertVersionLabel")}</Label>
                   <Textarea
                     rows={12}
                     className="font-serif"
@@ -320,12 +322,12 @@ export default function ExpertRequestDetailPage() {
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => saveMutation.mutate()} disabled={!canEdit || saveMutation.isPending}>
             {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-            Ergebnis speichern
+            {t("expertRequestDetail.saveResult")}
           </Button>
           {canComplete && (
             <Button variant="outline" onClick={() => completeMutation.mutate()} disabled={completeMutation.isPending}>
               {completeMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-              Abschließen und freigeben
+              {t("expertRequestDetail.completeAndRelease")}
             </Button>
           )}
         </div>

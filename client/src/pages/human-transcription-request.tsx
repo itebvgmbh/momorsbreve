@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -20,35 +21,27 @@ interface ResultData {
 }
 
 const URGENCY_OPTIONS = [
-  { value: "standard", label: "Standard", description: "Ca. 2 Wochen" },
-  { value: "express", label: "Express", description: "Ca. 1 Woche" },
-  { value: "priority", label: "Priorität", description: "Ca. 3 Tage" },
+  { value: "standard", labelKey: "urgencyStandardLabel", descriptionKey: "urgencyStandardDesc" },
+  { value: "express", labelKey: "urgencyExpressLabel", descriptionKey: "urgencyExpressDesc" },
+  { value: "priority", labelKey: "urgencyPriorityLabel", descriptionKey: "urgencyPriorityDesc" },
 ] as const;
 
 const ACCURACY_OPTIONS = [
-  {
-    value: "reading",
-    label: "Lesetranskription",
-    description: "Lesbarer Text, Lücken sinnvoll ergänzt. Ideal für Familienunterlagen.",
-  },
-  {
-    value: "scientific",
-    label: "Wissenschaftlich-diplomatisch",
-    description: "Zeichengetreu mit Kennzeichnung unsicherer Stellen. Für Forschung und Edition.",
-  },
+  { value: "reading", labelKey: "accuracyReadingLabel", descriptionKey: "accuracyReadingDesc" },
+  { value: "scientific", labelKey: "accuracyScientificLabel", descriptionKey: "accuracyScientificDesc" },
 ] as const;
 
 const BUDGET_OPTIONS = [
-  { value: "bis_100", label: "Bis 100 €" },
-  { value: "100_250", label: "100 € – 250 €" },
-  { value: "250_500", label: "250 € – 500 €" },
-  { value: "500_plus", label: "Über 500 €" },
-  { value: "flexible", label: "Flexibel" },
+  { value: "bis_100", labelKey: "budgetUpTo100" },
+  { value: "100_250", labelKey: "budget100To250" },
+  { value: "250_500", labelKey: "budget250To500" },
+  { value: "500_plus", labelKey: "budgetOver500" },
+  { value: "flexible", labelKey: "budgetFlexible" },
 ] as const;
 
 const TIER_OPTIONS = [
-  { value: "ki_geprueft", label: "KI-Geprüft", priceLabel: "8,99 EUR/Seite", description: "KI-Transkription mit Experten-Korrektur, 2–3 Werktage" },
-  { value: "experten", label: "Experten", priceLabel: "ab 14,90 EUR/Seite", description: "Vollständige menschliche Transkription, 5–7 Werktage" },
+  { value: "ki_geprueft", labelKey: "tierKiLabel", priceLabelKey: "tierKiPrice", descriptionKey: "tierKiDesc" },
+  { value: "experten", labelKey: "tierExpertLabel", priceLabelKey: "tierExpertPrice", descriptionKey: "tierExpertDesc" },
 ] as const;
 
 function getTierFromSearch(): "ki_geprueft" | "experten" {
@@ -58,6 +51,7 @@ function getTierFromSearch(): "ki_geprueft" | "experten" {
 }
 
 export default function HumanTranscriptionRequestPage() {
+  const { t } = useTranslation();
   const params = useParams<{ jobId: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -91,14 +85,14 @@ export default function HumanTranscriptionRequestPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/human-transcription/requests"] });
       toast({
-        title: "Anfrage gesendet",
-        description: "Wir melden uns mit einem individuellen Angebot bei Ihnen.",
+        title: t("htRequest.toastSentTitle"),
+        description: t("htRequest.toastSentBody"),
       });
       navigate("/app/human-transcription");
     },
     onError: (error: Error) => {
       toast({
-        title: "Fehler",
+        title: t("htRequest.toastErrorTitle"),
         description: error.message,
         variant: "destructive",
       });
@@ -133,13 +127,13 @@ export default function HumanTranscriptionRequestPage() {
       <div className="flex items-center justify-between gap-4">
         <Button variant="ghost" onClick={() => navigate(`/app/preview/${jobId}`)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Zurück
+          {t("htRequest.back")}
         </Button>
-        <h1 className="font-serif text-xl font-bold">Anfrage stellen</h1>
+        <h1 className="font-serif text-xl font-bold">{t("htRequest.title")}</h1>
       </div>
 
       <div>
-        <Label className="text-base font-medium mb-3 block">Service-Option</Label>
+        <Label className="text-base font-medium mb-3 block">{t("htRequest.serviceOption")}</Label>
         <div className="grid gap-2">
           {TIER_OPTIONS.map((opt) => (
             <button
@@ -152,12 +146,12 @@ export default function HumanTranscriptionRequestPage() {
                   : "border-border hover:bg-muted/50"
               }`}
             >
-              <span className="font-medium">{opt.label}</span>
-              <span className="block text-sm text-muted-foreground">{opt.description}</span>
-              <span className="block text-sm font-semibold mt-1">{opt.priceLabel}</span>
+              <span className="font-medium">{t(`htRequest.${opt.labelKey}`)}</span>
+              <span className="block text-sm text-muted-foreground">{t(`htRequest.${opt.descriptionKey}`)}</span>
+              <span className="block text-sm font-semibold mt-1">{t(`htRequest.${opt.priceLabelKey}`)}</span>
               {serviceLevel === opt.value && opt.value === "ki_geprueft" && (
                 <span className="block text-xs text-muted-foreground mt-0.5">
-                  Richtpreis für {job.totalPages} Seiten: ca. {indicativeTotal} EUR
+                  {t("htRequest.indicativePrice", { pages: job.totalPages, total: indicativeTotal })}
                 </span>
               )}
             </button>
@@ -170,9 +164,7 @@ export default function HumanTranscriptionRequestPage() {
           <div className="flex gap-3">
             <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">Eignungsprüfung:</strong> KI-Geprüft setzt voraus, dass unsere KI den Text grundsätzlich lesen kann.
-              Wir prüfen nach Eingang Ihrer Anfrage, ob die Qualität ausreicht.
-              Bei Eignung starten wir direkt -- andernfalls bieten wir Ihnen den Experten-Service an. Sie gehen kein Risiko ein.
+              <strong className="text-foreground">{t("htRequest.eligibilityTitle")}</strong> {t("htRequest.eligibilityBody")}
             </p>
           </div>
         </Card>
@@ -181,15 +173,15 @@ export default function HumanTranscriptionRequestPage() {
       <Card className="p-4 border-primary/20 bg-muted/30">
         <h2 className="font-serif font-semibold mb-2 flex items-center gap-2">
           <FileText className="h-4 w-4" />
-          Ihr Dokument
+          {t("htRequest.yourDocument")}
         </h2>
         <ul className="text-sm text-muted-foreground space-y-1">
-          <li><strong>Schrift:</strong> {scriptLabel}</li>
-          <li><strong>Seiten:</strong> {job.totalPages}</li>
+          <li><strong>{t("htRequest.scriptLabel")}</strong> {scriptLabel}</li>
+          <li><strong>{t("htRequest.pagesLabel")}</strong> {job.totalPages}</li>
           {qualityLevel && (
             <li>
-              <strong>Qualität Vorschau:</strong>{" "}
-              {qualityLevel === "green" ? "Gut" : qualityLevel === "yellow" ? "Mittel" : "Schwierig"}
+              <strong>{t("htRequest.qualityPreviewLabel")}</strong>{" "}
+              {qualityLevel === "green" ? t("htRequest.qualityGood") : qualityLevel === "yellow" ? t("htRequest.qualityMedium") : t("htRequest.qualityHard")}
             </li>
           )}
         </ul>
@@ -202,7 +194,7 @@ export default function HumanTranscriptionRequestPage() {
 
       <div className="space-y-6">
         <div>
-          <Label className="text-base font-medium mb-3 block">Dringlichkeit</Label>
+          <Label className="text-base font-medium mb-3 block">{t("htRequest.urgency")}</Label>
           <div className="grid gap-2">
             {URGENCY_OPTIONS.map((opt) => (
               <button
@@ -215,15 +207,15 @@ export default function HumanTranscriptionRequestPage() {
                     : "border-border hover:bg-muted/50"
                 }`}
               >
-                <span className="font-medium">{opt.label}</span>
-                <span className="block text-sm text-muted-foreground">{opt.description}</span>
+                <span className="font-medium">{t(`htRequest.${opt.labelKey}`)}</span>
+                <span className="block text-sm text-muted-foreground">{t(`htRequest.${opt.descriptionKey}`)}</span>
               </button>
             ))}
           </div>
         </div>
 
         <div>
-          <Label className="text-base font-medium mb-3 block">Genauigkeitsgrad</Label>
+          <Label className="text-base font-medium mb-3 block">{t("htRequest.accuracyLevel")}</Label>
           <div className="grid gap-2">
             {ACCURACY_OPTIONS.map((opt) => (
               <button
@@ -236,15 +228,15 @@ export default function HumanTranscriptionRequestPage() {
                     : "border-border hover:bg-muted/50"
                 }`}
               >
-                <span className="font-medium">{opt.label}</span>
-                <p className="text-sm text-muted-foreground mt-0.5">{opt.description}</p>
+                <span className="font-medium">{t(`htRequest.${opt.labelKey}`)}</span>
+                <p className="text-sm text-muted-foreground mt-0.5">{t(`htRequest.${opt.descriptionKey}`)}</p>
               </button>
             ))}
           </div>
         </div>
 
         <div>
-          <Label className="text-base font-medium mb-3 block">Budget-Rahmen</Label>
+          <Label className="text-base font-medium mb-3 block">{t("htRequest.budgetRange")}</Label>
           <div className="flex flex-wrap gap-2">
             {BUDGET_OPTIONS.map((opt) => (
               <Button
@@ -254,7 +246,7 @@ export default function HumanTranscriptionRequestPage() {
                 size="sm"
                 onClick={() => setBudgetRange(opt.value)}
               >
-                {opt.label}
+                {t(`htRequest.${opt.labelKey}`)}
               </Button>
             ))}
           </div>
@@ -262,11 +254,11 @@ export default function HumanTranscriptionRequestPage() {
 
         <div>
           <Label htmlFor="notes" className="text-base font-medium mb-2 block">
-            Anmerkungen (optional)
+            {t("htRequest.notesLabel")}
           </Label>
           <Textarea
             id="notes"
-            placeholder="z. B. Zeitraum, Region, besondere Wünsche …"
+            placeholder={t("htRequest.notesPlaceholder")}
             value={customerNotes}
             onChange={(e) => setCustomerNotes(e.target.value)}
             rows={3}
@@ -278,32 +270,28 @@ export default function HumanTranscriptionRequestPage() {
       <Card className="p-4 border-primary/30 bg-muted/40">
         <h2 className="font-serif font-semibold mb-3 flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-primary" />
-          Datenweitergabe an Experten
+          {t("htRequest.dataSharingTitle")}
         </h2>
         <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-          Zur Bearbeitung Ihrer Anfrage leiten wir Ihre hochgeladenen Dokumente,
-          Transkriptionsentwürfe und Ihre Anmerkungen an ausgewählte Experten bzw. Partnerunternehmen
-          weiter und machen sie für diese auf der Plattform zur Angebotsabgabe einsehbar. Alle
-          Experten sind vertraglich zur Vertraulichkeit und zur Einhaltung der DSGVO verpflichtet.
-          Details finden Sie in unserer{" "}
+          {t("htRequest.dataSharingBefore")}{" "}
           <a
             href="/datenschutz"
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline"
           >
-            Datenschutzerklärung
+            {t("htRequest.dataSharingPrivacyLink")}
           </a>
-          {" "}und in den{" "}
+          {" "}{t("htRequest.dataSharingMiddle")}{" "}
           <a
             href="/agb"
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline"
           >
-            AGB
+            {t("htRequest.dataSharingTermsLink")}
           </a>
-          . Sie können Ihre Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen.
+          {t("htRequest.dataSharingAfter")}
         </p>
         <div className="space-y-3">
           <label className="flex items-start gap-3 text-sm cursor-pointer">
@@ -314,10 +302,7 @@ export default function HumanTranscriptionRequestPage() {
               data-testid="checkbox-data-sharing-consent"
             />
             <span className="leading-relaxed text-foreground">
-              Ich willige ausdrücklich ein, dass meine hochgeladenen Dokumente, erstellte
-              Transkriptionsentwürfe und meine Anmerkungen zum Zweck der Angebotsabgabe und
-              Bearbeitung an externe Experten und Partnerunternehmen weitergegeben und auf der
-              Plattform für diese einsehbar gemacht werden.
+              {t("htRequest.consentDataSharing")}
             </span>
           </label>
           <label className="flex items-start gap-3 text-sm cursor-pointer">
@@ -328,10 +313,7 @@ export default function HumanTranscriptionRequestPage() {
               data-testid="checkbox-no-sensitive-data"
             />
             <span className="leading-relaxed text-foreground">
-              Ich bestätige, dass die hochgeladenen Dokumente keine besonders sensiblen Daten
-              im Sinne des Art. 9 DSGVO (z. B. Gesundheits-, religiöse, politische oder
-              biometrische Daten) Dritter enthalten oder dass ich zur Weitergabe dieser Daten
-              berechtigt bin.
+              {t("htRequest.consentNoSensitiveData")}
             </span>
           </label>
         </div>
@@ -339,12 +321,11 @@ export default function HumanTranscriptionRequestPage() {
 
       <Card className="p-4 border-amber-200/50 dark:border-amber-800/50 bg-amber-50/30 dark:bg-amber-950/20">
         <p className="text-sm text-muted-foreground mb-4">
-          Wir finden einen passenden Transkriptor für Ihr Dokument und senden Ihnen ein
-          individuelles Angebot. Sie entscheiden danach, ob Sie annehmen möchten.
+          {t("htRequest.closingNote")}
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="outline" onClick={() => navigate(`/app/preview/${jobId}`)}>
-            Abbrechen
+            {t("common.cancel")}
           </Button>
           <Button
             disabled={!canSubmit || submitMutation.isPending}
@@ -354,11 +335,11 @@ export default function HumanTranscriptionRequestPage() {
             {submitMutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Wird gesendet…
+                {t("htRequest.submitting")}
               </>
             ) : (
               <>
-                Anfrage absenden
+                {t("htRequest.submit")}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </>
             )}
