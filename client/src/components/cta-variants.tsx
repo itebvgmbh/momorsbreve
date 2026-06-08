@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   BookOpen,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { getScriptTypeDisplayLabel } from "@shared/models/transcription";
 import type { QualityDetails } from "@/components/quality-indicator";
 
@@ -376,9 +377,9 @@ function CtaMicroCommitment({ claiming, onAction }: CtaProps) {
 
 const PLACEHOLDER_SNIPPET = "Frankfurt, 22.07.1925\n\nLiebe Mutter,\n\nendlich finde ich Zeit, Dir ausführlich zu schreiben. Die Reise war lang und beschwerlich, doch hier in der neuen Wohnung fühle ich mich bereits heimisch. Die Vermieterin ist eine herzliche Frau und der Blick aus dem Fenster geht direkt auf den alten Marktplatz mit seinem Brunnen…";
 
-function getSnippetOrPlaceholder(snippet: string | null): string {
+function getSnippetOrPlaceholder(snippet: string | null, placeholder: string = PLACEHOLDER_SNIPPET): string {
   if (snippet && snippet.trim().length > 0) return snippet;
-  return PLACEHOLDER_SNIPPET;
+  return placeholder;
 }
 
 // ---------- Variante 6: Vorschau + Inline-CTA (einfachste Integration) ----------
@@ -558,7 +559,8 @@ function CtaPreviewProgress({ scriptType, quality, transcriptionSnippet, claimin
 
 // ---------- Variante 9: Split-Card – Snippet links, CTA rechts ----------
 function CtaPreviewSplit({ scriptType, quality, transcriptionSnippet, claiming, onAction }: CtaProps) {
-  const snippet = getSnippetOrPlaceholder(transcriptionSnippet);
+  const { t } = useTranslation();
+  const snippet = getSnippetOrPlaceholder(transcriptionSnippet, t("cta.placeholderSnippet"));
   const visible = snippet.slice(0, 280);
   const score = quality ? Math.round((quality.readability + quality.confidence) / 2) : null;
 
@@ -574,20 +576,20 @@ function CtaPreviewSplit({ scriptType, quality, transcriptionSnippet, claiming, 
           <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-amber-300/10 rounded-full blur-2xl pointer-events-none" />
           <div className="relative space-y-3">
             <h3 className="font-serif text-lg font-bold leading-tight">
-              Vollständigen Text erhalten
+              {t("cta.splitHeadline")}
             </h3>
             <ul className="space-y-1.5 text-xs text-muted-foreground">
               <li className="flex items-start gap-1.5">
                 <Gift className="h-3.5 w-3.5 mt-0.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span><strong className="text-foreground">3 Seiten gratis</strong> bei Anmeldung</span>
+                <span><strong className="text-foreground">{t("cta.benefitFreePagesStrong")}</strong> {t("cta.benefitFreePagesRest")}</span>
               </li>
               <li className="flex items-start gap-1.5">
                 <Clock className="h-3.5 w-3.5 mt-0.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>Anmeldung in 10 Sekunden</span>
+                <span>{t("cta.benefitSignup10s")}</span>
               </li>
               <li className="flex items-start gap-1.5">
                 <CreditCard className="h-3.5 w-3.5 mt-0.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>Keine Kreditkarte nötig</span>
+                <span>{t("cta.benefitNoCreditCard")}</span>
               </li>
             </ul>
             <Button
@@ -602,11 +604,11 @@ function CtaPreviewSplit({ scriptType, quality, transcriptionSnippet, claiming, 
               ) : (
                 <Sparkles className="h-4 w-4 mr-2" />
               )}
-              Vollständigen Text laden
+              {t("cta.loadFullText")}
             </Button>
             <p className="hidden md:flex items-center gap-1.5 text-[11px] text-muted-foreground pt-1">
               <Users className="h-3 w-3 shrink-0" />
-              Bereits <strong className="text-foreground">12.400+</strong> Seiten transkribiert
+              {t("cta.socialProofPrefix")} <strong className="text-foreground">12.400+</strong> {t("cta.socialProofSuffix")}
             </p>
           </div>
         </div>
@@ -617,7 +619,7 @@ function CtaPreviewSplit({ scriptType, quality, transcriptionSnippet, claiming, 
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" />
               <span className="text-xs uppercase tracking-wider text-primary font-semibold">
-                Ihre Vorschau
+                {t("cta.yourPreview")}
               </span>
             </div>
             <span className="text-[10px] text-muted-foreground hidden sm:inline">
@@ -631,7 +633,7 @@ function CtaPreviewSplit({ scriptType, quality, transcriptionSnippet, claiming, 
             <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent pointer-events-none" />
           </div>
           <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/60">
-            Erkannte Schrift: <strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>
+            {t("cta.recognizedScript")} <strong className="text-foreground">{getScriptTypeDisplayLabel(scriptType)}</strong>
           </p>
         </div>
       </div>
@@ -714,39 +716,41 @@ const QUALITY_LEVEL_CONFIG = {
     bg: "bg-emerald-100 dark:bg-emerald-900/30",
     text: "text-emerald-700 dark:text-emerald-400",
     icon: CheckCircle2,
-    label: "Gut lesbar",
+    labelKey: "cta.qualityLabelGreen",
   },
   yellow: {
     bg: "bg-amber-100 dark:bg-amber-900/30",
     text: "text-amber-700 dark:text-amber-400",
     icon: AlertTriangle,
-    label: "Teilweise lesbar",
+    labelKey: "cta.qualityLabelYellow",
   },
   red: {
     bg: "bg-red-100 dark:bg-red-900/30",
     text: "text-red-700 dark:text-red-400",
     icon: AlertTriangle,
-    label: "Schwer lesbar",
+    labelKey: "cta.qualityLabelRed",
   },
 } as const;
 
 function QualityBadgeInline({ quality }: { quality: QualityDetails }) {
+  const { t } = useTranslation();
   const cfg = QUALITY_LEVEL_CONFIG[quality.level];
   const Icon = cfg.icon;
   return (
     <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}>
       <Icon className="h-3.5 w-3.5" />
-      {cfg.label}
+      {t(cfg.labelKey)}
     </div>
   );
 }
 
 function QualityMiniMetrics({ quality }: { quality: QualityDetails }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2">
       <div>
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-muted-foreground">Lesbarkeit</span>
+          <span className="text-xs text-muted-foreground">{t("cta.readability")}</span>
           <div className="flex gap-0.5">
             {[1, 2, 3, 4, 5].map((s) => (
               <Star
@@ -763,7 +767,7 @@ function QualityMiniMetrics({ quality }: { quality: QualityDetails }) {
       </div>
       <div>
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-muted-foreground">Erkennungssicherheit</span>
+          <span className="text-xs text-muted-foreground">{t("cta.recognitionConfidence")}</span>
           <span className="text-xs font-medium">{quality.confidence}%</span>
         </div>
         <Progress value={quality.confidence} className="h-1.5" />

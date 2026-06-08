@@ -10,12 +10,14 @@ import { Link, useLocation } from "wouter";
 import { getCreditPackageDisplayName, type CreditPackageWithPromotion, type UserCredits } from "@shared/models/transcription";
 import { trackBeginCheckout, trackViewItemList, type PurchaseItem } from "@/lib/gtag";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 function formatPrice(cents: number): string {
   return (cents / 100).toFixed(2).replace(".", ",");
 }
 
 export default function PricingPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
@@ -71,18 +73,18 @@ export default function PricingPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Fehler",
-        description: error.message || "Zahlung konnte nicht gestartet werden.",
+        title: t("pricing.errorTitle"),
+        description: error.message || t("pricing.checkoutError"),
         variant: "destructive",
       });
     },
   });
 
   const benefits = [
-    "Ihr Guthaben verfällt nicht",
-    "Tagebücher, Briefe, Rezepte – alles willkommen",
-    "PDF zum Drucken oder Verschenken inklusive",
-    "Sichere Zahlung, Ihre Daten bleiben geschützt",
+    t("pricing.benefitNoExpiry"),
+    t("pricing.benefitAllWelcome"),
+    t("pricing.benefitPdfIncluded"),
+    t("pricing.benefitSecurePayment"),
   ];
 
   return (
@@ -91,14 +93,14 @@ export default function PricingPage() {
       {/* Header */}
       <div>
         <h1 className="font-serif text-2xl font-bold mb-1" data-testid="text-pricing-title">
-          Preise
+          {t("pricing.title")}
         </h1>
         <p className="text-muted-foreground">
-          Ihr Guthaben:{" "}
+          {t("pricing.yourBalance")}{" "}
           <span className="font-semibold text-foreground">
-            {credits?.credits ?? 0} {(credits?.credits ?? 0) === 1 ? "Credit" : "Credits"}
+            {credits?.credits ?? 0} {(credits?.credits ?? 0) === 1 ? t("pricing.creditOne") : t("pricing.creditMany")}
           </span>
-          {" "}· Alle Preise inkl. gesetzlicher Mehrwertsteuer.
+          {" "}· {t("pricing.allPricesInclVat")}
         </p>
       </div>
 
@@ -110,32 +112,32 @@ export default function PricingPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Badge className="bg-primary/90 text-white text-xs px-2 py-0.5">Empfohlen</Badge>
-                <Badge variant="outline" className="text-xs border-primary/30 text-primary">Sofort fertig</Badge>
+                <Badge className="bg-primary/90 text-white text-xs px-2 py-0.5">{t("pricing.badgeRecommended")}</Badge>
+                <Badge variant="outline" className="text-xs border-primary/30 text-primary">{t("pricing.badgeInstantlyReady")}</Badge>
               </div>
               <h2 className="font-serif text-2xl font-bold flex items-center gap-2 mt-1">
                 <Sparkles className="h-6 w-6 text-primary" />
-                KI-Sofort Transkription
+                {t("pricing.heroTitle")}
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                KI liest Ihre Handschrift — fertig in Sekunden. Wählen Sie Ihr Credit-Paket:
+                {t("pricing.heroSubtitle")}
               </p>
               <p className="text-sm font-medium text-primary mt-2">
-                1 Seite = 1 Credit
+                {t("pricing.onePageOneCredit")}
               </p>
             </div>
             <div className="text-right">
               {hasPromotion ? (
                 <>
                   <span className="text-sm text-muted-foreground line-through block">
-                    ab {formatPrice(minOriginalPricePerCredit ?? minCurrentPricePerCredit)} Euro pro Seite
+                    {t("pricing.fromPricePerPage", { price: formatPrice(minOriginalPricePerCredit ?? minCurrentPricePerCredit) })}
                   </span>
                   <span className="font-serif text-2xl font-bold text-primary">
-                    ab {formatPrice(minCurrentPricePerCredit)} Euro pro Seite
+                    {t("pricing.fromPricePerPage", { price: formatPrice(minCurrentPricePerCredit) })}
                   </span>
                 </>
               ) : (
-                <span className="font-serif text-2xl font-bold">ab {formatPrice(minCurrentPricePerCredit)} Euro pro Seite</span>
+                <span className="font-serif text-2xl font-bold">{t("pricing.fromPricePerPage", { price: formatPrice(minCurrentPricePerCredit) })}</span>
               )}
             </div>
           </div>
@@ -143,10 +145,10 @@ export default function PricingPage() {
           {/* Features row */}
           <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-4">
             {[
-              "KI-Transkription",
-              "3 Textversionen (original, ergänzt, interpretiert)",
-              "PDF-Export",
-              "Optional: Vorlesen & Download",
+              t("pricing.featureAiTranscription"),
+              t("pricing.featureThreeVersions"),
+              t("pricing.featurePdfExport"),
+              t("pricing.featureReadAloud"),
             ].map((f) => (
               <span key={f} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Check className="h-3 w-3 text-primary shrink-0" />
@@ -161,9 +163,9 @@ export default function PricingPage() {
           {hasPromotion && promotionLabel && (
             <div className="mb-4 rounded-lg border border-amber-300/60 dark:border-amber-600/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5 flex items-center justify-center gap-2">
               <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-                🎉 {promotionLabel} — Bis zu {maxDiscountPercent} % Rabatt!
+                🎉 {promotionLabel} — {t("pricing.promotionUpTo", { percent: maxDiscountPercent })}
               </span>
-              <span className="text-xs text-amber-700 dark:text-amber-300">Nur für kurze Zeit.</span>
+              <span className="text-xs text-amber-700 dark:text-amber-300">{t("pricing.promotionLimitedTime")}</span>
             </div>
           )}
 
@@ -192,12 +194,12 @@ export default function PricingPage() {
                   )}
                   {pkg.popular && (
                     <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-xs">
-                      Beliebt
+                      {t("pricing.badgePopular")}
                     </Badge>
                   )}
                   <div className="text-center space-y-3">
                     <h3 className="font-serif text-lg font-bold">{getCreditPackageDisplayName(pkg.name)}</h3>
-                    <p className="text-sm text-muted-foreground">{pkg.pages} Seiten</p>
+                    <p className="text-sm text-muted-foreground">{t("pricing.pagesCount", { count: pkg.pages })}</p>
                     <div>
                       {pkg.originalPriceEur != null && (
                         <p className="text-xs text-muted-foreground line-through">
@@ -208,10 +210,10 @@ export default function PricingPage() {
                         {formatPrice(pkg.priceEur)}
                       </span>
                       <span className="text-muted-foreground ml-1 text-sm">EUR</span>
-                      <span className="block text-xs text-muted-foreground mt-0.5">inkl. MwSt.</span>
+                      <span className="block text-xs text-muted-foreground mt-0.5">{t("pricing.inclVat")}</span>
                     </div>
                     <p className="text-xs font-medium text-primary/80">
-                      nur {formatPrice(pkg.priceEur / pkg.pages)} EUR pro Seite
+                      {t("pricing.onlyPricePerPage", { price: formatPrice(pkg.priceEur / pkg.pages) })}
                     </p>
                     <Button
                       className="w-full"
@@ -244,7 +246,7 @@ export default function PricingPage() {
                       ) : (
                         <>
                           <CreditCard className="h-4 w-4 mr-2" />
-                          {pkg.discountPercent != null ? "Jetzt zuschlagen" : "Kaufen"}
+                          {pkg.discountPercent != null ? t("pricing.grabNow") : t("pricing.buy")}
                         </>
                       )}
                     </Button>
@@ -259,7 +261,7 @@ export default function PricingPage() {
       {/* ── SEKUNDÄRE SERVICES ────────────────────────────────── */}
       <div>
         <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-3">
-          Weitere Service-Optionen
+          {t("pricing.moreServiceOptions")}
         </p>
         <div className="grid sm:grid-cols-2 gap-4">
 
@@ -268,16 +270,16 @@ export default function PricingPage() {
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="outline" className="text-xs">Beliebt</Badge>
-                  <span className="text-xs text-muted-foreground">2–3 Werktage</span>
+                  <Badge variant="outline" className="text-xs">{t("pricing.badgePopular")}</Badge>
+                  <span className="text-xs text-muted-foreground">{t("pricing.deliveryAiChecked")}</span>
                 </div>
-                <h3 className="font-serif text-lg font-bold mb-0.5">KI-Geprüft</h3>
-                <p className="font-semibold text-base mb-3">8,99 EUR/Seite</p>
+                <h3 className="font-serif text-lg font-bold mb-0.5">{t("pricing.aiCheckedTitle")}</h3>
+                <p className="font-semibold text-base mb-3">{t("pricing.aiCheckedPrice")}</p>
                 <ul className="text-xs text-muted-foreground space-y-1.5 mb-3">
                   {[
-                    "KI-Transkription + Experten-Korrektur",
-                    "Geprüfte Qualität",
-                    "PDF-Export",
+                    t("pricing.aiCheckedFeatureCorrection"),
+                    t("pricing.aiCheckedFeatureQuality"),
+                    t("pricing.featurePdfExport"),
                   ].map((b) => (
                     <li key={b} className="flex items-center gap-2">
                       <Check className="h-3 w-3 text-primary shrink-0" />
@@ -286,7 +288,7 @@ export default function PricingPage() {
                   ))}
                 </ul>
                 <p className="text-[11px] text-muted-foreground/70 leading-snug border-l-2 border-amber-300 dark:border-amber-600 pl-2 mb-4">
-                  Vorbehalten: Wir prüfen, ob die KI-Qualität für eine Korrektur ausreicht.
+                  {t("pricing.aiCheckedReservation")}
                 </p>
               </div>
             </div>
@@ -295,7 +297,7 @@ export default function PricingPage() {
               className="w-full"
               onClick={() => navigate("/app/upload")}
             >
-              Anfrage stellen
+              {t("pricing.submitRequest")}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </Card>
@@ -304,19 +306,19 @@ export default function PricingPage() {
           <Card className="p-5 border border-amber-200/50 dark:border-amber-800/30 bg-amber-50/30 dark:bg-amber-950/10 hover:shadow-md transition-shadow">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 dark:text-amber-400">Höchste Qualität</Badge>
-                <span className="text-xs text-muted-foreground">5–7 Werktage</span>
+                <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 dark:text-amber-400">{t("pricing.badgeHighestQuality")}</Badge>
+                <span className="text-xs text-muted-foreground">{t("pricing.deliveryExperts")}</span>
               </div>
               <h3 className="font-serif text-lg font-bold mb-0.5 flex items-center gap-2">
                 <User className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                Experten
+                {t("pricing.expertsTitle")}
               </h3>
-              <p className="font-semibold text-base mb-3">ab 14,90 EUR/Seite</p>
+              <p className="font-semibold text-base mb-3">{t("pricing.expertsPrice")}</p>
               <ul className="text-xs text-muted-foreground space-y-1.5 mb-4">
                 {[
-                  "Vollständige menschliche Transkription",
-                  "Höchste Genauigkeit",
-                  "Auch schwer lesbare Dokumente",
+                  t("pricing.expertsFeatureHuman"),
+                  t("pricing.expertsFeatureAccuracy"),
+                  t("pricing.expertsFeatureHardDocs"),
                 ].map((b) => (
                   <li key={b} className="flex items-center gap-2">
                     <Check className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -329,7 +331,7 @@ export default function PricingPage() {
               className="w-full bg-amber-600 hover:bg-amber-700 text-white border-amber-700"
               onClick={() => navigate("/app/upload")}
             >
-              Angebot anfordern
+              {t("pricing.requestQuote")}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </Card>
@@ -338,23 +340,23 @@ export default function PricingPage() {
 
       {/* Testimonials */}
       <div>
-        <h2 className="font-serif text-lg font-semibold mb-4 text-center">Das sagen unsere Nutzer</h2>
+        <h2 className="font-serif text-lg font-semibold mb-4 text-center">{t("pricing.testimonialsTitle")}</h2>
         <div className="grid sm:grid-cols-3 gap-4">
           {[
             {
-              text: "Endlich kann ich die Tagebücher meiner Großmutter lesen. Die KI hat sogar die schwierige Sütterlin-Schrift erkannt. Ein unbezahlbares Geschenk für unsere Familie.",
-              name: "Monika K.",
-              detail: "43 Seiten transkribiert",
+              text: t("pricing.testimonial1Text"),
+              name: t("pricing.testimonial1Name"),
+              detail: t("pricing.testimonial1Detail"),
             },
             {
-              text: "Ich war skeptisch, aber die Qualität hat mich überzeugt. Die drei Textversionen sind genial – so kann ich sowohl den Originaltext als auch eine moderne Fassung lesen.",
-              name: "Thomas R.",
-              detail: "Briefe aus dem Jahr 1923",
+              text: t("pricing.testimonial2Text"),
+              name: t("pricing.testimonial2Name"),
+              detail: t("pricing.testimonial2Detail"),
             },
             {
-              text: "Die Vorlesefunktion ist wunderbar. Meine Mutter kann die Briefe ihres Vaters jetzt als Hörbuch hören, obwohl sie seine Handschrift nie lesen konnte.",
-              name: "Sabine M.",
-              detail: "Feldpostbriefe als Geschenk",
+              text: t("pricing.testimonial3Text"),
+              name: t("pricing.testimonial3Name"),
+              detail: t("pricing.testimonial3Detail"),
             },
           ].map((testimonial) => (
             <Card key={testimonial.name} className="p-4">
@@ -377,17 +379,17 @@ export default function PricingPage() {
       </div>
 
       <p className="text-xs text-muted-foreground text-center leading-relaxed">
-        Mit Ihrer Bestellung akzeptieren Sie unsere{" "}
-        <Link href="/agb" className="text-primary underline-offset-4 hover:underline">AGB</Link>
-        {" "}und{" "}
-        <Link href="/datenschutz" className="text-primary underline-offset-4 hover:underline">Datenschutzerklärung</Link>.
-        {" "}Es gilt ein{" "}
-        <Link href="/widerrufsbelehrung" className="text-primary underline-offset-4 hover:underline">14-tägiges Widerrufsrecht</Link>.
+        {t("pricing.legalIntro")}{" "}
+        <Link href="/agb" className="text-primary underline-offset-4 hover:underline">{t("pricing.legalTerms")}</Link>
+        {" "}{t("pricing.legalAnd")}{" "}
+        <Link href="/datenschutz" className="text-primary underline-offset-4 hover:underline">{t("pricing.legalPrivacy")}</Link>.
+        {" "}{t("pricing.legalWithdrawalIntro")}{" "}
+        <Link href="/widerrufsbelehrung" className="text-primary underline-offset-4 hover:underline">{t("pricing.legalWithdrawalRight")}</Link>.
       </p>
 
       <Card className="p-6">
         <h2 className="font-serif text-lg font-semibold mb-4">
-          Das ist in jedem Paket dabei
+          {t("pricing.includedInEveryPackage")}
         </h2>
         <div className="grid sm:grid-cols-2 gap-2">
           {benefits.map((benefit) => (
@@ -402,15 +404,15 @@ export default function PricingPage() {
       <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground pt-2">
         <div className="flex items-center gap-1.5">
           <Lock className="h-3.5 w-3.5" />
-          <span>SSL-verschlüsselt</span>
+          <span>{t("pricing.trustSslEncrypted")}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <ShieldCheck className="h-3.5 w-3.5" />
-          <span>Sichere Zahlung</span>
+          <span>{t("pricing.trustSecurePayment")}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <CreditCard className="h-3.5 w-3.5" />
-          <span>Kreditkarte, Giropay, SEPA</span>
+          <span>{t("pricing.trustPaymentMethods")}</span>
         </div>
       </div>
     </div>

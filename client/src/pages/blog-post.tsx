@@ -1,8 +1,9 @@
 import { Link, useParams } from "wouter";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
-import { Logo } from "@/components/logo";
 import { MarketingNav } from "@/components/marketing-nav";
+import { MarketingFooter } from "@/components/marketing-footer";
 import { Button } from "@/components/ui/button";
 import {
   getBlogPost,
@@ -10,7 +11,6 @@ import {
   getCanonicalUrl,
   getAllSlugs,
 } from "@/data/blog-posts";
-import { TOPIC_PAGES } from "@/data/topic-pages";
 
 const BASE = "https://mormorsbreve.dk";
 
@@ -68,6 +68,7 @@ interface BlogPostPageProps {
 }
 
 export default function BlogPostPage(props: BlogPostPageProps) {
+  const { t } = useTranslation();
   const params = useParams<{ slug: string }>();
   const slug = props.slug ?? params?.slug ?? "";
   const post = getBlogPost(slug);
@@ -76,9 +77,9 @@ export default function BlogPostPage(props: BlogPostPageProps) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="font-serif text-2xl font-bold mb-4">Artikel nicht gefunden</h1>
+          <h1 className="font-serif text-2xl font-bold mb-4">{t("blogPost.notFound")}</h1>
           <Link href="/blog">
-            <Button variant="outline">Zurück zum Blog</Button>
+            <Button variant="outline">{t("blogPost.backToBlog")}</Button>
           </Link>
         </div>
       </div>
@@ -109,7 +110,7 @@ export default function BlogPostPage(props: BlogPostPageProps) {
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Zurück zum Blog
+          {t("blogPost.backToBlog")}
         </Link>
 
         <article>
@@ -128,48 +129,18 @@ export default function BlogPostPage(props: BlogPostPageProps) {
 
           <footer className="mt-12 pt-8 border-t border-border">
             <p className="text-muted-foreground mb-4">
-              Haben Sie Briefe oder Tagebücher in Sütterlin oder alter Schrift? Probieren Sie die Transkription kostenlos aus.
+              {t("blogPost.ctaText")}
             </p>
             <Link href="/">
               <Button className="bg-amber-600 hover:bg-amber-700 text-white">
-                Jetzt kostenlos ausprobieren
+                {t("blogPost.ctaButton")}
               </Button>
             </Link>
           </footer>
         </article>
       </main>
 
-      <footer className="border-t border-border py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-4">
-          <Logo height="h-6" />
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <Link href="/blog" className="hover:text-foreground transition-colors">
-              Blog
-            </Link>
-            <Link href="/beispiele" className="hover:text-foreground transition-colors">
-              Beispiele
-            </Link>
-            {TOPIC_PAGES.map((tp) => (
-              <Link key={tp.slug} href={`/${tp.slug}`} className="hover:text-foreground transition-colors">{tp.heroTitle}</Link>
-            ))}
-            <Link href="/impressum" className="hover:text-foreground transition-colors">
-              Impressum
-            </Link>
-            <Link href="/datenschutz" className="hover:text-foreground transition-colors">
-              Datenschutz
-            </Link>
-            <Link href="/agb" className="hover:text-foreground transition-colors">
-              AGB
-            </Link>
-            <Link href="/widerrufsbelehrung" className="hover:text-foreground transition-colors">
-              Widerruf
-            </Link>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} MormorsBreve. Alle rettigheder forbeholdes.
-          </p>
-        </div>
-      </footer>
+      <MarketingFooter />
 
     </div>
   );

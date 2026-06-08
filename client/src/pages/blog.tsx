@@ -1,10 +1,10 @@
 import { Link } from "wouter";
 import { Helmet } from "react-helmet-async";
-import { Logo } from "@/components/logo";
+import { useTranslation } from "react-i18next";
 import { MarketingNav } from "@/components/marketing-nav";
+import { MarketingFooter } from "@/components/marketing-footer";
 import { Card } from "@/components/ui/card";
 import { BLOG_POSTS } from "@/data/blog-posts";
-import { TOPIC_PAGES } from "@/data/topic-pages";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -16,13 +16,14 @@ function formatDate(iso: string) {
 }
 
 export default function BlogPage() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Blog – Sütterlin, Kurrent &amp; alte Handschriften | MormorsBreve</title>
+        <title>{t("blog.metaTitle")}</title>
         <meta
           name="description"
-          content="Tipps und Anleitungen: Sütterlin lesen lernen, alte deutsche Schrift entziffern, Handschriften digitalisieren und transkribieren. Für Familienforschung und Erinnerungen."
+          content={t("blog.metaDescription")}
         />
         <link rel="canonical" href="https://mormorsbreve.dk/blog" />
       </Helmet>
@@ -30,10 +31,10 @@ export default function BlogPage() {
 
       <main className="pt-24 pb-16 max-w-4xl mx-auto px-4 sm:px-6">
         <h1 className="font-serif text-3xl sm:text-4xl font-bold mb-4">
-          Blog
+          {t("blog.h1")}
         </h1>
         <p className="text-muted-foreground mb-10 max-w-2xl">
-          Anleitungen und Wissenswertes rund um Sütterlin, Kurrent und das Lesen alter Handschriften – für alle, die Omas Briefe und Tagebücher entziffern möchten.
+          {t("blog.intro")}
         </p>
 
         <ul className="space-y-6">
@@ -57,34 +58,7 @@ export default function BlogPage() {
         </ul>
       </main>
 
-      <footer className="border-t border-border py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-4">
-          <Logo height="h-6" />
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <Link href="/blog" className="hover:text-foreground transition-colors">
-              Blog
-            </Link>
-            {TOPIC_PAGES.map((tp) => (
-              <Link key={tp.slug} href={`/${tp.slug}`} className="hover:text-foreground transition-colors">{tp.heroTitle}</Link>
-            ))}
-            <Link href="/impressum" className="hover:text-foreground transition-colors">
-              Impressum
-            </Link>
-            <Link href="/datenschutz" className="hover:text-foreground transition-colors">
-              Datenschutz
-            </Link>
-            <Link href="/agb" className="hover:text-foreground transition-colors">
-              AGB
-            </Link>
-            <Link href="/widerrufsbelehrung" className="hover:text-foreground transition-colors">
-              Widerruf
-            </Link>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} MormorsBreve. Alle rettigheder forbeholdes.
-          </p>
-        </div>
-      </footer>
+      <MarketingFooter />
 
     </div>
   );

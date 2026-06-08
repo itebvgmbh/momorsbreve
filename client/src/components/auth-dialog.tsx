@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   signInWithPopup,
   signInWithRedirect,
@@ -28,6 +29,7 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDialogProps) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<"login" | "register" | "verify" | "forgot" | "reset-sent">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -70,10 +72,10 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
           await signInWithRedirect(auth, provider);
         } catch (redirectErr: any) {
           console.error("[Google Redirect Error]", redirectErr?.code, redirectErr?.message, redirectErr);
-          setError(firebaseErrorMessage(redirectErr?.code));
+          setError(firebaseErrorMessage(t, redirectErr?.code));
         }
       } else {
-        setError(firebaseErrorMessage(err?.code));
+        setError(firebaseErrorMessage(t, err?.code));
       }
     }
   };
@@ -93,7 +95,7 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
         const cred = await signInWithEmailAndPassword(auth, email, password);
         if (!cred.user.emailVerified) {
           await sendEmailVerification(cred.user);
-          setError("Bitte bestaetigen Sie zuerst Ihre E-Mail-Adresse. Wir haben Ihnen eine neue Bestaetigungsmail gesendet.");
+          setError(t("auth.verifyFirstError"));
           return;
         }
         handleOpenChange(false);
@@ -102,7 +104,7 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
       }
     } catch (err: any) {
       console.error("[Email Auth Error]", err?.code, err?.message, err);
-      setError(firebaseErrorMessage(err?.code));
+      setError(firebaseErrorMessage(t, err?.code));
     } finally {
       setLoading(false);
     }
@@ -117,7 +119,7 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
       await sendPasswordResetEmail(auth, email);
       setMode("reset-sent");
     } catch (err: any) {
-      setError(firebaseErrorMessage(err?.code));
+      setError(firebaseErrorMessage(t, err?.code));
     } finally {
       setLoading(false);
     }
@@ -137,16 +139,14 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
               <KeyRound className="h-7 w-7 text-primary" />
             </div>
             <DialogTitle className="font-serif text-xl">
-              E-Mail gesendet
+              {t("auth.resetSentTitle")}
             </DialogTitle>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-sm">
-              Wir haben eine E-Mail zum Zuruecksetzen des Passworts an{" "}
-              <strong>{email}</strong> gesendet. Bitte pruefen Sie Ihren
-              Posteingang und folgen Sie dem Link in der E-Mail.
+              {t("auth.resetSentBodyBefore")}{" "}
+              <strong>{email}</strong> {t("auth.resetSentBodyAfter")}
             </p>
             <p className="text-muted-foreground text-xs">
-              Pruefen Sie auch Ihren Spam-Ordner, falls Sie die E-Mail nicht
-              finden.
+              {t("auth.resetSentSpamHint")}
             </p>
             <Button
               className="w-full mt-2"
@@ -155,7 +155,7 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
                 setError(null);
               }}
             >
-              Zurueck zur Anmeldung
+              {t("auth.backToLogin")}
             </Button>
           </div>
         </DialogContent>
@@ -169,23 +169,22 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-serif text-xl">
-              Passwort zuruecksetzen
+              {t("auth.forgotTitle")}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
             <p className="text-sm text-muted-foreground">
-              Geben Sie Ihre E-Mail-Adresse ein. Wir senden Ihnen einen Link
-              zum Zuruecksetzen Ihres Passworts.
+              {t("auth.forgotIntro")}
             </p>
 
             <form onSubmit={handlePasswordReset} className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="reset-email">E-Mail</Label>
+                <Label htmlFor="reset-email">{t("auth.emailLabel")}</Label>
                 <Input
                   id="reset-email"
                   type="email"
-                  placeholder="name@beispiel.de"
+                  placeholder={t("auth.emailPlaceholder")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -199,7 +198,7 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
 
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Link senden
+                {t("auth.sendLink")}
               </Button>
             </form>
 
@@ -212,7 +211,7 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
                 }}
                 className="text-primary underline-offset-4 hover:underline"
               >
-                Zurueck zur Anmeldung
+                {t("auth.backToLogin")}
               </button>
             </p>
           </div>
@@ -230,14 +229,13 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
               <MailCheck className="h-7 w-7 text-primary" />
             </div>
             <DialogTitle className="font-serif text-xl">
-              E-Mail bestaetigen
+              {t("auth.verifyTitle")}
             </DialogTitle>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-sm">
-              Wir haben eine Bestaetigungsmail an <strong>{email}</strong> gesendet.
-              Bitte klicken Sie auf den Link in der E-Mail, um Ihr Konto zu aktivieren.
+              {t("auth.verifyBodyBefore")} <strong>{email}</strong> {t("auth.verifyBodyAfter")}
             </p>
             <p className="text-muted-foreground text-xs">
-              Danach koennen Sie sich hier anmelden.
+              {t("auth.verifyThenLogin")}
             </p>
             <Button
               className="w-full mt-2"
@@ -246,7 +244,7 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
                 setError(null);
               }}
             >
-              Zur Anmeldung
+              {t("auth.toLogin")}
             </Button>
           </div>
         </DialogContent>
@@ -259,7 +257,7 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-serif text-xl">
-            {mode === "login" ? "Anmelden" : "Konto erstellen"}
+            {mode === "login" ? t("auth.loginTitle") : t("auth.registerTitle")}
           </DialogTitle>
         </DialogHeader>
 
@@ -288,7 +286,7 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
                 fill="#EA4335"
               />
             </svg>
-            Mit Google anmelden
+            {t("auth.googleSignIn")}
           </Button>
 
           <div className="relative">
@@ -297,18 +295,18 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                oder mit E-Mail
+                {t("auth.orWithEmail")}
               </span>
             </div>
           </div>
 
           <form onSubmit={handleEmailSubmit} className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="auth-email">E-Mail</Label>
+              <Label htmlFor="auth-email">{t("auth.emailLabel")}</Label>
               <Input
                 id="auth-email"
                 type="email"
-                placeholder="name@beispiel.de"
+                placeholder={t("auth.emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -317,7 +315,7 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="auth-password">Passwort</Label>
+                <Label htmlFor="auth-password">{t("auth.passwordLabel")}</Label>
                 {mode === "login" && (
                   <button
                     type="button"
@@ -328,14 +326,14 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
                     }}
                     className="text-xs text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
                   >
-                    Passwort vergessen?
+                    {t("auth.forgotPassword")}
                   </button>
                 )}
               </div>
               <Input
                 id="auth-password"
                 type="password"
-                placeholder={mode === "register" ? "Mind. 6 Zeichen" : ""}
+                placeholder={mode === "register" ? t("auth.passwordPlaceholder") : ""}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -353,11 +351,11 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
                   className="mt-0.5"
                 />
                 <label htmlFor="accept-terms" className="text-xs text-muted-foreground leading-relaxed cursor-pointer select-none">
-                  Ich akzeptiere die{" "}
-                  <a href="/agb" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-4 hover:underline">AGB</a>
-                  {" "}und habe die{" "}
-                  <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-4 hover:underline">Datenschutzerklärung</a>
-                  {" "}zur Kenntnis genommen.
+                  {t("auth.termsBefore")}{" "}
+                  <a href="/agb" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-4 hover:underline">{t("auth.termsLink")}</a>
+                  {" "}{t("auth.termsMiddle")}{" "}
+                  <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-4 hover:underline">{t("auth.privacyLink")}</a>
+                  {" "}{t("auth.termsAfter")}
                 </label>
               </div>
             )}
@@ -371,7 +369,7 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
                   className="mt-0.5"
                 />
                 <label htmlFor="newsletter-opt-in" className="text-xs text-muted-foreground leading-relaxed cursor-pointer select-none">
-                  Ich möchte den Newsletter mit Tipps und Neuigkeiten rund um historische Handschriften erhalten.
+                  {t("auth.newsletterOptIn")}
                 </label>
               </div>
             )}
@@ -382,40 +380,40 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
 
             <Button type="submit" className="w-full" disabled={loading || (mode === "register" && !acceptedTerms)}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {mode === "login" ? "Anmelden" : "Registrieren"}
+              {mode === "login" ? t("auth.loginSubmit") : t("auth.registerSubmit")}
             </Button>
           </form>
 
           {mode === "login" && (
             <p className="text-[11px] text-muted-foreground/70 text-center leading-relaxed">
-              Mit der Anmeldung akzeptieren Sie unsere{" "}
-              <a href="/agb" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground">AGB</a>
-              {" "}und{" "}
-              <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground">Datenschutzerklärung</a>.
+              {t("auth.loginConsentBefore")}{" "}
+              <a href="/agb" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground">{t("auth.termsLink")}</a>
+              {" "}{t("auth.loginConsentMiddle")}{" "}
+              <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground">{t("auth.privacyLink")}</a>{t("auth.loginConsentAfter")}
             </p>
           )}
 
           <p className="text-center text-sm text-muted-foreground">
             {mode === "login" ? (
               <>
-                Noch kein Konto?{" "}
+                {t("auth.noAccountYet")}{" "}
                 <button
                   type="button"
                   onClick={toggleMode}
                   className="text-primary underline-offset-4 hover:underline"
                 >
-                  Jetzt registrieren
+                  {t("auth.registerNow")}
                 </button>
               </>
             ) : (
               <>
-                Schon ein Konto?{" "}
+                {t("auth.alreadyAccount")}{" "}
                 <button
                   type="button"
                   onClick={toggleMode}
                   className="text-primary underline-offset-4 hover:underline"
                 >
-                  Anmelden
+                  {t("auth.loginSubmit")}
                 </button>
               </>
             )}
@@ -426,41 +424,41 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
   );
 }
 
-function firebaseErrorMessage(code?: string): string {
+function firebaseErrorMessage(t: (key: string, options?: Record<string, unknown>) => string, code?: string): string {
   switch (code) {
     case "auth/user-not-found":
     case "auth/wrong-password":
     case "auth/invalid-credential":
-      return "E-Mail oder Passwort falsch.";
+      return t("auth.errInvalidCredentials");
     case "auth/email-already-in-use":
-      return "Diese E-Mail wird bereits verwendet.";
+      return t("auth.errEmailInUse");
     case "auth/weak-password":
-      return "Das Passwort muss mindestens 6 Zeichen lang sein.";
+      return t("auth.errWeakPassword");
     case "auth/invalid-email":
-      return "Bitte geben Sie eine gueltige E-Mail-Adresse ein.";
+      return t("auth.errInvalidEmail");
     case "auth/too-many-requests":
-      return "Zu viele Versuche. Bitte versuchen Sie es spaeter erneut.";
+      return t("auth.errTooManyRequests");
     case "auth/network-request-failed":
-      return "Netzwerkfehler. Bitte pruefen Sie Ihre Internetverbindung.";
+      return t("auth.errNetwork");
     case "auth/missing-email":
-      return "Bitte geben Sie eine E-Mail-Adresse ein.";
+      return t("auth.errMissingEmail");
     case "auth/account-exists-with-different-credential":
-      return "Diese E-Mail wurde bereits mit einer anderen Methode (z. B. Passwort) registriert. Bitte melden Sie sich auf dem urspruenglichen Weg an.";
+      return t("auth.errAccountExistsDifferentCredential");
     case "auth/unauthorized-domain":
-      return "Diese Domain ist nicht in Firebase fuer die Anmeldung freigegeben. Bitte fuegen Sie die aktuelle URL in der Firebase-Konsole unter Authentication \u2192 Settings \u2192 Authorized domains hinzu.";
+      return t("auth.errUnauthorizedDomain");
     case "auth/operation-not-allowed":
-      return "Diese Anmeldemethode ist in Firebase nicht aktiviert. Bitte aktivieren Sie sie in der Firebase-Konsole.";
+      return t("auth.errOperationNotAllowed");
     case "auth/popup-blocked":
-      return "Ihr Browser blockiert das Anmeldefenster. Bitte erlauben Sie Pop-ups fuer diese Seite.";
+      return t("auth.errPopupBlocked");
     case "auth/popup-closed-by-user":
-      return "Das Anmeldefenster wurde geschlossen, bevor die Anmeldung abgeschlossen war.";
+      return t("auth.errPopupClosed");
     case "auth/cancelled-popup-request":
-      return "Eine andere Anmeldung laeuft bereits. Bitte versuchen Sie es erneut.";
+      return t("auth.errCancelledPopupRequest");
     case "auth/internal-error":
-      return "Interner Fehler bei der Anmeldung. Bitte versuchen Sie es erneut.";
+      return t("auth.errInternal");
     default:
       return code
-        ? `Ein Fehler ist aufgetreten (${code}). Bitte versuchen Sie es erneut.`
-        : "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.";
+        ? t("auth.errGenericWithCode", { code })
+        : t("auth.errGeneric");
   }
 }

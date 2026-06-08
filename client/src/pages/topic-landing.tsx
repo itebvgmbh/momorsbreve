@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
   Check,
@@ -14,12 +15,12 @@ import {
 } from "lucide-react";
 import { useState, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Logo } from "@/components/logo";
 import { MarketingNav } from "@/components/marketing-nav";
+import { MarketingFooter } from "@/components/marketing-footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { getTopicPage, TOPIC_PAGES } from "@/data/topic-pages";
+import { getTopicPage } from "@/data/topic-pages";
 import { getBlogPost } from "@/data/blog-posts";
 import { setPendingFile } from "@/lib/pending-file";
 import { useLocation } from "wouter";
@@ -31,6 +32,7 @@ interface TopicLandingPageProps {
 }
 
 export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
+  const { t } = useTranslation();
   const page = getTopicPage(slug);
   const { user } = useAuth();
   const [dragOver, setDragOver] = useState(false);
@@ -47,9 +49,9 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="font-serif text-2xl font-bold mb-4">Seite nicht gefunden</h1>
+          <h1 className="font-serif text-2xl font-bold mb-4">{t("topic.notFoundTitle")}</h1>
           <Link href="/">
-            <Button variant="outline">Zurück zur Startseite</Button>
+            <Button variant="outline">{t("topic.backToHome")}</Button>
           </Link>
         </div>
       </div>
@@ -115,7 +117,7 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 md:py-36">
           <div className="max-w-2xl">
             <Badge variant="secondary" className={`mb-6 ${page.heroImage ? "bg-white/10 text-white/90 border-white/20" : ""}`}>
-              Historische Handschriften
+              {t("topic.heroBadge")}
             </Badge>
             <h1 className={`font-serif text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-6 ${page.heroImage ? "text-white" : ""}`}>
               {page.heroTitle}
@@ -165,10 +167,10 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
                   />
                   <ImagePlus className={`h-10 w-10 mx-auto mb-3 ${page.heroImage ? "text-amber-300" : "text-primary"}`} />
                   <p className={`font-semibold text-lg ${page.heroImage ? "text-white" : ""}`}>
-                    Foto Ihrer Handschrift hier ablegen
+                    {t("topic.dropzoneTitle")}
                   </p>
                   <p className={`text-sm mt-1 ${page.heroImage ? "text-white/60" : "text-muted-foreground"}`}>
-                    oder klicken zum Auswählen — kostenlos &amp; ohne Anmeldung
+                    {t("topic.dropzoneSubtitle")}
                   </p>
                 </div>
               </div>
@@ -177,15 +179,15 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
             <div className={`flex flex-wrap items-center gap-4 text-sm mt-6 ${page.heroImage ? "text-white/60" : "text-muted-foreground"}`}>
               <span className="flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5 text-emerald-400" />
-                Ergebnis in Minuten
+                {t("topic.benefitMinutes")}
               </span>
               <span className="flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5 text-emerald-400" />
-                Drei Textversionen
+                {t("topic.benefitThreeVersions")}
               </span>
               <span className="flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5 text-emerald-400" />
-                Erste 3&nbsp;Seiten kostenlos
+                {t("topic.benefitFirstPagesFree")}
               </span>
             </div>
           </div>
@@ -201,7 +203,7 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
             <div className={`grid md:grid-cols-[1fr,auto] gap-8 items-start ${idx % 2 !== 0 ? "md:grid-cols-[auto,1fr]" : ""}`}>
               <div className={idx % 2 !== 0 ? "md:order-2" : ""}>
                 <Badge variant="secondary" className="mb-3">
-                  {idx === 0 ? "Geschichte" : idx === 1 ? "Die Schrift" : "Forschung"}
+                  {idx === 0 ? t("topic.sectionHistory") : idx === 1 ? t("topic.sectionScript") : t("topic.sectionResearch")}
                 </Badge>
                 <h2 className="font-serif text-2xl sm:text-3xl font-bold mb-4">
                   {section.heading}
@@ -226,9 +228,9 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-2 gap-10">
             <div>
-              <Badge variant="secondary" className="mb-4">Schriftarten in diesen Dokumenten</Badge>
+              <Badge variant="secondary" className="mb-4">{t("topic.scriptTypesBadge")}</Badge>
               <h2 className="font-serif text-2xl sm:text-3xl font-bold mb-6">
-                Was Sie finden — und was unsere KI lesen kann
+                {t("topic.scriptTypesTitle")}
               </h2>
               <ul className="space-y-3">
                 {page.scriptTypes.map((item) => (
@@ -240,16 +242,16 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
               </ul>
             </div>
             <div>
-              <Badge variant="secondary" className="mb-4">Was Sie erhalten</Badge>
+              <Badge variant="secondary" className="mb-4">{t("topic.whatYouGetBadge")}</Badge>
               <h2 className="font-serif text-2xl sm:text-3xl font-bold mb-6">
-                Von alter Handschrift zum lesbaren Text
+                {t("topic.whatYouGetTitle")}
               </h2>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { icon: Upload, label: "Fotos oder PDFs hochladen" },
-                  { icon: FileText, label: "3 Textversionen" },
-                  { icon: Languages, label: "Übersetzung möglich" },
-                  { icon: Headphones, label: "Als Audio vorlesen lassen" },
+                  { icon: Upload, label: t("topic.featureUpload") },
+                  { icon: FileText, label: t("topic.featureThreeVersions") },
+                  { icon: Languages, label: t("topic.featureTranslation") },
+                  { icon: Headphones, label: t("topic.featureAudio") },
                 ].map((feat) => (
                   <Card key={feat.label} className="p-4 flex flex-col items-center text-center gap-2">
                     <feat.icon className="h-6 w-6 text-primary" />
@@ -265,25 +267,23 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
       <section className="py-16 sm:py-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="max-w-3xl mx-auto text-center">
-            <Badge variant="secondary" className="mb-4">Echte Ergebnisse</Badge>
+            <Badge variant="secondary" className="mb-4">{t("topic.realResultsBadge")}</Badge>
             <h2 className="font-serif text-2xl sm:text-3xl font-bold mb-4">
-              Sehen Sie echte Transkriptionen
+              {t("topic.realResultsTitle")}
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-6">
-              Auf unserer Beispielseite finden Sie echte historische Dokumente — originalgetreu
-              transkribiert, mit Lupe, Textversionen und PDF-Export. Überzeugen Sie sich selbst,
-              bevor Sie Ihr eigenes Dokument hochladen.
+              {t("topic.realResultsText")}
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <Link href="/beispiele">
                 <Button size="lg" variant="outline" className="font-semibold">
-                  Beispiele ansehen
+                  {t("topic.viewExamples")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <Link href={user ? "/app/upload" : "/analysieren"}>
                 <Button size="lg" className="font-semibold">
-                  Eigenes Dokument testen
+                  {t("topic.testOwnDocument")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -296,9 +296,9 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
         <section className="py-16 sm:py-20 bg-card">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-10">
-              <Badge variant="secondary" className="mb-3">Weiterlesen</Badge>
+              <Badge variant="secondary" className="mb-3">{t("topic.keepReadingBadge")}</Badge>
               <h2 className="font-serif text-2xl sm:text-3xl font-bold">
-                Verwandte Artikel
+                {t("topic.relatedArticles")}
               </h2>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
@@ -312,7 +312,7 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
                       {post.description}
                     </p>
                     <span className="inline-flex items-center gap-1 mt-3 text-xs font-medium text-primary">
-                      Artikel lesen <ArrowRight className="h-3 w-3" />
+                      {t("topic.readArticle")} <ArrowRight className="h-3 w-3" />
                     </span>
                   </Card>
                 </Link>
@@ -325,10 +325,10 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
       <div className="py-12 sm:py-16 border-y border-border bg-gradient-to-r from-amber-50/50 via-transparent to-amber-50/50 dark:from-amber-950/20 dark:via-transparent dark:to-amber-950/20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="font-serif text-2xl sm:text-3xl font-bold mb-4">
-            Bereit, die Handschrift zu entziffern?
+            {t("topic.ctaTitle")}
           </h2>
           <p className="text-muted-foreground mb-6 text-lg max-w-xl mx-auto">
-            Laden Sie ein Foto hoch und erhalten Sie in wenigen Minuten einen lesbaren Text. Die ersten 3 Seiten sind kostenlos.
+            {t("topic.ctaBody")}
           </p>
           <Link href={user ? "/app/upload" : "/analysieren"}>
             <Button size="lg" className="font-semibold">
@@ -344,45 +344,25 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
-              Ihre Daten bleiben privat
+              {t("topic.trustPrivate")}
             </span>
             <span className="flex items-center gap-2">
               <Lock className="h-4 w-4 text-primary shrink-0" />
-              SSL-verschlüsselt
+              {t("topic.trustSsl")}
             </span>
             <span className="flex items-center gap-2">
               <Check className="h-4 w-4 text-primary shrink-0" />
-              Kein KI-Training mit Ihren Dokumenten
+              {t("topic.trustNoTraining")}
             </span>
             <span className="flex items-center gap-2">
               <Languages className="h-4 w-4 text-primary shrink-0" />
-              30+ Sprachen
+              {t("topic.trustLanguages")}
             </span>
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-border py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-4">
-          <Logo height="h-6" />
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <Link href="/beispiele" className="hover:text-foreground transition-colors">Beispiele</Link>
-            <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
-            {TOPIC_PAGES.map((tp) => (
-              <Link key={tp.slug} href={`/${tp.slug}`} className="hover:text-foreground transition-colors">
-                {tp.heroTitle.replace(" endlich lesen", "").replace(" endlich lesbar", "").replace(" entziffern", "")}
-              </Link>
-            ))}
-            <Link href="/impressum" className="hover:text-foreground transition-colors">Impressum</Link>
-            <Link href="/datenschutz" className="hover:text-foreground transition-colors">Datenschutz</Link>
-            <Link href="/agb" className="hover:text-foreground transition-colors">AGB</Link>
-            <Link href="/widerrufsbelehrung" className="hover:text-foreground transition-colors">Widerruf</Link>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} MormorsBreve. Alle rettigheder forbeholdes.
-          </p>
-        </div>
-      </footer>
+      <MarketingFooter />
 
     </div>
   );

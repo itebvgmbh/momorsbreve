@@ -1,5 +1,7 @@
 import type { RefObject } from "react";
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ImagePlus, Check, ArrowRight, Upload, ShieldCheck } from "lucide-react";
@@ -61,91 +63,89 @@ interface HeroConfig {
   trust: TrustConfig;
 }
 
-const ORIGINAL_BULLETS = [
-  "Lige så nemt som at tage et foto",
-  "Resultat på få minutter",
-  "Redigér teksten direkte i appen",
-  "Oversættelse til 30+ sprog inklusive",
-  "Læs op & forær væk som lyd",
-  "Eksport som PDF og billede",
-  "Sikkert og privat",
-  "Intet abonnement – betal kun for det, du bruger",
-];
+function buildHeroConfigs(t: TFunction): Record<HeroVariantId, HeroConfig> {
+  const originalBullets = [
+    t("hero.bulletAsEasyAsPhoto"),
+    t("hero.bulletResultInMinutes"),
+    t("hero.bulletEditInApp"),
+    t("hero.bulletTranslationIncluded"),
+    t("hero.bulletReadAloudGiveAway"),
+    t("hero.bulletExportPdfImage"),
+    t("hero.bulletSecurePrivate"),
+    t("hero.bulletNoSubscription"),
+  ];
 
-const HERO_CONFIGS: Record<HeroVariantId, HeroConfig> = {
-  0: {
-    badge: "Gammel skrift, nye historier",
-    headlineMode: "standard",
-    titleLine1: "Gotisk skrift,",
-    titleAccent: "tyd den online",
-    subtitle:
-      "Breve, dagbøger, opskrifter – det, som mormor, morfar eller forældrene engang skrev, kan du nu tyde online. Upload et foto, og på få minutter har du teksten. Til dig selv, børnene og børnebørnene.",
-    ctaMode: "dropzone",
-    dropzoneSize: "md",
-    dropzoneTitle: "Læg et foto eller en scanning her",
-    dropzoneSubtitle: "eller klik for at vælge – gratis & uden oprettelse",
-    note: "Intet kreditkort nødvendigt – prøv først, beslut bagefter. Efter oprettelse kan du uploade flere sider på én gang.",
-    trust: { type: "bullets", items: ORIGINAL_BULLETS },
-  },
-  1: {
-    badge: "Læsbar på få minutter",
-    headlineMode: "standard",
-    titleLine1: "Endlich lesen,",
-    titleAccent: "was Oma geschrieben hat",
-    subtitle:
-      "Upload et foto af din gotiske håndskrift og få den læsbare tekst på få minutter. Helt uden forhåndsviden.",
-    ctaMode: "button",
-    buttonLabel: "Ja, det vil jeg læse – upload et foto",
-    buttonSubtext: "Første side gratis · uden oprettelse · intet kreditkort",
-    trust: {
-      type: "bullets",
-      items: ["Læsbar på få minutter", "Første side gratis – uden oprettelse", "Intet abonnement, intet kreditkort"],
+  return {
+    0: {
+      badge: t("hero.v0Badge"),
+      headlineMode: "standard",
+      titleLine1: t("hero.v0TitleLine1"),
+      titleAccent: t("hero.v0TitleAccent"),
+      subtitle: t("hero.v0Subtitle"),
+      ctaMode: "dropzone",
+      dropzoneSize: "md",
+      dropzoneTitle: t("hero.v0DropzoneTitle"),
+      dropzoneSubtitle: t("hero.v0DropzoneSubtitle"),
+      note: t("hero.v0Note"),
+      trust: { type: "bullets", items: originalBullets },
     },
-  },
-  2: {
-    headlineMode: "stat",
-    statValue: "2 minutter",
-    statCaption: "fra falmet håndskrift til læsbar tekst.",
-    titleLine1: "Gammel håndskrift,",
-    titleAccent: "læsbar på 2 minutter",
-    subtitle:
-      "Upload et foto af din gotiske håndskrift eller fraktur – AI'en laver læsbar tekst på minutter.",
-    ctaMode: "button",
-    buttonLabel: "Gør den læsbar på 2 minutter",
-    buttonSubtext: "Første side gratis · uden oprettelse",
-    trust: {
-      type: "line",
-      text: "Genkender gotisk håndskrift, overgangsskrift, fraktur & kancelliskrift – første side er gratis.",
+    1: {
+      badge: t("hero.v1Badge"),
+      headlineMode: "standard",
+      titleLine1: t("hero.v1TitleLine1"),
+      titleAccent: t("hero.v1TitleAccent"),
+      subtitle: t("hero.v1Subtitle"),
+      ctaMode: "button",
+      buttonLabel: t("hero.v1ButtonLabel"),
+      buttonSubtext: t("hero.v1ButtonSubtext"),
+      trust: {
+        type: "bullets",
+        items: [t("hero.v1Bullet1"), t("hero.v1Bullet2"), t("hero.v1Bullet3")],
+      },
     },
-  },
-  3: {
-    badge: "Familiengeschichte bewahren",
-    headlineMode: "standard",
-    titleLine1: "Was steht in den Briefen,",
-    titleAccent: "die niemand mehr lesen kann?",
-    subtitle:
-      "Breve, dagbøger og opskrifter i gammel gotisk håndskrift går i glemmebogen. Tag et foto og læs på minutter det, der ellers går tabt.",
-    ctaMode: "dropzone",
-    dropzoneSize: "lg",
-    dropzoneTitle: "Læg et brev eller en dagbogsside her",
-    dropzoneSubtitle: "gratis & uden oprettelse – resultat på minutter",
-    trust: {
-      type: "bullets",
-      items: ["Bevor die Erinnerungen verloren gehen", "Lesbar für Kinder & Enkel", "Sicher & privat behandelt"],
+    2: {
+      headlineMode: "stat",
+      statValue: t("hero.v2StatValue"),
+      statCaption: t("hero.v2StatCaption"),
+      titleLine1: t("hero.v2TitleLine1"),
+      titleAccent: t("hero.v2TitleAccent"),
+      subtitle: t("hero.v2Subtitle"),
+      ctaMode: "button",
+      buttonLabel: t("hero.v2ButtonLabel"),
+      buttonSubtext: t("hero.v2ButtonSubtext"),
+      trust: {
+        type: "line",
+        text: t("hero.v2TrustLine"),
+      },
     },
-  },
-  4: {
-    badge: "So einfach geht's",
-    headlineMode: "standard",
-    titleLine1: "In 3 Schritten zur",
-    titleAccent: "lesbaren Familiengeschichte",
-    subtitle: "Falmet gotisk håndskrift bliver til læsbar tekst på minutter – helt uden forhåndsviden.",
-    ctaMode: "button",
-    buttonLabel: "Start trin 1 – upload et foto",
-    steps: ["Upload et foto", "Se gratis forhåndsvisning", "Få den fulde tekst"],
-    trust: { type: "guarantee", text: "100 % gratis at prøve – intet kreditkort, intet abonnement." },
-  },
-};
+    3: {
+      badge: t("hero.v3Badge"),
+      headlineMode: "standard",
+      titleLine1: t("hero.v3TitleLine1"),
+      titleAccent: t("hero.v3TitleAccent"),
+      subtitle: t("hero.v3Subtitle"),
+      ctaMode: "dropzone",
+      dropzoneSize: "lg",
+      dropzoneTitle: t("hero.v3DropzoneTitle"),
+      dropzoneSubtitle: t("hero.v3DropzoneSubtitle"),
+      trust: {
+        type: "bullets",
+        items: [t("hero.v3Bullet1"), t("hero.v3Bullet2"), t("hero.v3Bullet3")],
+      },
+    },
+    4: {
+      badge: t("hero.v4Badge"),
+      headlineMode: "standard",
+      titleLine1: t("hero.v4TitleLine1"),
+      titleAccent: t("hero.v4TitleAccent"),
+      subtitle: t("hero.v4Subtitle"),
+      ctaMode: "button",
+      buttonLabel: t("hero.v4ButtonLabel"),
+      steps: [t("hero.v4Step1"), t("hero.v4Step2"), t("hero.v4Step3")],
+      trust: { type: "guarantee", text: t("hero.v4Guarantee") },
+    },
+  };
+}
 
 function HeroTrust({ trust }: { trust: TrustConfig }) {
   if (trust.type === "line") {
@@ -187,7 +187,9 @@ export function HeroBlock({
   fileInputRef,
   onFileSelected,
 }: HeroBlockProps) {
-  const config = HERO_CONFIGS[variant] ?? HERO_CONFIGS[0];
+  const { t } = useTranslation();
+  const heroConfigs = buildHeroConfigs(t);
+  const config = heroConfigs[variant] ?? heroConfigs[0];
   const largeDropzone = config.dropzoneSize === "lg";
 
   const openPicker = () => fileInputRef.current?.click();
@@ -256,7 +258,7 @@ export function HeroBlock({
           <div className="flex flex-wrap items-start gap-3 mb-8">
             <Link href="/app">
               <Button size="lg" className="bg-amber-600 border-amber-700 text-white" data-testid="button-hero-start">
-                Zum Dashboard
+                {t("hero.toDashboard")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

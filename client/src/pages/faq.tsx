@@ -1,8 +1,9 @@
 import { Link } from "wouter";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import { ArrowRight, HelpCircle } from "lucide-react";
-import { Logo } from "@/components/logo";
 import { MarketingNav } from "@/components/marketing-nav";
+import { MarketingFooter } from "@/components/marketing-footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,22 +28,17 @@ const faqJsonLd = {
 };
 
 export default function FaqPage() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Häufige Fragen (FAQ) – MormorsBreve</title>
-        <meta
-          name="description"
-          content="Antworten auf häufige Fragen zur Transkription alter Handschriften: Sütterlin, Kurrent, Kosten, Datenschutz, Bezahlung und mehr. Verständlich erklärt."
-        />
+        <title>{t("faq.metaTitle")}</title>
+        <meta name="description" content={t("faq.metaDescription")} />
         <link rel="canonical" href="https://mormorsbreve.dk/faq" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="de_DE" />
-        <meta property="og:title" content="Häufige Fragen (FAQ) – MormorsBreve" />
-        <meta
-          property="og:description"
-          content="Antworten auf häufige Fragen zur Transkription alter Handschriften: Sütterlin, Kurrent, Kosten, Datenschutz und mehr."
-        />
+        <meta property="og:title" content={t("faq.ogTitle")} />
+        <meta property="og:description" content={t("faq.ogDescription")} />
         <meta property="og:url" content="https://mormorsbreve.dk/faq" />
       </Helmet>
 
@@ -57,14 +53,13 @@ export default function FaqPage() {
         <div className="text-center mb-12">
           <Badge variant="secondary" className="mb-4 inline-flex items-center gap-1.5">
             <HelpCircle className="h-3.5 w-3.5" />
-            Häufige Fragen
+            {t("faq.badge")}
           </Badge>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold mb-4">
-            Antworten auf die wichtigsten Fragen
+            {t("faq.h1")}
           </h1>
           <p className="text-muted-foreground text-lg leading-relaxed">
-            Hier finden Sie alles, was Sie wissen sollten — verständlich erklärt.
-            Falls Ihre Frage nicht dabei ist, schreiben Sie uns einfach.
+            {t("faq.intro")}
           </p>
         </div>
 
@@ -96,42 +91,25 @@ export default function FaqPage() {
 
         <div className="mt-12 text-center p-6 rounded-xl border border-border bg-card">
           <p className="text-muted-foreground mb-4">
-            Noch Fragen? Probieren Sie MormorsBreve einfach selbst aus —
-            die ersten 3 Seiten sind kostenlos.
+            {t("faq.ctaBody")}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link href="/analysieren">
               <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white">
-                Jetzt kostenlos testen
+                {t("faq.ctaTryFree")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <Link href="/">
               <Button size="lg" variant="outline">
-                Zur Startseite
+                {t("faq.ctaHome")}
               </Button>
             </Link>
           </div>
         </div>
       </main>
 
-      <footer className="border-t border-border py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-4">
-          <Logo height="h-6" />
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <Link href="/" className="hover:text-foreground transition-colors">Startseite</Link>
-            <Link href="/beispiele" className="hover:text-foreground transition-colors">Beispiele</Link>
-            <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
-            <Link href="/impressum" className="hover:text-foreground transition-colors">Impressum</Link>
-            <Link href="/datenschutz" className="hover:text-foreground transition-colors">Datenschutz</Link>
-            <Link href="/agb" className="hover:text-foreground transition-colors">AGB</Link>
-            <Link href="/widerrufsbelehrung" className="hover:text-foreground transition-colors">Widerruf</Link>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} MormorsBreve. Alle rettigheder forbeholdes.
-          </p>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ const ANALYZE_ACTION_KEY = "analyzeAction";
 const ANALYZE_TRANSLATION_LANGUAGE_KEY = "analyzeTranslationLanguage";
 
 export default function AnalysierenPage() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { user, isLoading: authLoading } = useAuth();
@@ -101,7 +103,7 @@ export default function AnalysierenPage() {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || "Übernahme fehlgeschlagen");
+          throw new Error(data.message || t("analyse.claimFailed"));
         }
         const data = await res.json();
         localStorage.removeItem(ANALYZE_TOKEN_KEY);
@@ -118,8 +120,8 @@ export default function AnalysierenPage() {
         localStorage.removeItem(ANALYZE_TRANSLATION_LANGUAGE_KEY);
         setClaiming(false);
         toast({
-          title: "Fehler",
-          description: err?.message || "Analyse konnte nicht übernommen werden",
+          title: t("analyse.errorTitle"),
+          description: err?.message || t("analyse.claimError"),
           variant: "destructive",
         });
       }
@@ -168,7 +170,7 @@ export default function AnalysierenPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || "Analyse fehlgeschlagen");
+        throw new Error(data.message || t("analyse.analysisFailed"));
       }
       return res.json();
     },
@@ -194,7 +196,7 @@ export default function AnalysierenPage() {
     onError: (error: Error) => {
       stopProgress();
       toast({
-        title: "Analyse fehlgeschlagen",
+        title: t("analyse.analysisFailed"),
         description: error.message,
         variant: "destructive",
       });
@@ -205,16 +207,16 @@ export default function AnalysierenPage() {
     (newFile: File) => {
       if (!newFile.type.startsWith("image/") && newFile.type !== "application/pdf") {
         toast({
-          title: "Ungültiges Format",
-          description: "Bitte nur Fotos (JPG, PNG) oder PDF auswählen.",
+          title: t("analyse.invalidFormatTitle"),
+          description: t("analyse.invalidFormatBody"),
           variant: "destructive",
         });
         return;
       }
       if (newFile.size > MAX_FILE_SIZE) {
         toast({
-          title: "Datei zu groß",
-          description: "Maximale Dateigröße: 50 MB.",
+          title: t("analyse.fileTooLargeTitle"),
+          description: t("analyse.fileTooLargeBody"),
           variant: "destructive",
         });
         return;
@@ -247,7 +249,7 @@ export default function AnalysierenPage() {
         localStorage.removeItem(ANALYZE_TRANSLATION_LANGUAGE_KEY);
       }
     } catch {
-      toast({ title: "Fehler", description: "Speichern fehlgeschlagen", variant: "destructive" });
+      toast({ title: t("analyse.errorTitle"), description: t("analyse.saveFailed"), variant: "destructive" });
       return;
     }
     setAuthInitialMode("register");
@@ -271,8 +273,8 @@ export default function AnalysierenPage() {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Kostenlose Handschrift-Analyse – MormorsBreve</title>
-        <meta name="description" content="Laden Sie ein Bild oder PDF Ihrer alten Handschrift hoch – unsere KI bewertet kostenlos die Lesbarkeit und zeigt, wie gut das Dokument transkribiert werden kann." />
+        <title>{t("analyse.metaTitle")}</title>
+        <meta name="description" content={t("analyse.metaDescription")} />
         <link rel="canonical" href="https://mormorsbreve.dk/analysieren" />
       </Helmet>
       <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
@@ -284,10 +286,10 @@ export default function AnalysierenPage() {
             <ThemeToggle />
             {authLoading ? null : user ? (
               <Link href="/app">
-                <Button data-testid="button-dashboard">Dashboard</Button>
+                <Button data-testid="button-dashboard">{t("analyse.dashboard")}</Button>
               </Link>
             ) : (
-              <Button data-testid="button-login" onClick={openAuthForLogin}>Anmelden</Button>
+              <Button data-testid="button-login" onClick={openAuthForLogin}>{t("common.login")}</Button>
             )}
           </div>
         </div>
@@ -297,10 +299,10 @@ export default function AnalysierenPage() {
         {!result && (
           <div>
             <h1 className="font-serif text-2xl font-bold mb-1">
-              Kostenlose KI-Analyse
+              {t("analyse.h1")}
             </h1>
             <p className="text-muted-foreground">
-              Laden Sie ein Bild oder PDF hoch – unsere KI bewertet die Lesbarkeit und zeigt Ihnen, wie gut Ihr Dokument automatisch transkribiert werden kann. Keine Anmeldung nötig.
+              {t("analyse.intro")}
             </p>
           </div>
         )}
@@ -314,14 +316,14 @@ export default function AnalysierenPage() {
                   <div>
                     <p className="font-medium text-lg">
                       {analyzeProgress < 30
-                        ? "Dokument wird hochgeladen…"
+                        ? t("analyse.progressUploading")
                         : analyzeProgress < 60
-                          ? "KI analysiert die Handschrift…"
+                          ? t("analyse.progressAnalyzing")
                           : analyzeProgress < 90
-                            ? "Transkriptionsprobe wird erstellt…"
-                            : "Fast fertig…"}
+                            ? t("analyse.progressSample")
+                            : t("analyse.progressAlmostDone")}
                     </p>
-                    <p className="text-sm text-muted-foreground mt-1">Unsere KI bewertet Ihr Dokument – einen Moment bitte.</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t("analyse.progressHint")}</p>
                   </div>
                   <div className="w-full max-w-sm space-y-2">
                     <Progress value={analyzeProgress} className="h-2" />
@@ -352,21 +354,21 @@ export default function AnalysierenPage() {
                     onChange={(e) => e.target.files?.[0] && addFile(e.target.files[0])}
                   />
                   <ImagePlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="font-medium mb-1">Datei hierher ziehen oder klicken</p>
-                  <p className="text-sm text-muted-foreground">Ein Bild oder PDF – max. 50 MB</p>
+                  <p className="font-medium mb-1">{t("analyse.dropzoneTitle")}</p>
+                  <p className="text-sm text-muted-foreground">{t("analyse.dropzoneHint")}</p>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <label className="text-sm text-muted-foreground whitespace-nowrap">In andere Sprache übersetzen:</label>
+                  <label className="text-sm text-muted-foreground whitespace-nowrap">{t("analyse.translateLabel")}</label>
                   <Select
                     value={translationLanguage}
                     onValueChange={setTranslationLanguage}
                   >
                     <SelectTrigger className="w-64" data-testid="select-translation-language">
-                      <SelectValue placeholder="Keine Übersetzung" />
+                      <SelectValue placeholder={t("analyse.noTranslation")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Keine Übersetzung</SelectItem>
+                      <SelectItem value="none">{t("analyse.noTranslation")}</SelectItem>
                       {translationLanguages.map((lang) => (
                         <SelectItem key={lang.code} value={lang.code}>
                           {lang.label}
@@ -389,7 +391,7 @@ export default function AnalysierenPage() {
               <Card className="p-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <h2 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2">
                   <FileText className="h-5 w-5 text-primary" />
-                  Transkriptionsvorschau
+                  {t("analyse.previewTitle")}
                 </h2>
                 <div className="relative">
                   <p className="font-mono text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
@@ -398,7 +400,7 @@ export default function AnalysierenPage() {
                   <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent pointer-events-none" />
                 </div>
                 <p className="mt-3 text-xs text-muted-foreground border-t pt-3">
-                  Melden Sie sich kostenlos an, um die vollständige Transkription zu erhalten.
+                  {t("analyse.previewSignupHint")}
                 </p>
               </Card>
             )}
@@ -414,14 +416,14 @@ export default function AnalysierenPage() {
 
             {/* Document preview */}
             <div>
-              <h2 className="font-serif text-lg font-semibold mb-3">Ihr Dokument</h2>
+              <h2 className="font-serif text-lg font-semibold mb-3">{t("analyse.yourDocument")}</h2>
               <Card>
-                <DocumentPreview src={result.imageUrl} alt="Hochgeladenes Dokument" />
+                <DocumentPreview src={result.imageUrl} alt={t("analyse.uploadedDocumentAlt")} />
               </Card>
             </div>
 
             <Button variant="ghost" onClick={reset} disabled={claiming}>
-              Anderes Dokument analysieren
+              {t("analyse.analyzeAnother")}
             </Button>
           </div>
         )}
@@ -433,7 +435,7 @@ export default function AnalysierenPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="text-center space-y-3">
             <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-            <p className="font-medium">Ihr Dokument wird übernommen…</p>
+            <p className="font-medium">{t("analyse.claiming")}</p>
           </div>
         </div>
       )}
