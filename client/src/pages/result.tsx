@@ -75,6 +75,7 @@ import { Headphones } from "lucide-react";
 import type { TranscriptionPage, UserCredits } from "@shared/models/transcription";
 import { getScriptTypeDisplayLabel, getTranslationLanguageLabel } from "@shared/models/transcription";
 import { TTS_VOICES, TTS_STYLE_PRESETS, TTS_CHARACTERS, TTS_CHARACTER_STYLES, ttsCreditsForText } from "@/lib/tts-constants";
+import { loc } from "@/i18n/localized";
 import { AudioCharacterPicker } from "@/components/audio-character-picker";
 
 interface ResultProgress {
@@ -256,7 +257,7 @@ export default function ResultPage() {
   const params = useParams<{ id: string }>();
   const search = useSearch();
   const [, navigate] = useLocation();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [currentPageIdx, setCurrentPageIdx] = useState(0);
   const [textVersion, setTextVersion] = useState<"original" | "completed" | "interpreted">("original");
@@ -1463,7 +1464,8 @@ export default function ResultPage() {
                 <p className="text-xs font-semibold text-muted-foreground">{t("result.existingAudios")}</p>
                 {[...ttsCompletedForPage, ...ttsCompletedForAll].map((gen) => {
                   const voiceMeta = TTS_VOICES.find((v) => v.name === gen.voice);
-                  const styleLabel = gen.style ? TTS_STYLE_PRESETS.find((p) => p.value === gen.style)?.label ?? (gen.style || "").slice(0, 30) : null;
+                  const stylePreset = gen.style ? TTS_STYLE_PRESETS.find((p) => p.value === gen.style) : undefined;
+                  const styleLabel = gen.style ? (stylePreset ? loc(stylePreset.label, i18n.language) : (gen.style || "").slice(0, 30)) : null;
                   const isAll = ttsCompletedForAll.includes(gen);
                   return (
                     <div key={gen.id} className="space-y-1.5 rounded-md border bg-muted/30 p-2.5">

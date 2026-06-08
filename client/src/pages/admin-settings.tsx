@@ -21,6 +21,7 @@ import { Loader2, Save, AlertTriangle, Percent, ShieldAlert, FileText, Plus, Tra
 import type { PromotionConfig } from "@shared/models/transcription";
 import { getScriptTypeDisplayLabel } from "@shared/models/transcription";
 import { TTS_CHARACTERS, TTS_CHARACTER_STYLES } from "@/lib/tts-constants";
+import { loc } from "@/i18n/localized";
 
 type Provider = "anthropic" | "google";
 type TtsTextVersion = "original" | "completed" | "interpreted";
@@ -128,7 +129,7 @@ function parsePromotionFromSettings(settings: Record<string, unknown> | undefine
 }
 
 export default function AdminSettingsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
 
   const { data: settings, isLoading } = useQuery<Record<string, unknown>>({
@@ -732,7 +733,7 @@ export default function AdminSettingsPage() {
                 <SelectContent>
                   {TTS_CHARACTERS.map((c) => (
                     <SelectItem key={c.voice} value={c.voice}>
-                      {c.label} ({c.gender}) &ndash; {c.description}
+                      {c.label} ({c.gender}) &ndash; {loc(c.description, i18n.language)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -753,7 +754,7 @@ export default function AdminSettingsPage() {
                 <SelectContent>
                   {TTS_CHARACTER_STYLES.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
-                      {s.label}
+                      {loc(s.label, i18n.language)}
                     </SelectItem>
                   ))}
                 </SelectContent>

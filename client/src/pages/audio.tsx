@@ -46,6 +46,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { TTS_CHARACTERS, TTS_CHARACTER_STYLES, TTS_VOICES } from "@/lib/tts-constants";
+import { loc } from "@/i18n/localized";
 import { AudiobookPlayer, type PlaylistTrack } from "@/components/audiobook-player";
 
 type AudioGeneration = {
@@ -126,10 +127,10 @@ function getVoiceLabel(voice: string) {
   return { label: voice, gender: null, description: null };
 }
 
-function getStyleLabel(style: string | null, t: TFunction): string {
+function getStyleLabel(style: string | null, t: TFunction, lang?: string): string {
   if (!style) return t("audioPage.styleStandard");
   const preset = TTS_CHARACTER_STYLES.find((s) => s.prompt === style);
-  if (preset) return preset.label;
+  if (preset) return loc(preset.label, lang);
   return style.length > 50 ? style.slice(0, 50) + "…" : style;
 }
 
@@ -150,7 +151,7 @@ function getPagesLabel(pages: number[] | "all", t: TFunction): string {
 }
 
 export default function AudioPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"audios" | "playlists">("audios");
@@ -414,7 +415,7 @@ export default function AudioPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 {generations.map((gen) => {
                   const voiceInfo = getVoiceLabel(gen.voice);
-                  const styleLabel = getStyleLabel(gen.style, t);
+                  const styleLabel = getStyleLabel(gen.style, t, i18n.language);
                   const versionLabel = getVersionLabel(gen.version, t);
                   const pagesLabel = getPagesLabel(gen.pages, t);
                   const date = new Date(gen.createdAt).toLocaleDateString("de-DE", { day: "2-digit", month: "short", year: "numeric" });

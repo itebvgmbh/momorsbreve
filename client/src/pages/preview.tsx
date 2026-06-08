@@ -49,6 +49,7 @@ import { QualityIndicator, type QualityDetails } from "@/components/quality-indi
 import { trackBeginCheckout } from "@/lib/gtag";
 import { getTranslationLanguageLabel } from "@shared/models/transcription";
 import { TTS_VOICES, TTS_STYLE_PRESETS, TTS_CHARACTERS, TTS_CHARACTER_STYLES, ttsCreditsForText } from "@/lib/tts-constants";
+import { loc } from "@/i18n/localized";
 import { AudioCharacterPicker } from "@/components/audio-character-picker";
 import {
   AlertDialog,
@@ -139,7 +140,7 @@ const SIMULATED_PROGRESS_INTERVAL_MS = 500;
 const SIMULATED_PROGRESS_MAX = 92;
 
 export default function PreviewPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -793,7 +794,8 @@ export default function PreviewPage() {
                         </p>
                         {ttsCompletedForPreview.map((gen) => {
                           const voiceMeta = TTS_VOICES.find((v) => v.name === gen.voice);
-                          const styleLabel = gen.style ? TTS_STYLE_PRESETS.find((p) => p.value === gen.style)?.label ?? (gen.style || "").slice(0, 40) : null;
+                          const stylePreset = gen.style ? TTS_STYLE_PRESETS.find((p) => p.value === gen.style) : undefined;
+                          const styleLabel = gen.style ? (stylePreset ? loc(stylePreset.label, i18n.language) : (gen.style || "").slice(0, 40)) : null;
                           return (
                             <div key={gen.id} className="space-y-1.5 rounded-md border bg-muted/30 p-2.5">
                               <p className="text-xs text-muted-foreground">

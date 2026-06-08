@@ -22,6 +22,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { TTS_CHARACTERS, TTS_CHARACTER_STYLES, TTS_VOICES } from "@/lib/tts-constants";
+import { loc } from "@/i18n/localized";
 
 export interface PlaylistTrack {
   id: number;
@@ -66,10 +67,10 @@ function getVoiceLabel(voice: string): string {
   return v?.name ?? voice;
 }
 
-function getStyleLabel(style: string | null): string {
+function getStyleLabel(style: string | null, lang?: string): string {
   if (!style) return "";
   const preset = TTS_CHARACTER_STYLES.find((s) => s.prompt === style);
-  return preset?.label ?? "";
+  return preset ? loc(preset.label, lang) : "";
 }
 
 export function AudiobookPlayer({
@@ -80,7 +81,7 @@ export function AudiobookPlayer({
   onPositionChange,
   onClose,
 }: AudiobookPlayerProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTrack, setCurrentTrack] = useState(Math.min(initialTrackIndex, tracks.length - 1));
   const [isPlaying, setIsPlaying] = useState(false);
@@ -253,7 +254,7 @@ export function AudiobookPlayer({
   if (!track) return null;
 
   const voiceLabel = getVoiceLabel(track.voice);
-  const styleLabel = getStyleLabel(track.style);
+  const styleLabel = getStyleLabel(track.style, i18n.language);
 
   return (
     <div className="rounded-lg border bg-card shadow-lg">

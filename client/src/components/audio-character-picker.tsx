@@ -8,6 +8,7 @@ import {
   type TtsCharacter,
   type TtsCharacterStyle,
 } from "@/lib/tts-constants";
+import { loc } from "@/i18n/localized";
 import { Pause, Play, User, Volume2 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -90,10 +91,12 @@ function CharacterCard({
   char,
   isSelected,
   onClick,
+  lang,
 }: {
   char: TtsCharacter;
   isSelected: boolean;
   onClick: () => void;
+  lang: string;
 }) {
   const isFemale = char.gender === "Weiblich";
   return (
@@ -124,7 +127,7 @@ function CharacterCard({
         </span>
       </div>
       <span className="text-xs text-muted-foreground leading-snug">
-        {char.description}
+        {loc(char.description, lang)}
       </span>
       <span
         className={cn(
@@ -146,12 +149,14 @@ function StyleButton({
   isPlaying,
   progress,
   onSelectAndPlay,
+  lang,
 }: {
   style: TtsCharacterStyle;
   isSelected: boolean;
   isPlaying: boolean;
   progress: number;
   onSelectAndPlay: () => void;
+  lang: string;
 }) {
   return (
     <div
@@ -201,7 +206,7 @@ function StyleButton({
           isSelected ? "text-foreground" : "text-muted-foreground",
         )}
       >
-        {style.label}
+        {loc(style.label, lang)}
       </span>
     </div>
   );
@@ -218,7 +223,7 @@ export function AudioCharacterPicker({
   compact = false,
   className,
 }: AudioCharacterPickerProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { playingKey, progress, toggle } = usePreviewPlayer();
 
   const selectedStyleId =
@@ -257,6 +262,7 @@ export function AudioCharacterPicker({
             char={char}
             isSelected={selectedVoice === char.voice}
             onClick={() => handleCharacterClick(char)}
+            lang={i18n.language}
           />
         ))}
       </div>
@@ -280,6 +286,7 @@ export function AudioCharacterPicker({
                   isPlaying={playingKey === key}
                   progress={playingKey === key ? progress : 0}
                   onSelectAndPlay={() => handleStyleSelectAndPlay(style)}
+                  lang={i18n.language}
                 />
               );
             })}
