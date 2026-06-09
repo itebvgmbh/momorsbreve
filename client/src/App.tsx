@@ -11,6 +11,7 @@ import { CookieBanner } from "@/components/cookie-banner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { useAuth, AuthProvider } from "@/hooks/use-auth";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -114,6 +115,7 @@ function AppLayout() {
                 <div className="flex items-center gap-1">
                   <HelpMenu />
                   <ThemeToggle />
+                  <LanguageSwitcher />
                 </div>
               </header>
               <main className="flex-1 overflow-auto">

@@ -104,14 +104,23 @@ const upload = multer({
   },
 });
 
+// ADMIN_EMAIL darf eine Komma-getrennte Liste sein, z. B.
+// "name@googlemail.com,name@gmail.com" – nützlich, da Google beide Formen mischt.
+function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const list = (process.env.ADMIN_EMAIL ?? "")
+    .split(",")
+    .map((e) => e.toLowerCase().trim())
+    .filter(Boolean);
+  return list.includes(email.toLowerCase().trim());
+}
+
 async function isAdmin(req: any, _res: any, next: any) {
   try {
     const userId = req.user?.uid;
     if (!userId) return next(new Error("Unauthorized"));
-    const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
-    if (!adminEmail) return next(new Error("Unauthorized"));
     const user = await authStorage.getUser(userId);
-    if (!user?.email || user.email.toLowerCase() !== adminEmail) {
+    if (!isAdminEmail(user?.email)) {
       return next(new Error("Unauthorized"));
     }
     return next();
@@ -124,10 +133,8 @@ async function checkIsAdmin(req: any): Promise<boolean> {
   try {
     const userId = req.user?.uid;
     if (!userId) return false;
-    const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
-    if (!adminEmail) return false;
     const user = await authStorage.getUser(userId);
-    return !!(user?.email && user.email.toLowerCase() === adminEmail);
+    return isAdminEmail(user?.email);
   } catch {
     return false;
   }
