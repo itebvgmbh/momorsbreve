@@ -891,7 +891,7 @@ export default function PreviewPage() {
                       {t("preview.tierCheckedBody")}
                     </p>
                     <p className="text-sm font-semibold">
-                      {(preview!.totalPages * 8.99).toFixed(2).replace(".", ",")} kr.
+                      {(preview!.totalPages * 67).toFixed(2).replace(".", ",")} kr.
                       <span className="text-muted-foreground font-normal text-xs ml-1">{t("preview.tierCheckedPerPage")}</span>
                     </p>
                     {preview!.quality?.level === "red" ? (

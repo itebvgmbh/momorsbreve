@@ -479,7 +479,7 @@ async function processPages(
         failedCount++;
         await storage.updateTranscriptionPage(page.id, {
           status: "failed",
-          transcription: "Die KI konnte keinen Text erkennen. Bitte versuchen Sie es erneut oder laden Sie ein deutlicheres Bild hoch.",
+          transcription: "AI'en kunne ikke genkende nogen tekst. Prøv igen, eller upload et tydeligere billede.",
           inputTokens: result.inputTokens,
           outputTokens: result.outputTokens,
         });
@@ -520,8 +520,8 @@ async function processPages(
         } catch (translationErr: any) {
           console.error(`[${logLabel}] Translation failed for page ${page.pageNumber} job ${jobId}:`, translationErr?.message || translationErr);
           const translationErrorMsg = isOverloadError(translationErr)
-            ? "Das KI-Modell ist momentan ausgelastet. Bitte versuchen Sie die Übersetzung später erneut."
-            : "Die Übersetzung konnte nicht erstellt werden. Bitte versuchen Sie es später erneut.";
+            ? "AI-modellen er i øjeblikket overbelastet. Prøv oversættelsen igen senere."
+            : "Oversættelsen kunne ikke oprettes. Prøv igen senere.";
           const existingQuality = (pageUpdate.qualityDetails as Record<string, unknown>) ?? {};
           pageUpdate.qualityDetails = { ...existingQuality, translationError: translationErrorMsg };
         }
@@ -539,13 +539,13 @@ async function processPages(
       console.error(`[${logLabel}] Page ${page.pageNumber} failed for job ${jobId}:`, err?.message || err);
       let errorMsg: string;
       if (isOverloadError(err)) {
-        errorMsg = "Das KI-Modell ist momentan ausgelastet. Bitte versuchen Sie es in einigen Minuten erneut.";
+        errorMsg = "AI-modellen er i øjeblikket overbelastet. Prøv igen om et par minutter.";
       } else if (err?.message?.includes("timed out") || err?.message?.includes("timeout")) {
-        errorMsg = "Die Verarbeitung hat zu lange gedauert. Bitte versuchen Sie es erneut.";
+        errorMsg = "Behandlingen tog for lang tid. Prøv igen.";
       } else {
         errorMsg = includeQuality
-          ? "Die Vorschau konnte nicht erstellt werden. Bitte versuchen Sie es erneut."
-          : "Die Transkription konnte nicht erstellt werden. Bitte versuchen Sie es erneut.";
+          ? "Forhåndsvisningen kunne ikke oprettes. Prøv igen."
+          : "Transskriptionen kunne ikke oprettes. Prøv igen.";
       }
       failedCount++;
       try {
@@ -1340,8 +1340,8 @@ export async function registerRoutes(
         const toDelete = file && path.join(uploadDir, file.filename);
         if (toDelete && fs.existsSync(toDelete)) fs.unlinkSync(toDelete);
         const userMsg = isOverloadError(error)
-          ? "Das KI-Modell ist momentan ausgelastet. Bitte versuchen Sie es in einigen Minuten erneut."
-          : "Die Analyse konnte nicht durchgeführt werden. Bitte versuchen Sie es erneut.";
+          ? "AI-modellen er i øjeblikket overbelastet. Prøv igen om et par minutter."
+          : "Analysen kunne ikke gennemføres. Prøv igen.";
         res.status(500).json({ message: userMsg });
       }
     }

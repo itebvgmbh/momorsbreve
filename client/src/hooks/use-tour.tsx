@@ -21,6 +21,7 @@ import "@/lib/tour-styles.css";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
 import { loc } from "@/i18n/localized";
+import i18n from "@/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import type { TourState } from "@shared/models/auth";
 import {
@@ -65,9 +66,9 @@ function buildDriveStep(step: TourStep, lang: string): DriveStep {
     side: step.side,
     align: step.align,
     showButtons: buttons,
-    nextBtnText: step.nextBtnText ? loc(step.nextBtnText, lang) : "Weiter",
-    prevBtnText: step.prevBtnText ? loc(step.prevBtnText, lang) : "Zurück",
-    doneBtnText: step.doneBtnText ? loc(step.doneBtnText, lang) : "Fertig",
+    nextBtnText: step.nextBtnText ? loc(step.nextBtnText, lang) : i18n.t("common.next"),
+    prevBtnText: step.prevBtnText ? loc(step.prevBtnText, lang) : i18n.t("common.back"),
+    doneBtnText: step.doneBtnText ? loc(step.doneBtnText, lang) : i18n.t("common.done"),
   };
 
   return {
@@ -332,10 +333,10 @@ export function TourProvider({ children }: { children: ReactNode }) {
       const config: Config = {
         steps,
         showProgress: def.steps.length > 1,
-        progressText: "Schritt {{current}} von {{total}}",
-        nextBtnText: "Weiter",
-        prevBtnText: "Zurück",
-        doneBtnText: "Fertig",
+        progressText: i18n.t("common.tourProgress", { current: "{{current}}", total: "{{total}}" }),
+        nextBtnText: i18n.t("common.next"),
+        prevBtnText: i18n.t("common.back"),
+        doneBtnText: i18n.t("common.done"),
         showButtons: ["next", "previous", "close"],
         allowClose: true,
         animate: true,

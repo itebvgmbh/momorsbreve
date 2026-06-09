@@ -120,7 +120,7 @@ export default function HumanTranscriptionRequestPage() {
 
   const canSubmit =
     urgency && accuracyLevel && budgetRange && dataSharingConsent && noSensitiveDataConfirmed;
-  const indicativeTotal = serviceLevel === "ki_geprueft" ? (job.totalPages * 8.99).toFixed(2).replace(".", ",") : null;
+  const indicativeTotal = serviceLevel === "ki_geprueft" ? (job.totalPages * 67).toFixed(2).replace(".", ",") : null;
 
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-8">

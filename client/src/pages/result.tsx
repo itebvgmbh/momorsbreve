@@ -1512,7 +1512,7 @@ export default function ResultPage() {
                 {t("result.aiVerifiedBody")}
               </p>
               <p className="text-sm font-semibold">
-                {(data.pages.length * 8.99).toFixed(2).replace(".", ",")} kr.
+                {(data.pages.length * 67).toFixed(2).replace(".", ",")} kr.
                 <span className="text-muted-foreground font-normal text-xs ml-1">{t("result.aiVerifiedPerPage")}</span>
               </p>
               <Button
