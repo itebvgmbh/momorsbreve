@@ -2,13 +2,13 @@ import { initializeApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyClsmqsn_J7sPxPXz3B8AkgeDNFj9AnUqU",
-  authDomain: "retrans-d9675.firebaseapp.com",
-  projectId: "retrans-d9675",
-  storageBucket: "retrans-d9675.firebasestorage.app",
-  messagingSenderId: "464096403012",
-  appId: "1:464096403012:web:dcc16cc9f770271df3e611",
-  measurementId: "G-XJ82F9QZYY",
+  apiKey: "AIzaSyA6nlrACg-zS77cOqCe0LEyIFkqsMoL2cg",
+  authDomain: "momorsbreve.firebaseapp.com",
+  projectId: "momorsbreve",
+  storageBucket: "momorsbreve.firebasestorage.app",
+  messagingSenderId: "378778614916",
+  appId: "1:378778614916:web:2ee807265c21f90f5a16d1",
+  measurementId: "G-ZFBNW4FEC9",
 };
 
 const isServer = typeof window === "undefined";
