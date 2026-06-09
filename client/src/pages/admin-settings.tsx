@@ -667,7 +667,7 @@ export default function AdminSettingsPage() {
                   const discounted = Math.round(base * (1 - frac));
                   return (
                     <li key={name}>
-                      {name}: {(base / 100).toFixed(2).replace(".", ",")} € → {(discounted / 100).toFixed(2).replace(".", ",")} € (-{Math.round(frac * 100)} %)
+                      {name}: {(base / 100).toFixed(2).replace(".", ",")} kr. → {(discounted / 100).toFixed(2).replace(".", ",")} kr. (-{Math.round(frac * 100)} %)
                     </li>
                   );
                 })}

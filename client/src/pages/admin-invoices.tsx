@@ -84,7 +84,7 @@ function formatDate(s: string | null): string {
 function formatPrice(cents: number): string {
   return new Intl.NumberFormat("de-DE", {
     style: "currency",
-    currency: "EUR",
+    currency: "DKK",
   }).format(cents / 100);
 }
 

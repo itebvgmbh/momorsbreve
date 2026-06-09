@@ -91,7 +91,7 @@ function formatPrice(cents: number | null): string {
   if (cents == null) return "–";
   return new Intl.NumberFormat("de-DE", {
     style: "currency",
-    currency: "EUR",
+    currency: "DKK",
   }).format(cents / 100);
 }
 

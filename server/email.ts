@@ -36,10 +36,13 @@ const LOCALE_BY_LANG: Record<EmailLang, string> = {
 
 function formatPriceEur(cents: number | null | undefined, lang: EmailLang = "da"): string {
   if (cents == null) return tr(lang, "common.onRequest");
-  return new Intl.NumberFormat(LOCALE_BY_LANG[lang], {
-    style: "currency",
-    currency: "EUR",
-  }).format(cents / 100);
+  // Beträge sind dänische Kronen (Feldname historisch "Eur"); einheitlich "kr." anzeigen.
+  return (
+    new Intl.NumberFormat(LOCALE_BY_LANG[lang], {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(cents / 100) + " kr."
+  );
 }
 
 function formatDeadline(date: Date | null | undefined, lang: EmailLang = "da"): string {
@@ -413,10 +416,10 @@ export async function sendHumanTranscriptionRequestNotification(params: HumanTra
     scientific: "Wissenschaftlich exakt",
   };
   const budgetLabels: Record<string, string> = {
-    bis_100: "Bis 100 €",
-    "100_250": "100–250 €",
-    "250_500": "250–500 €",
-    "500_plus": "500 € +",
+    bis_100: "Bis 750 kr.",
+    "100_250": "750–1.870 kr.",
+    "250_500": "1.870–3.730 kr.",
+    "500_plus": "3.730 kr. +",
     flexible: "Flexibel",
   };
 

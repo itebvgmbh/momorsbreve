@@ -35,7 +35,7 @@ function formatDate(value: string): string {
 
 function formatPrice(cents: number | null, t: TFunction): string {
   if (cents == null) return t("expertDashboard.noPriceYet");
-  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(cents / 100);
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "DKK" }).format(cents / 100);
 }
 
 export default function ExpertDashboardPage() {

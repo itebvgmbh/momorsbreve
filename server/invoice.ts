@@ -31,7 +31,7 @@ export function ensureInvoicesDir() {
 }
 
 function formatEur(cents: number): string {
-  return (cents / 100).toFixed(2).replace(".", ",") + " €";
+  return (cents / 100).toFixed(2).replace(".", ",") + " kr.";
 }
 
 /** Logo aus SVG als PNG-Buffer laden (für PDF-Einbettung). */

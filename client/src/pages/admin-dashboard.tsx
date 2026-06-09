@@ -266,10 +266,12 @@ interface AdwordsDailyStat {
 // ─── Formatters ────────────────────────────────────────────────────────────
 
 function formatEur(cents: number): string {
-  return new Intl.NumberFormat("de-DE", {
-    style: "currency",
-    currency: "EUR",
-  }).format(cents / 100);
+  return (
+    new Intl.NumberFormat("da-DK", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(cents / 100) + " kr."
+  );
 }
 
 function formatDateShort(dateStr: string): string {
@@ -1962,7 +1964,7 @@ function PayingUserHeatmap({
 
   const fmtCentsShort = (c: number) => {
     if (c === 0) return "";
-    return (c / 100).toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + "€";
+    return (c / 100).toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + " kr.";
   };
 
   return (

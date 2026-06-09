@@ -115,10 +115,12 @@ function formatDate(s: string | null): string {
 
 function formatPrice(cents: number | null): string {
   if (cents == null) return "–";
-  return new Intl.NumberFormat("de-DE", {
-    style: "currency",
-    currency: "EUR",
-  }).format(cents / 100);
+  return (
+    new Intl.NumberFormat("da-DK", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(cents / 100) + " kr."
+  );
 }
 
 function getExpertDisplayName(expert: ExpertAccount | null | undefined, t: TFunction): string {

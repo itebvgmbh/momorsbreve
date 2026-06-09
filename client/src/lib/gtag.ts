@@ -138,7 +138,7 @@ export function trackPurchaseConversion(params: {
   const consentGranted = ensureConsentRestored();
 
   const fire = () => {
-    const currency = params.currency ?? "EUR";
+    const currency = params.currency ?? "DKK";
     const gclid = getStoredGclid();
 
     const adsPayload: Record<string, unknown> = {
@@ -191,7 +191,7 @@ export function trackBeginCheckout(params?: {
   gtag("event", "begin_checkout", {
     send_to: GA4_MEASUREMENT_ID,
     value: params?.value,
-    currency: params?.currency ?? "EUR",
+    currency: params?.currency ?? "DKK",
     items: params?.items,
     package_name: params?.packageName ?? "",
     package_pages: params?.pages ?? 0,
@@ -200,7 +200,7 @@ export function trackBeginCheckout(params?: {
   });
   fbq("track", "InitiateCheckout", {
     value: params?.value,
-    currency: params?.currency ?? "EUR",
+    currency: params?.currency ?? "DKK",
     content_name: params?.packageName,
     num_items: params?.pages,
   });
@@ -236,7 +236,7 @@ export function trackMetaPurchase(params: {
 }) {
   fbq("track", "Purchase", {
     value: params.value,
-    currency: params.currency ?? "EUR",
+    currency: params.currency ?? "DKK",
     content_name: params.contentName,
     content_ids: params.contentIds,
     content_type: "product",
@@ -255,7 +255,7 @@ export function trackMetaInitiateCheckout(params?: {
 }) {
   fbq("track", "InitiateCheckout", {
     value: params?.value,
-    currency: params?.currency ?? "EUR",
+    currency: params?.currency ?? "DKK",
     content_name: params?.contentName,
     num_items: params?.numItems,
   });
