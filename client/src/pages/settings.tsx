@@ -110,7 +110,7 @@ function InvoicesSection() {
       year: "numeric",
     });
   const formatEur = (cents: number) =>
-    (cents / 100).toFixed(2).replace(".", ",") + " €";
+    (cents / 100).toFixed(2).replace(".", ",") + " kr.";
 
   return (
     <div className="rounded-md border overflow-x-auto">

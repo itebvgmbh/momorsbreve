@@ -203,13 +203,13 @@ export default function PricingPage() {
                     <div>
                       {pkg.originalPriceEur != null && (
                         <p className="text-xs text-muted-foreground line-through">
-                          {formatPrice(pkg.originalPriceEur)} EUR
+                          {formatPrice(pkg.originalPriceEur)} kr.
                         </p>
                       )}
                       <span className="font-serif text-4xl font-bold text-primary">
                         {formatPrice(pkg.priceEur)}
                       </span>
-                      <span className="text-muted-foreground ml-1 text-sm">EUR</span>
+                      <span className="text-muted-foreground ml-1 text-sm">kr.</span>
                       <span className="block text-xs text-muted-foreground mt-0.5">{t("pricing.inclVat")}</span>
                     </div>
                     <p className="text-xs font-medium text-primary/80">
