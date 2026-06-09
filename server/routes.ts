@@ -121,6 +121,10 @@ async function isAdmin(req: any, _res: any, next: any) {
     if (!userId) return next(new Error("Unauthorized"));
     const user = await authStorage.getUser(userId);
     if (!isAdminEmail(user?.email)) {
+      const configured = (process.env.ADMIN_EMAIL ?? "").trim();
+      console.warn(
+        `[admin-check] Zugriff verweigert. Eingeloggte E-Mail="${user?.email ?? "(keine)"}" | ADMIN_EMAIL ${configured ? `gesetzt auf "${configured}"` : "NICHT gesetzt"}`,
+      );
       return next(new Error("Unauthorized"));
     }
     return next();
