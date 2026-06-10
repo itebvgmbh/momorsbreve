@@ -36,9 +36,7 @@ export default function FaqPage() {
       <Helmet>
         <title>{t("faq.metaTitle")}</title>
         <meta name="description" content={t("faq.metaDescription")} />
-        <link rel="canonical" href="https://mormorsbreve.dk/faq" />
         <meta property="og:type" content="website" />
-        <meta property="og:locale" content="de_DE" />
         <meta property="og:title" content={t("faq.ogTitle")} />
         <meta property="og:description" content={t("faq.ogDescription")} />
         <meta property="og:url" content="https://mormorsbreve.dk/faq" />

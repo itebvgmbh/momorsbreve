@@ -284,9 +284,7 @@ export default function LandingPage() {
           name="description"
           content={t("landing.metaDescription")}
         />
-        <link rel="canonical" href="https://mormorsbreve.dk/" />
         <meta property="og:type" content="website" />
-        <meta property="og:locale" content="da_DK" />
         <meta property="og:title" content={t("landing.ogTitle")} />
         <meta
           property="og:description"

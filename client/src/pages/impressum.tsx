@@ -12,7 +12,6 @@ export default function ImpressumPage() {
       <Helmet>
         <title>{t("impressum.metaTitle")}</title>
         <meta name="description" content={t("impressum.metaDescription")} />
-        <link rel="canonical" href="https://mormorsbreve.dk/impressum" />
       </Helmet>
       <MarketingNav />
 
@@ -26,26 +25,24 @@ export default function ImpressumPage() {
 
         <div className="prose prose-neutral dark:prose-invert max-w-none space-y-6">
           <section>
-            <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm">
-              <strong>{t("impressum.noticeLabel")}</strong> {t("impressum.noticeBody")}
-            </div>
-          </section>
-          <section>
             <h2 className="font-serif text-xl font-semibold mb-3">{t("impressum.companyInfoTitle")}</h2>
             <p className="leading-relaxed">
-              [Virksomhedens navn ApS]<br />[Gadenavn og nr.]<br />[Postnr.] [By]<br />Danmark
+              ITEBV GmbH<br />Zehntwerderweg 201A<br />13469 Berlin<br />{t("impressum.countryName")}
+            </p>
+            <p className="leading-relaxed">
+              {t("impressum.mdLabel")} Stefan Tittmann, Dipl. Kfm. (FH)
             </p>
           </section>
           <section>
-            <h2 className="font-serif text-xl font-semibold mb-3">{t("impressum.cvrTitle")}</h2>
+            <h2 className="font-serif text-xl font-semibold mb-3">{t("impressum.registerTitle")}</h2>
             <p className="leading-relaxed">
-              {t("impressum.cvrLabel")} [8-cifret CVR-nummer]
+              {t("impressum.registerBody")}
             </p>
           </section>
           <section>
             <h2 className="font-serif text-xl font-semibold mb-3">{t("impressum.contactTitle")}</h2>
             <p className="leading-relaxed">
-              {t("impressum.contactPhone")} [+45 …]<br />{t("impressum.contactEmail")} [kontakt@mormorsbreve.dk]
+              {t("impressum.contactPhone")} +49 152 51874784<br />{t("impressum.contactEmail")} st@mes-beratung.de
             </p>
             <p className="leading-relaxed">
               {t("impressum.contactNote")}
@@ -54,13 +51,13 @@ export default function ImpressumPage() {
           <section>
             <h2 className="font-serif text-xl font-semibold mb-3">{t("impressum.vatTitle")}</h2>
             <p className="leading-relaxed">
-              {t("impressum.vatRegistered")} {t("impressum.vatNumberLabel")} [normalt identisk med CVR-nr.]<br />{t("impressum.vatPricesNote")}
+              {t("impressum.vatRegistered")} {t("impressum.vatNumberLabel")} DE348787952<br />{t("impressum.vatPricesNote")}
             </p>
           </section>
           <section>
             <h2 className="font-serif text-xl font-semibold mb-3">{t("impressum.responsibleTitle")}</h2>
             <p className="leading-relaxed">
-              [Navn på ansvarlig person]<br />[Virksomhedens navn ApS]
+              Stefan Tittmann<br />ITEBV GmbH<br />Zehntwerderweg 201A, 13469 Berlin
             </p>
           </section>
           <section>
@@ -70,6 +67,9 @@ export default function ImpressumPage() {
             </p>
             <p className="leading-relaxed">
               {t("impressum.complaintsEu")} <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">ec.europa.eu/consumers/odr</a>.
+            </p>
+            <p className="leading-relaxed">
+              {t("impressum.complaintsVsbg")}
             </p>
           </section>
           <section>

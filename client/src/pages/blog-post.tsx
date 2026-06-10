@@ -95,7 +95,6 @@ export default function BlogPostPage(props: BlogPostPageProps) {
       <Helmet>
         <title>{meta.title} – MormorsBreve</title>
         <meta name="description" content={meta.description} />
-        <link rel="canonical" href={canonicalUrl} />
       </Helmet>
       <ArticleJsonLd
         title={meta.title}

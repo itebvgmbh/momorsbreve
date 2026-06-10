@@ -1500,7 +1500,16 @@ export async function registerRoutes(
     try {
       const stripeInstance = getStripeOrThrow();
       const userId = req.user.uid;
-      const { packageId } = req.body;
+      const { packageId, consentImmediateDelivery } = req.body;
+
+      // DK-Forbrugeraftalelov: udtrykkeligt samtykke til straks-levering af
+      // digitalt indhold (fortrydelsesretten bortfalder) er obligatorisk.
+      if (consentImmediateDelivery !== true) {
+        return res.status(400).json({
+          message:
+            "Du skal acceptere, at leveringen begynder med det samme, og at fortrydelsesretten dermed bortfalder.",
+        });
+      }
 
       const pkg = await storage.getCreditPackage(packageId);
       if (!pkg) {
@@ -1525,7 +1534,8 @@ export async function registerRoutes(
       const baseUrl = `${protocol}://${host}`;
 
       const session = await stripeInstance.checkout.sessions.create({
-        payment_method_types: ["card", "paypal"],
+        // Keine payment_method_types: Stripe zeigt die im Dashboard aktivierten
+        // Zahlarten dynamisch an (Karte, MobilePay, PayPal … ohne Code-Deploy).
         line_items: [
           {
             price_data: {
@@ -1546,6 +1556,9 @@ export async function registerRoutes(
           userId,
           packageId: String(pkg.id),
           credits: String(pkg.pages),
+          // Nachweis des aktiven Samtykke (Fortrydelsesret) zum Kaufzeitpunkt
+          consent_immediate_delivery: "yes",
+          consent_at: new Date().toISOString(),
         },
       });
 
@@ -3845,7 +3858,8 @@ export async function registerRoutes(
       const baseUrl = `${protocol}://${host}`;
 
       const session = await stripeInstance.checkout.sessions.create({
-        payment_method_types: ["card", "paypal"],
+        // Keine payment_method_types: Stripe zeigt die im Dashboard aktivierten
+        // Zahlarten dynamisch an (Karte, MobilePay, PayPal … ohne Code-Deploy).
         line_items: [
           {
             price_data: {

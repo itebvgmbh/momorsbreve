@@ -39,14 +39,25 @@
         ad_personalization: 'denied',
         wait_for_update: 500
       });
+      // Gespeicherte Einwilligung anwenden: JSON {"statistics","marketing"}
+      // (granular) oder Legacy-Wert "all" (alles erteilt).
       var stored = null;
       try { stored = localStorage.getItem('cookie-consent'); } catch(e) {}
-      if (stored === 'all') {
+      var consentStats = false, consentMkt = false;
+      if (stored === 'all') { consentStats = true; consentMkt = true; }
+      else if (stored && stored.charAt(0) === '{') {
+        try {
+          var prefs = JSON.parse(stored);
+          consentStats = !!prefs.statistics;
+          consentMkt = !!prefs.marketing;
+        } catch(e) {}
+      }
+      if (consentStats || consentMkt) {
         gtag('consent', 'update', {
-          analytics_storage: 'granted',
-          ad_storage: 'granted',
-          ad_user_data: 'granted',
-          ad_personalization: 'granted'
+          analytics_storage: consentStats ? 'granted' : 'denied',
+          ad_storage: consentMkt ? 'granted' : 'denied',
+          ad_user_data: consentMkt ? 'granted' : 'denied',
+          ad_personalization: consentMkt ? 'granted' : 'denied'
         });
       }
     </script>

@@ -99,14 +99,23 @@ export function ensureConsentRestored() {
   }
 }
 
-export function updateConsent(granted: boolean) {
+// Granulare Einwilligung (DK Cookie-Vejledning): Statistik und Marketing
+// werden getrennt erteilt. Ein boolean gilt für beide (Accepter alle / Kun nødvendige).
+export interface ConsentPrefs {
+  statistics: boolean;
+  marketing: boolean;
+}
+
+export function updateConsent(prefs: boolean | ConsentPrefs) {
+  const p: ConsentPrefs =
+    typeof prefs === "boolean" ? { statistics: prefs, marketing: prefs } : prefs;
   gtag("consent", "update", {
-    analytics_storage: granted ? "granted" : "denied",
-    ad_storage: granted ? "granted" : "denied",
-    ad_user_data: granted ? "granted" : "denied",
-    ad_personalization: granted ? "granted" : "denied",
+    analytics_storage: p.statistics ? "granted" : "denied",
+    ad_storage: p.marketing ? "granted" : "denied",
+    ad_user_data: p.marketing ? "granted" : "denied",
+    ad_personalization: p.marketing ? "granted" : "denied",
   });
-  if (granted) {
+  if (p.marketing) {
     fbq("consent", "grant");
     fbq("track", "PageView");
   } else {

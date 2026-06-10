@@ -12,7 +12,6 @@ export default function DatenschutzPage() {
       <Helmet>
         <title>{t("privacy.metaTitle")}</title>
         <meta name="description" content={t("privacy.metaDescription")} />
-        <link rel="canonical" href="https://mormorsbreve.dk/datenschutz" />
       </Helmet>
       <MarketingNav />
 

@@ -487,7 +487,6 @@ export default function BeispielePage() {
       <Helmet>
         <title>{t("examples.metaTitle")}</title>
         <meta name="description" content={t("examples.metaDescription")} />
-        <link rel="canonical" href="https://mormorsbreve.dk/beispiele" />
         <meta property="og:title" content={t("examples.ogTitle")} />
         <meta property="og:description" content={t("examples.ogDescription")} />
         <meta property="og:type" content="website" />

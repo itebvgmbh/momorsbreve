@@ -83,12 +83,10 @@ export default function TopicLandingPage({ slug }: TopicLandingPageProps) {
       <Helmet>
         <title>{loc(page.title, i18n.language)}</title>
         <meta name="description" content={loc(page.description, i18n.language)} />
-        <link rel="canonical" href={canonicalUrl} />
         <meta property="og:title" content={loc(page.heroTitle, i18n.language)} />
         <meta property="og:description" content={loc(page.description, i18n.language)} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:locale" content="de_DE" />
         {page.heroImage && <meta property="og:image" content={`${BASE}${page.heroImage}`} />}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={loc(page.heroTitle, i18n.language)} />

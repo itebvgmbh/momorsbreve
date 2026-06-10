@@ -275,7 +275,6 @@ export default function AnalysierenPage() {
       <Helmet>
         <title>{t("analyse.metaTitle")}</title>
         <meta name="description" content={t("analyse.metaDescription")} />
-        <link rel="canonical" href="https://mormorsbreve.dk/analysieren" />
       </Helmet>
       <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">

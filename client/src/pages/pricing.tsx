@@ -3,23 +3,27 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Coins, Loader2, CreditCard, ShieldCheck, Lock, Sparkles, User, Headphones, Star, Quote, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { getCreditPackageDisplayName, type CreditPackageWithPromotion, type UserCredits } from "@shared/models/transcription";
 import { trackBeginCheckout, trackViewItemList, type PurchaseItem } from "@/lib/gtag";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { localizePath, type Lang } from "@/i18n/lang";
 
 function formatPrice(cents: number): string {
   return (cents / 100).toFixed(2).replace(".", ",");
 }
 
 export default function PricingPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  // Fortrydelsesret: udtrykkeligt samtykke til straks-levering (DK-forbrugerret)
+  const [withdrawalConsent, setWithdrawalConsent] = useState(false);
 
   const { data: packages, isLoading: packagesLoading } = useQuery<
     CreditPackageWithPromotion[]
@@ -63,7 +67,10 @@ export default function PricingPage() {
 
   const checkoutMutation = useMutation({
     mutationFn: async (packageId: number) => {
-      const res = await apiRequest("POST", "/api/checkout", { packageId });
+      const res = await apiRequest("POST", "/api/checkout", {
+        packageId,
+        consentImmediateDelivery: withdrawalConsent,
+      });
       return res.json() as Promise<{ url: string }>;
     },
     onSuccess: (data) => {
@@ -169,6 +176,28 @@ export default function PricingPage() {
             </div>
           )}
 
+          {/* Fortrydelsesret: aktiv samtykke kræves, før køb kan gennemføres */}
+          <div className="mb-4 flex items-start gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+            <Checkbox
+              id="withdrawal-consent"
+              checked={withdrawalConsent}
+              onCheckedChange={(v) => setWithdrawalConsent(v === true)}
+              className="mt-0.5"
+              data-testid="checkbox-withdrawal-consent"
+            />
+            <label htmlFor="withdrawal-consent" className="text-sm leading-relaxed cursor-pointer text-muted-foreground">
+              {t("pricing.withdrawalConsentLabel")}{" "}
+              <a
+                href={localizePath("/widerrufsbelehrung", i18n.language as Lang)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                {t("pricing.withdrawalConsentLink")}
+              </a>
+            </label>
+          </div>
+
           {packagesLoading ? (
             <div className="grid sm:grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (
@@ -218,7 +247,8 @@ export default function PricingPage() {
                     <Button
                       className="w-full"
                       variant={pkg.popular ? "default" : "outline"}
-                      disabled={checkoutMutation.isPending}
+                      disabled={checkoutMutation.isPending || !withdrawalConsent}
+                      title={!withdrawalConsent ? t("pricing.withdrawalConsentRequired") : undefined}
                       onClick={() => {
                         trackBeginCheckout({
                           value: pkg.priceEur / 100,

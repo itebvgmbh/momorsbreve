@@ -12,7 +12,6 @@ export default function WiderrufsbelehrungPage() {
       <Helmet>
         <title>{t("widerruf.metaTitle")}</title>
         <meta name="description" content={t("widerruf.metaDescription")} />
-        <link rel="canonical" href="https://mormorsbreve.dk/widerrufsbelehrung" />
       </Helmet>
       <MarketingNav />
 

@@ -25,7 +25,6 @@ export default function BlogPage() {
           name="description"
           content={t("blog.metaDescription")}
         />
-        <link rel="canonical" href="https://mormorsbreve.dk/blog" />
       </Helmet>
       <MarketingNav activeLink="blog" />
 

@@ -12,7 +12,6 @@ export default function AgbPage() {
       <Helmet>
         <title>{t("agb.metaTitle")}</title>
         <meta name="description" content={t("agb.metaDescription")} />
-        <link rel="canonical" href="https://mormorsbreve.dk/agb" />
       </Helmet>
       <MarketingNav />
 
