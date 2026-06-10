@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 
 // Nur das Symbol (Buch-Icon), Text „MormorsBreve“ wird separat daneben gerendert
 import logoSrc from "@/assets/logo.png";
@@ -14,11 +15,12 @@ type LogoProps = {
 };
 
 export function Logo({ className = "", height = "h-8", asLink = true, showText = true }: LogoProps) {
+  const { t } = useTranslation();
   const content = (
     <>
       <img
         src={logoSrc}
-        alt="MormorsBreve – Historische Handschriften transkribieren"
+        alt={t("common.logoAlt")}
         className={`${height} w-auto shrink-0`}
       />
       {showText && (

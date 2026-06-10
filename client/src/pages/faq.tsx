@@ -67,16 +67,16 @@ export default function FaqPage() {
 
         <div className="space-y-10">
           {FAQ_CATEGORIES.map((category) => (
-            <section key={category.title}>
+            <section key={category.title.da}>
               <h2 className="font-serif text-xl font-semibold mb-3 text-foreground/90">
-                {category.title}
+                {loc(category.title, i18n.language)}
               </h2>
               <Accordion type="multiple" className="w-full">
                 {category.items.map((item, idx) => (
                   <AccordionItem
-                    key={`${category.title}-${idx}`}
-                    value={`${category.title}-${idx}`}
-                    data-testid={`faq-item-${category.title.toLowerCase().replace(/\s/g, "-")}-${idx}`}
+                    key={`${category.title.da}-${idx}`}
+                    value={`${category.title.da}-${idx}`}
+                    data-testid={`faq-item-${category.title.da.toLowerCase().replace(/\s/g, "-")}-${idx}`}
                   >
                     <AccordionTrigger className="text-left text-base sm:text-lg font-semibold py-5 hover:no-underline">
                       {loc(item.question, i18n.language)}

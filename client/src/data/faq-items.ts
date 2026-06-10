@@ -6,13 +6,17 @@ export interface FaqItem {
 }
 
 export interface FaqCategory {
-  title: string;
+  title: Localized;
   items: FaqItem[];
 }
 
 export const FAQ_CATEGORIES: FaqCategory[] = [
   {
-    title: "Kom godt i gang",
+    title: {
+      da: "Kom godt i gang",
+      de: "Erste Schritte",
+      en: "Getting started",
+    },
     items: [
       {
         question: {
@@ -53,7 +57,11 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     ],
   },
   {
-    title: "Resultat og kvalitet",
+    title: {
+      da: "Resultat og kvalitet",
+      de: "Ergebnis und Qualität",
+      en: "Result and quality",
+    },
     items: [
       {
         question: {
@@ -118,7 +126,11 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     ],
   },
   {
-    title: "Pris og betaling",
+    title: {
+      da: "Pris og betaling",
+      de: "Preis und Bezahlung",
+      en: "Price and payment",
+    },
     items: [
       {
         question: {
@@ -147,7 +159,11 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     ],
   },
   {
-    title: "Privatliv og sikkerhed",
+    title: {
+      da: "Privatliv og sikkerhed",
+      de: "Privatsphäre und Sicherheit",
+      en: "Privacy and security",
+    },
     items: [
       {
         question: {
@@ -176,7 +192,11 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     ],
   },
   {
-    title: "Funktioner",
+    title: {
+      da: "Funktioner",
+      de: "Funktionen",
+      en: "Features",
+    },
     items: [
       {
         question: {
