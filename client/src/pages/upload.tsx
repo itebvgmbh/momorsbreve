@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { translationLanguages } from "@shared/models/transcription";
+import { languageDisplayName } from "@/i18n/localized";
 import { trackBeginCheckout } from "@/lib/gtag";
 import type { UserCredits } from "@shared/models/transcription";
 
@@ -48,7 +49,7 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 export default function UploadPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -493,7 +494,7 @@ export default function UploadPage() {
               <SelectItem value="none">{t("upload.noTranslation")}</SelectItem>
               {translationLanguages.map((lang) => (
                 <SelectItem key={lang.code} value={lang.code}>
-                  {lang.label}
+                  {languageDisplayName(lang.code, lang.label, i18n.language)}
                   <span className="ml-2 text-muted-foreground">{lang.labelNative}</span>
                 </SelectItem>
               ))}

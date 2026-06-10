@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { translationLanguages } from "@shared/models/transcription";
+import { languageDisplayName } from "@/i18n/localized";
 import { Progress } from "@/components/ui/progress";
 import { QualityIndicator, type QualityDetails } from "@/components/quality-indicator";
 import { DocumentPreview } from "@/components/document-preview";
@@ -39,7 +40,7 @@ const ANALYZE_ACTION_KEY = "analyzeAction";
 const ANALYZE_TRANSLATION_LANGUAGE_KEY = "analyzeTranslationLanguage";
 
 export default function AnalysierenPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { user, isLoading: authLoading } = useAuth();
@@ -370,7 +371,7 @@ export default function AnalysierenPage() {
                       <SelectItem value="none">{t("analyse.noTranslation")}</SelectItem>
                       {translationLanguages.map((lang) => (
                         <SelectItem key={lang.code} value={lang.code}>
-                          {lang.label}
+                          {languageDisplayName(lang.code, lang.label, i18n.language)}
                           <span className="ml-2 text-muted-foreground">{lang.labelNative}</span>
                         </SelectItem>
                       ))}

@@ -28,3 +28,22 @@ export function pick<T>(value: Partial<Record<Lang, T>>, lang?: string): T | und
   const l = activeLang(lang);
   return value[l] ?? value[DEFAULT_LANG];
 }
+
+/**
+ * Name einer Sprache (ISO-Code) in der aktuellen UI-Sprache, z. B.
+ * de-UI: "Deutsch", da-UI: "Tysk", en-UI: "German". Nutzt Intl.DisplayNames;
+ * `fallback` (z. B. das dänische Label aus translationLanguages) greift,
+ * falls die Umgebung den Code nicht auflösen kann.
+ */
+export function languageDisplayName(code: string, fallback: string, lang?: string): string {
+  const l = activeLang(lang);
+  try {
+    const name = new Intl.DisplayNames([l], { type: "language" }).of(code);
+    if (name && name !== code) {
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    }
+  } catch {
+    /* Intl.DisplayNames nicht verfügbar – Fallback nutzen */
+  }
+  return fallback;
+}
