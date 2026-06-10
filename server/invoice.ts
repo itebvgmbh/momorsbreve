@@ -7,14 +7,14 @@ import type { User } from "@shared/schema";
 import type { HumanTranscriptionRequest } from "@shared/schema";
 import type { IStorage } from "./storage";
 
-// Virksomhedsoplysninger til faktura.
-// TODO: Udfyld med de rigtige danske oplysninger (CVR/SE-nr., adresse), før der udstedes fakturaer.
+// Firmendaten ITEBV GmbH (wie OmasTagebuch-Original; ohne Bankverbindung und E-Mail).
+// Rechtsträger ist die deutsche GmbH — Rechnung weist deutsche USt (19 %) aus.
 const COMPANY = {
-  name: "MormorsBreve",
-  street: "[Gadenavn og nr.]",
-  postalCode: "[Postnr.]",
-  city: "[By]",
-  vatId: "[CVR/SE-nr.]",
+  name: "ITEBV GmbH",
+  street: "Zehntwerderweg 201 A",
+  postalCode: "13469",
+  city: "Berlin",
+  vatId: "DE348787952",
 };
 
 const LOGO_SVG_PATHS = [
