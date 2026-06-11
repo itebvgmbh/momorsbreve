@@ -1,12 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="40" height="48">
-  <defs>
-    <linearGradient id="bookGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6B4423"/>
-      <stop offset="100%" style="stop-color:#8B5A2B"/>
-    </linearGradient>
-  </defs>
-  <g transform="translate(0, 4)">
-    <path d="M8 4v40c0 2.2 1.8 4 4 4h24c2.2 0 4-1.8 4-4V4c0-2.2-1.8-4-4-4H12C9.8 0 8 1.8 8 4z" fill="url(#bookGrad)" stroke="#5C3D1E" stroke-width="1"/>
-    <path d="M12 8h16M12 14h16M12 20h12M12 26h16M12 32h10" stroke="#E8DCC8" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>MormorsBreve</title>
+  <circle cx="32" cy="32" r="23" fill="#6B4A2F"/>
+  <circle cx="13" cy="25" r="4.5" fill="#6B4A2F"/>
+  <circle cx="51.5" cy="22" r="4" fill="#6B4A2F"/>
+  <circle cx="49" cy="48" r="5" fill="#6B4A2F"/>
+  <circle cx="16" cy="46" r="3.5" fill="#6B4A2F"/>
+  <circle cx="35" cy="9.5" r="3.5" fill="#6B4A2F"/>
+  <circle cx="32" cy="32" r="17.5" fill="none" stroke="#EFE3CF" stroke-width="1.6"/>
+  <path d="M24 42 V22 L32 35.5 L40 22 V42" fill="none" stroke="#EFE3CF" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
