@@ -42,6 +42,22 @@ const translations: Record<EmailLang, TranslationTree> = {
       bodyDownload: "Du kan nu se og hente resultatet på din konto.",
       ctaButton: "Åbn resultat",
     },
+    authVerify: {
+      subject: "Bekræft din e-mailadresse – MormorsBreve",
+      tag: "Bekræft e-mail",
+      heading: "Velkommen til MormorsBreve!",
+      body: "Tak for din tilmelding. Bekræft venligst din e-mailadresse ved at klikke på knappen nedenfor.",
+      button: "Bekræft e-mailadresse",
+      ignoreNote: "Hvis du ikke har oprettet en konto hos MormorsBreve, kan du roligt ignorere denne mail.",
+    },
+    authReset: {
+      subject: "Nulstil din adgangskode – MormorsBreve",
+      tag: "Adgangskode",
+      heading: "Nulstil din adgangskode",
+      body: "Vi har modtaget en anmodning om at nulstille adgangskoden til din konto. Klik på knappen nedenfor for at vælge en ny adgangskode. Linket er kun gyldigt i kort tid.",
+      button: "Vælg ny adgangskode",
+      ignoreNote: "Hvis du ikke har bedt om dette, kan du roligt ignorere denne mail – din adgangskode forbliver uændret.",
+    },
   },
   de: {
     common: {
@@ -80,6 +96,22 @@ const translations: Record<EmailLang, TranslationTree> = {
       bodyDownload: "Sie können das Ergebnis jetzt in Ihrem Konto ansehen und herunterladen.",
       ctaButton: "Ergebnis öffnen",
     },
+    authVerify: {
+      subject: "Bestätigen Sie Ihre E-Mail-Adresse – MormorsBreve",
+      tag: "E-Mail bestätigen",
+      heading: "Willkommen bei MormorsBreve!",
+      body: "Vielen Dank für Ihre Registrierung. Bitte bestätigen Sie Ihre E-Mail-Adresse über die Schaltfläche unten.",
+      button: "E-Mail-Adresse bestätigen",
+      ignoreNote: "Falls Sie kein Konto bei MormorsBreve erstellt haben, können Sie diese E-Mail ignorieren.",
+    },
+    authReset: {
+      subject: "Passwort zurücksetzen – MormorsBreve",
+      tag: "Passwort",
+      heading: "Passwort zurücksetzen",
+      body: "Wir haben eine Anfrage erhalten, das Passwort Ihres Kontos zurückzusetzen. Klicken Sie auf die Schaltfläche unten, um ein neues Passwort zu wählen. Der Link ist nur kurze Zeit gültig.",
+      button: "Neues Passwort wählen",
+      ignoreNote: "Falls Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren – Ihr Passwort bleibt unverändert.",
+    },
   },
   en: {
     common: {
@@ -117,6 +149,22 @@ const translations: Record<EmailLang, TranslationTree> = {
       bodyNoName: "Your {{label}} is ready.",
       bodyDownload: "You can now view and download the result in your account.",
       ctaButton: "Open result",
+    },
+    authVerify: {
+      subject: "Confirm your email address – MormorsBreve",
+      tag: "Confirm email",
+      heading: "Welcome to MormorsBreve!",
+      body: "Thank you for signing up. Please confirm your email address by clicking the button below.",
+      button: "Confirm email address",
+      ignoreNote: "If you did not create an account with MormorsBreve, you can safely ignore this email.",
+    },
+    authReset: {
+      subject: "Reset your password – MormorsBreve",
+      tag: "Password",
+      heading: "Reset your password",
+      body: "We received a request to reset the password for your account. Click the button below to choose a new password. The link is only valid for a short time.",
+      button: "Choose new password",
+      ignoreNote: "If you did not request this, you can safely ignore this email – your password remains unchanged.",
     },
   },
 };

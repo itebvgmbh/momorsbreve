@@ -5,11 +5,10 @@ import {
   signInWithRedirect,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  sendEmailVerification,
-  sendPasswordResetEmail,
   GoogleAuthProvider,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { apiRequest } from "@/lib/queryClient";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +28,7 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDialogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [mode, setMode] = useState<"login" | "register" | "verify" | "forgot" | "reset-sent">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -88,13 +87,15 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
     try {
       if (mode === "register") {
         localStorage.setItem("newsletter_opt_in", JSON.stringify(newsletterOptIn));
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        await sendEmailVerification(cred.user);
+        await createUserWithEmailAndPassword(auth, email, password);
+        // Verifizierungs-Mail kommt vom eigenen Server (Resend) — Firebase'
+        // Vorlagen-Versand ist projektseitig gesperrt.
+        await apiRequest("POST", "/api/auth/send-verification-email");
         setMode("verify");
       } else {
         const cred = await signInWithEmailAndPassword(auth, email, password);
         if (!cred.user.emailVerified) {
-          await sendEmailVerification(cred.user);
+          await apiRequest("POST", "/api/auth/send-verification-email");
           setError(t("auth.verifyFirstError"));
           return;
         }
@@ -116,7 +117,10 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
     setLoading(true);
 
     try {
-      await sendPasswordResetEmail(auth, email);
+      await apiRequest("POST", "/api/auth/send-password-reset", {
+        email,
+        lang: i18n.language,
+      });
       setMode("reset-sent");
     } catch (err: any) {
       setError(firebaseErrorMessage(t, err?.code));

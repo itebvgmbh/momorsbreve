@@ -12,7 +12,8 @@ import {
 import { splitPdfPages, getPdfPageCount } from "./pdf-utils";
 import { generateTranscriptionPdf } from "./pdf-export";
 import { getStripeInstance, getStripeOrThrow, getStripeMode, setStripeMode, getStripePublicKey, getWebhookSecret } from "./stripe";
-import { sendQuoteEmail, sendSupportNotification, sendHumanTranscriptionRequestNotification, sendExpertRequestAssignedEmail, sendExpertQuoteAcceptedEmail, sendExpertResultCompletedEmail } from "./email";
+import { sendQuoteEmail, sendSupportNotification, sendHumanTranscriptionRequestNotification, sendExpertRequestAssignedEmail, sendExpertQuoteAcceptedEmail, sendExpertResultCompletedEmail, sendAuthVerificationEmail, sendAuthPasswordResetEmail, rewriteAuthActionLink } from "./email";
+import type { EmailLang } from "./email-i18n";
 import {
   createResendBroadcastFromTemplate,
   handleResendWebhook,
@@ -1754,6 +1755,81 @@ export async function registerRoutes(
   });
 
   // Stripe: Checkout-Session erstellen
+  // ─── Auth-E-Mails über eigenen Versand ─────────────────────────────────────
+  // Firebase' Vorlagen-Versand ist projektseitig gesperrt; das Admin SDK
+  // generiert die Aktionslinks, der Versand läuft über Resend (email.ts).
+  const authMailRate = new Map<string, { last: number; count: number; day: string }>();
+  function authMailAllowed(key: string): boolean {
+    const now = Date.now();
+    const today = new Date().toISOString().slice(0, 10);
+    const entry = authMailRate.get(key);
+    if (entry && entry.day === today) {
+      if (now - entry.last < 60_000 || entry.count >= 10) return false;
+      entry.last = now;
+      entry.count++;
+      return true;
+    }
+    authMailRate.set(key, { last: now, count: 1, day: today });
+    return true;
+  }
+  function normalizeEmailLang(value: unknown): EmailLang {
+    return value === "de" || value === "en" ? value : "da";
+  }
+
+  app.post("/api/auth/send-verification-email", isAuthenticated, async (req: any, res) => {
+    try {
+      const uid = req.user.uid;
+      if (!authMailAllowed(`verify:${uid}`)) {
+        return res.status(429).json({ message: "Vent venligst et øjeblik, før du anmoder om en ny mail." });
+      }
+      const fbUser = await getFirebaseAuth().getUser(uid);
+      if (!fbUser.email) {
+        return res.status(400).json({ message: "Ingen e-mailadresse på kontoen." });
+      }
+      if (fbUser.emailVerified) {
+        return res.json({ ok: true, alreadyVerified: true });
+      }
+      const dbUser = await storage.getUser(uid).catch(() => null);
+      const link = await getFirebaseAuth().generateEmailVerificationLink(fbUser.email, {
+        url: `${APP_BASE_URL_FALLBACK()}/app`,
+      });
+      await sendAuthVerificationEmail({
+        to: fbUser.email,
+        link: rewriteAuthActionLink(link),
+        lang: normalizeEmailLang(dbUser?.language),
+      });
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("[AuthMail] Verifizierungs-Mail fehlgeschlagen:", error);
+      res.status(500).json({ message: "Mailen kunne ikke sendes. Prøv igen senere." });
+    }
+  });
+
+  app.post("/api/auth/send-password-reset", async (req: any, res) => {
+    const { email, lang } = req.body ?? {};
+    if (typeof email !== "string" || !email.includes("@")) {
+      return res.status(400).json({ message: "Ugyldig e-mailadresse." });
+    }
+    // Antwortet IMMER ok – verrät nicht, ob ein Konto existiert (Enumeration-Schutz).
+    if (authMailAllowed(`reset:${email.trim().toLowerCase()}`)) {
+      try {
+        const link = await getFirebaseAuth().generatePasswordResetLink(email.trim(), {
+          url: `${APP_BASE_URL_FALLBACK()}/app`,
+        });
+        await sendAuthPasswordResetEmail({
+          to: email.trim(),
+          link: rewriteAuthActionLink(link),
+          lang: normalizeEmailLang(lang),
+        });
+      } catch (error: any) {
+        if (error?.code !== "auth/user-not-found" && error?.code !== "auth/email-not-found") {
+          console.error("[AuthMail] Passwort-Reset-Mail fehlgeschlagen:", error);
+        }
+      }
+    }
+    res.json({ ok: true });
+  });
+
   app.post("/api/checkout", isAuthenticated, async (req: any, res) => {
     try {
       const stripeInstance = getStripeOrThrow();

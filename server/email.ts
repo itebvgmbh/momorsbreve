@@ -579,3 +579,75 @@ export async function sendExpertResultCompletedEmail(params: {
     html,
   });
 }
+
+// ─── Auth-E-Mails (Registrierung bestätigen / Passwort zurücksetzen) ─────────
+// Firebase' eigener Vorlagen-Versand ist projektseitig gesperrt
+// (EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED). Die Links erzeugt das Admin SDK in
+// routes.ts; Gestaltung und Versand übernehmen wir hier selbst via Resend.
+
+/**
+ * Hebt einen vom Admin SDK generierten Aktionslink
+ * (https://<projekt>.firebaseapp.com/__/auth/action?...) auf unsere eigene,
+ * lokalisierte Action-Seite um. Der oobCode ist domänenunabhängig gültig.
+ */
+export function rewriteAuthActionLink(link: string): string {
+  const u = new URL(link);
+  return `${appBaseUrl}/__/auth/action${u.search}`;
+}
+
+interface AuthMailParams {
+  to: string;
+  link: string;
+  lang?: EmailLang;
+}
+
+function authMailHtml(lang: EmailLang, ns: "authVerify" | "authReset", link: string): string {
+  const f = "Helvetica, Arial, sans-serif";
+  return `
+<!DOCTYPE html>
+<html lang="${lang}"><head><meta charset="utf-8"><title>${tr(lang, `${ns}.subject`)}</title></head>
+<body style="margin:0;padding:0;background-color:#f0ebe3;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f0ebe3;">
+<tr><td align="center" style="padding:40px 20px;">
+<table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:4px;border:1px solid #d9d0c3;">
+  <tr><td style="height:3px;background-color:#b8860b;border-radius:4px 4px 0 0;">&nbsp;</td></tr>
+  <tr><td style="padding:36px 40px 0;">
+    <p style="margin:0 0 4px;font-family:${f};font-size:13px;color:#9a8c7a;text-transform:uppercase;letter-spacing:0.12em;">${tr(lang, `${ns}.tag`)}</p>
+    <h1 style="margin:8px 0 0;font-family:${f};font-size:22px;font-weight:700;color:#2a1f14;">${tr(lang, `${ns}.heading`)}</h1>
+  </td></tr>
+  <tr><td style="padding:20px 40px 0;">
+    <p style="margin:0;font-family:${f};font-size:14px;line-height:1.7;color:#594a3a;">${tr(lang, `${ns}.body`)}</p>
+  </td></tr>
+  <tr><td align="center" style="padding:28px 40px;">
+    <a href="${escapeHtml(link)}" target="_blank" style="display:inline-block;padding:12px 32px;font-family:${f};font-size:14px;font-weight:600;color:#ffffff;background-color:#2a1f14;border-radius:6px;text-decoration:none;">${tr(lang, `${ns}.button`)}</a>
+  </td></tr>
+  <tr><td style="padding:0 40px 28px;">
+    <p style="margin:0 0 12px;font-family:${f};font-size:12px;line-height:1.6;color:#9a8c7a;">${tr(lang, `${ns}.ignoreNote`)}</p>
+    <p style="margin:0;font-family:${f};font-size:12px;color:#b5a893;text-align:center;">MormorsBreve – ${tr(lang, "common.footerTagline")}</p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
+async function sendAuthMail(ns: "authVerify" | "authReset", { to, link, lang = "da" }: AuthMailParams) {
+  if (!resend) {
+    throw new Error("RESEND_API_KEY ist nicht gesetzt – Auth-E-Mail kann nicht versendet werden.");
+  }
+  const { error } = await resend.emails.send({
+    from: fromEmail,
+    to,
+    subject: tr(lang, `${ns}.subject`),
+    html: authMailHtml(lang, ns, link),
+  });
+  if (error) throw new Error(`Resend-Fehler: ${error.message ?? JSON.stringify(error)}`);
+}
+
+export async function sendAuthVerificationEmail(params: AuthMailParams) {
+  await sendAuthMail("authVerify", params);
+}
+
+export async function sendAuthPasswordResetEmail(params: AuthMailParams) {
+  await sendAuthMail("authReset", params);
+}
