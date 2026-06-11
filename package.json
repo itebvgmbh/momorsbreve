@@ -9,7 +9,8 @@
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
     "db:push": "drizzle-kit push",
-    "build:logo": "node script/logo-to-png.mjs"
+    "build:logo": "node script/logo-to-png.mjs",
+    "check:storage": "tsx scripts/check-object-storage.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
