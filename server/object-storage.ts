@@ -17,7 +17,12 @@
 
 import fs from "fs";
 import path from "path";
-import { Client } from "@replit/object-storage";
+// Nur der Typ wird statisch importiert (zur Laufzeit komplett entfernt). Das
+// eigentliche SDK wird LAZY per dynamischem Import geladen – so bootet der Server
+// auch dann, wenn das Paket @replit/object-storage gar nicht installiert ist
+// (z. B. lokal oder auf einem Repl ohne Object Storage). Geladen wird es erst,
+// wenn Object Storage tatsächlich aktiv ist und eine Operation ausgeführt wird.
+import type { Client } from "@replit/object-storage";
 
 const STORAGE_PREFIX = "uploads/";
 
@@ -72,11 +77,12 @@ export function isObjectStorageEnabled(): boolean {
   return cachedEnabled;
 }
 
-function getClient(): Client {
+async function getClient(): Promise<Client> {
   if (!cachedClient) {
+    const mod = await import("@replit/object-storage");
     cachedClient = cachedBucketId
-      ? new Client({ bucketId: cachedBucketId })
-      : new Client();
+      ? new mod.Client({ bucketId: cachedBucketId })
+      : new mod.Client();
   }
   return cachedClient;
 }
@@ -91,7 +97,8 @@ export function storageKeyForImageUrl(imageUrl: string): string {
  * sauber aufräumen kann). Nur aufrufen, wenn isObjectStorageEnabled() true ist.
  */
 export async function putObject(key: string, buffer: Buffer): Promise<void> {
-  const res = await getClient().uploadFromBytes(key, buffer);
+  const client = await getClient();
+  const res = await client.uploadFromBytes(key, buffer);
   if (!res.ok) {
     throw new Error(
       `[ObjectStorage] Upload fehlgeschlagen (${key}): ${String(res.error?.message ?? res.error)}`,
@@ -106,7 +113,8 @@ export async function putObject(key: string, buffer: Buffer): Promise<void> {
 export async function getObject(key: string): Promise<Buffer | null> {
   if (!isObjectStorageEnabled()) return null;
   try {
-    const res = await getClient().downloadAsBytes(key);
+    const client = await getClient();
+    const res = await client.downloadAsBytes(key);
     if (!res.ok) return null;
     // downloadAsBytes liefert Result<[Buffer]> – Tuple mit genau einem Buffer.
     const value = res.value as unknown;
@@ -122,7 +130,8 @@ export async function getObject(key: string): Promise<Buffer | null> {
 export async function deleteObject(key: string): Promise<void> {
   if (!isObjectStorageEnabled()) return;
   try {
-    await getClient().delete(key);
+    const client = await getClient();
+    await client.delete(key);
   } catch (err) {
     console.error(`[ObjectStorage] Delete-Fehler (${key}):`, err);
   }
