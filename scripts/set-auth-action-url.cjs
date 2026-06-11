@@ -35,6 +35,11 @@ async function main() {
   const cfg = await current.json();
   console.log("Aktuelle authorizedDomains:", JSON.stringify(cfg.authorizedDomains ?? [], null, 2));
   console.log("Aktuelle callbackUri:", cfg.notification?.sendEmail?.callbackUri ?? "(Standard)");
+  // Voller Server-Zustand der E-Mail-Konfiguration (Custom-Domain-Status!),
+  // SMTP-Passwort sicherheitshalber maskieren.
+  const sendEmail = JSON.parse(JSON.stringify(cfg.notification?.sendEmail ?? {}));
+  if (sendEmail.smtp?.password) sendEmail.smtp.password = "***";
+  console.log("Server-Zustand notification.sendEmail:", JSON.stringify(sendEmail, null, 2));
 
   const res = await fetch(`${base}?updateMask=notification.sendEmail.callbackUri`, {
     method: "PATCH",
