@@ -18,6 +18,20 @@ declare module "http" {
 
 app.use(compression());
 
+// Kanonische Domain: mormorsbreve.com (und www-Varianten) leiten per 301 auf
+// mormorsbreve.dk um, damit Google nur EINE Version der Seite indexiert.
+// Gilt nur für Web-Traffic — E-Mail-Versand von @mormorsbreve.com ist davon
+// unberührt. Stripe-Webhooks dürfen NICHT auf die .com zeigen (Stripe folgt
+// keinen Redirects); sie laufen über die replit.app- bzw. .dk-URL.
+app.use((req, res, next) => {
+  const rawHost = (req.headers["x-forwarded-host"] as string) || req.headers.host || "";
+  const host = rawHost.split(",")[0].trim().split(":")[0].toLowerCase();
+  if (host === "mormorsbreve.com" || host.endsWith(".mormorsbreve.com") || host === "www.mormorsbreve.dk") {
+    return res.redirect(301, `https://mormorsbreve.dk${req.originalUrl}`);
+  }
+  next();
+});
+
 const jsonParser = express.json({
   verify: (req, _res, buf) => {
     req.rawBody = buf;
