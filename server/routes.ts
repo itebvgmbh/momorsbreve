@@ -1796,21 +1796,14 @@ export async function registerRoutes(
               }
             }
           } catch (err) {
-            console.error("[Stripe] Error checking session status:", err);
-            stripeConfirmed = true;
-            completedOrder = await storage.completePaymentOrder(order.id);
-            if (completedOrder) {
-              await storage.addCredits(completedOrder.userId, completedOrder.credits);
-              console.log(`[Stripe] Fallback: Order ${order.id} abgeschlossen (Retrieve fehlgeschlagen), ${completedOrder.credits} Credits gutgeschrieben`);
-            }
+            // Bewusst NICHT gutschreiben: Ein fehlgeschlagener Abruf (z. B.
+            // Test-/Live-Mode-Mismatch, Stripe nicht erreichbar) ist KEINE
+            // Zahlungsbestätigung. Die Order bleibt pending — die Success-
+            // Seite pollt weiter und der Webhook schließt verlässlich ab.
+            console.error(`[Stripe] Session-Abruf fehlgeschlagen (mode=${getStripeMode()}), Order ${order.id} bleibt pending:`, err);
           }
         } else {
-          stripeConfirmed = true;
-          completedOrder = await storage.completePaymentOrder(order.id);
-          if (completedOrder) {
-            await storage.addCredits(completedOrder.userId, completedOrder.credits);
-            console.log(`[Stripe] Fallback: Order ${order.id} ohne Stripe-Instance abgeschlossen, ${completedOrder.credits} Credits gutgeschrieben`);
-          }
+          console.error(`[Stripe] Keine Stripe-Instanz für Modus "${getStripeMode()}" – Order ${order.id} bleibt pending.`);
         }
 
         if (stripeConfirmed && completedOrder) {
