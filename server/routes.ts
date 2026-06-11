@@ -69,6 +69,13 @@ import { transcriptionJobs, transcriptionPages, ttsGenerations, ttsLanguageMap, 
 import { db } from "./db";
 import { eq, sql, gte, desc, sum, count, max, inArray, and } from "drizzle-orm";
 import { getFirebaseAuth } from "./firebase";
+import {
+  isObjectStorageEnabled,
+  putObject,
+  getObject,
+  deleteObject,
+  storageKeyForImageUrl,
+} from "./object-storage";
 
 function respondUserNotInDatabase(res: { status: (code: number) => { json: (body: unknown) => void } }) {
   return res.status(401).json({
@@ -103,6 +110,217 @@ const upload = multer({
     cb(null, allowed.includes(file.mimetype));
   },
 });
+
+/**
+ * Legt die Bytes einer Seite/eines Dokuments ab und liefert die zu speichernden
+ * DB-Felder zurück:
+ *   - Object Storage aktiv → in den Bucket hochladen, nur `storageKey` setzen
+ *     (kein Base64 in der DB → löst das Problem der zu großen SQL-DB).
+ *   - sonst (Fallback)     → Base64 in `imageData` (bisheriges Verhalten).
+ * Wirft, wenn ein Object-Storage-Upload fehlschlägt, damit der Aufrufer aufräumen kann.
+ */
+async function persistImageBytes(
+  imageUrl: string,
+  buffer: Buffer,
+): Promise<{ storageKey: string | null; imageData: string | null }> {
+  if (isObjectStorageEnabled()) {
+    const key = storageKeyForImageUrl(imageUrl);
+    await putObject(key, buffer);
+    return { storageKey: key, imageData: null };
+  }
+  return { storageKey: null, imageData: buffer.toString("base64") };
+}
+
+/** Minimal-Form einer hochgeladenen Datei (kompatibel zu Multer + Chunk-Reassembly). */
+type UploadedFile = {
+  mimetype: string;
+  path: string;
+  filename: string;
+};
+
+/**
+ * Gemeinsamer Downstream für Datei-Uploads: Seitenzahl ermitteln, Credits prüfen
+ * & abbuchen, Job anlegen, sofort antworten, dann im Hintergrund PDFs splitten,
+ * Seiten ablegen (Object Storage statt Base64-DB) und die Vorschau starten.
+ *
+ * Wird sowohl vom Direkt-Upload `/api/upload` (Fallback für kleine Dateien) als
+ * auch vom Chunked-Upload `/api/upload/complete` genutzt.
+ */
+async function startUploadJob(
+  res: any,
+  userId: string,
+  files: UploadedFile[],
+  scriptType: DocumentType | string,
+  translationLanguage: string | null,
+): Promise<void> {
+  if (!files || files.length === 0) {
+    res.status(400).json({ message: "Keine Dateien hochgeladen" });
+    return;
+  }
+
+  // Quick page count without splitting (fast)
+  let totalPages = 0;
+  for (const file of files) {
+    if (file.mimetype === "application/pdf") {
+      const pdfBuffer = fs.readFileSync(file.path);
+      totalPages += await getPdfPageCount(pdfBuffer);
+    } else {
+      totalPages += 1;
+    }
+  }
+
+  const previewCreditsNeeded = 1;
+
+  const userCredits = await storage.ensureUserCredits(userId);
+  const availableCredits = userCredits.credits;
+  if (availableCredits < previewCreditsNeeded) {
+    for (const file of files) {
+      if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+    }
+    res.status(402).json({
+      message: `Nicht genügend Credits für die Vorschau. Sie benötigen ${previewCreditsNeeded} ${previewCreditsNeeded === 1 ? "Credit" : "Credits"}, haben aber nur ${availableCredits}.`,
+      creditsRequired: previewCreditsNeeded,
+      currentCredits: availableCredits,
+    });
+    return;
+  }
+
+  await storage.deductCredits(userId, previewCreditsNeeded);
+
+  const job = await storage.createTranscriptionJob({
+    userId,
+    scriptType,
+    translationLanguage,
+    status: "preview",
+    totalPages,
+  });
+
+  // Respond immediately – heavy processing happens in background
+  res.json({ jobId: job.id });
+
+  // Background: split PDFs, store pages, start preview
+  (async () => {
+    try {
+      const pageEntries: {
+        imageUrl: string;
+        storageKey: string | null;
+        imageData: string | null;
+        imageMimeType: string;
+      }[] = [];
+      for (const file of files) {
+        if (file.mimetype === "application/pdf") {
+          const pdfBuffer = fs.readFileSync(file.path);
+          const singlePages = await splitPdfPages(pdfBuffer);
+          const baseName = path.basename(file.filename, path.extname(file.filename));
+          for (const sp of singlePages) {
+            const filename = `${baseName}-page-${sp.pageNumber}.pdf`;
+            const fullPath = path.join(uploadDir, filename);
+            fs.writeFileSync(fullPath, sp.buffer);
+            const imageUrl = `/uploads/${filename}`;
+            const persisted = await persistImageBytes(imageUrl, sp.buffer);
+            pageEntries.push({
+              imageUrl,
+              ...persisted,
+              imageMimeType: "application/pdf",
+            });
+          }
+          fs.unlinkSync(file.path);
+          console.log(`[Upload] Split PDF into ${singlePages.length} single-page PDFs`);
+        } else {
+          const fileBuffer = fs.readFileSync(file.path);
+          const imageUrl = `/uploads/${file.filename}`;
+          const persisted = await persistImageBytes(imageUrl, fileBuffer);
+          pageEntries.push({
+            imageUrl,
+            ...persisted,
+            imageMimeType: file.mimetype,
+          });
+        }
+      }
+
+      await storage.createTranscriptionPages(
+        pageEntries.map((entry, i) => ({
+          jobId: job.id,
+          pageNumber: i + 1,
+          imageUrl: entry.imageUrl,
+          storageKey: entry.storageKey,
+          imageData: entry.imageData,
+          imageMimeType: entry.imageMimeType,
+          isPreview: i === 0,
+          status: "pending" as const,
+        }))
+      );
+
+      const pages = await storage.getTranscriptionPages(job.id);
+      console.log(`[Upload] Starting preview transcription for job ${job.id} (${pages.length} pages, preview: page 1 only), documentType=${scriptType}`);
+
+      const previewPage = pages[0];
+      const controller = new AbortController();
+      registerAbortController(job.id, controller);
+      try {
+        await processPages(job.id, scriptType, [previewPage], {
+          includeQuality: true,
+          setJobCompletedAtEnd: false,
+          logLabel: "Upload",
+          signal: controller.signal,
+          userId,
+          translationLanguage,
+        });
+      } finally {
+        unregisterAbortController(job.id, controller);
+      }
+    } catch (err) {
+      console.error(`[Upload] Background processing failed for job ${job.id}:`, err);
+      await storage.updateTranscriptionJob(job.id, { status: "failed" });
+    }
+  })();
+}
+
+// ─── Chunked Upload ──────────────────────────────────────────────────────────
+// Große Dateien werden vom Client in 5-MB-Chunks (Base64-JSON) hochgeladen, um
+// 413-Fehler an der Replit-WAF/Edge zu vermeiden. Chunks landen temporär auf der
+// Disk und werden in /api/upload/complete zusammengesetzt.
+const CHUNK_DIR = path.join(uploadDir, ".chunks");
+const MAX_CHUNK_BYTES = 6 * 1024 * 1024; // 5-MB-Chunk + Base64-Overhead-Reserve
+const MAX_UPLOAD_FILE_BYTES = 100 * 1024 * 1024; // 100 MB pro Datei (Soft-Limit-Obergrenze)
+const MAX_CHUNKS_PER_FILE = 1000;
+const ALLOWED_UPLOAD_MIMES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/tiff",
+  "application/pdf",
+];
+const UPLOAD_EXT_BY_MIME: Record<string, string> = {
+  "application/pdf": ".pdf",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "image/tiff": ".tiff",
+  "image/jpeg": ".jpg",
+};
+
+/** Verhindert Path-Traversal: uploadId nur aus unbedenklichen Zeichen. */
+function isValidUploadId(id: unknown): id is string {
+  return typeof id === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(id);
+}
+
+function chunkSessionDir(uploadId: string): string {
+  return path.join(CHUNK_DIR, uploadId);
+}
+
+function chunkFilePath(uploadId: string, fileIndex: number, chunkIndex: number): string {
+  return path.join(chunkSessionDir(uploadId), `${fileIndex}-${chunkIndex}.part`);
+}
+
+/** Räumt alle temporären Chunks einer Upload-Session auf (best-effort). */
+function cleanupChunkSession(uploadId: string): void {
+  try {
+    const dir = chunkSessionDir(uploadId);
+    if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
+  } catch (err) {
+    console.error(`[ChunkUpload] Cleanup für ${uploadId} fehlgeschlagen:`, err);
+  }
+}
 
 // ADMIN_EMAIL darf eine Komma-getrennte Liste sein, z. B.
 // "name@googlemail.com,name@gmail.com" – nützlich, da Google beide Formen mischt.
@@ -413,8 +631,17 @@ async function processPages(
       if (fs.existsSync(filePath)) {
         sourceBuffer = fs.readFileSync(filePath);
       } else {
+        // Disk-Kopie fehlt (Replit-Deploy ist ephemer). Reihenfolge:
+        //   1) Replit Object Storage (neuer Speicherpfad)
+        //   2) Base64 in der DB (Altbestand / Object Storage deaktiviert)
         const dbPage = await storage.getTranscriptionPageByImageUrl(page.imageUrl);
-        if (!dbPage?.imageData) {
+        sourceMediaType = dbPage?.imageMimeType ?? sourceMediaType;
+        const storageKey = dbPage?.storageKey ?? storageKeyForImageUrl(page.imageUrl);
+        let buf = await getObject(storageKey);
+        if (!buf && dbPage?.imageData) {
+          buf = Buffer.from(dbPage.imageData, "base64");
+        }
+        if (!buf) {
           failedCount++;
           await storage.updateTranscriptionPage(page.id, {
             status: "failed",
@@ -422,8 +649,7 @@ async function processPages(
           });
           continue;
         }
-        sourceBuffer = Buffer.from(dbPage.imageData, "base64");
-        sourceMediaType = dbPage.imageMimeType ?? sourceMediaType;
+        sourceBuffer = buf;
       }
       const ext = path.extname(page.imageUrl).toLowerCase();
       const extMediaType = ext === ".pdf" ? "application/pdf" : (MIME_MAP[ext] || "image/jpeg");
@@ -677,6 +903,10 @@ export async function registerRoutes(
     if (!filePath.startsWith(uploadDir)) {
       return res.status(403).json({ message: "Forbidden" });
     }
+    // Temporäre Chunk-Dateien des Chunked-Uploads nie ausliefern.
+    if (safePath.split(/[/\\]/).includes(".chunks")) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       return res.sendFile(filePath);
     }
@@ -712,12 +942,20 @@ export async function registerRoutes(
 
     try {
       const page = await storage.getTranscriptionPageByImageUrl(`/uploads/${filename}`);
-      if (page?.imageData && page.imageMimeType) {
-        const buffer = Buffer.from(page.imageData, "base64");
-        res.setHeader("Content-Type", page.imageMimeType);
-        res.setHeader("Content-Length", buffer.length);
-        res.setHeader("Cache-Control", "public, max-age=86400");
-        return res.send(buffer);
+      if (page && page.imageMimeType) {
+        // Object Storage (neuer Pfad) vor Base64-DB (Altbestand) versuchen.
+        let buffer: Buffer | null = page.storageKey
+          ? await getObject(page.storageKey)
+          : null;
+        if (!buffer && page.imageData) {
+          buffer = Buffer.from(page.imageData, "base64");
+        }
+        if (buffer) {
+          res.setHeader("Content-Type", page.imageMimeType);
+          res.setHeader("Content-Length", buffer.length);
+          res.setHeader("Cache-Control", "public, max-age=86400");
+          return res.send(buffer);
+        }
       }
     } catch (err) {
       console.error("[Uploads] DB fallback error (transcription_pages):", err);
@@ -725,12 +963,19 @@ export async function registerRoutes(
 
     try {
       const analysis = await storage.getAnonymousAnalysisByImageUrl(`/uploads/${filename}`);
-      if (analysis?.imageData && analysis.imageMimeType) {
-        const buffer = Buffer.from(analysis.imageData, "base64");
-        res.setHeader("Content-Type", analysis.imageMimeType);
-        res.setHeader("Content-Length", buffer.length);
-        res.setHeader("Cache-Control", "public, max-age=86400");
-        return res.send(buffer);
+      if (analysis && analysis.imageMimeType) {
+        let buffer: Buffer | null = analysis.storageKey
+          ? await getObject(analysis.storageKey)
+          : null;
+        if (!buffer && analysis.imageData) {
+          buffer = Buffer.from(analysis.imageData, "base64");
+        }
+        if (buffer) {
+          res.setHeader("Content-Type", analysis.imageMimeType);
+          res.setHeader("Content-Length", buffer.length);
+          res.setHeader("Cache-Control", "public, max-age=86400");
+          return res.send(buffer);
+        }
       }
     } catch (err) {
       console.error("[Uploads] DB fallback error (anonymous_analyses):", err);
@@ -1319,10 +1564,13 @@ export async function registerRoutes(
         const imageUrl = `/uploads/${file.filename}`;
         const mimeType = isPdf ? "application/pdf" : (MIME_MAP[ext] || "image/jpeg");
         const ctaVariant = await pickCtaVariantForAnalysis();
+        // Bytes nach Object Storage (oder Base64-Fallback) auslagern.
+        const stored = await persistImageBytes(imageUrl, fileBuffer);
         await storage.createAnonymousAnalysis({
           token,
           imageUrl,
-          imageData: base64,
+          storageKey: stored.storageKey,
+          imageData: stored.imageData,
           imageMimeType: mimeType,
           scriptType,
           qualityDetails: quality ?? undefined,
@@ -1399,28 +1647,55 @@ export async function registerRoutes(
       const ext = path.extname(analysis.imageUrl).toLowerCase();
       const isPdf = ext === ".pdf";
 
-      const pageEntries: { imageUrl: string; imageData: string; imageMimeType: string }[] = [];
-      if (isPdf && fs.existsSync(filePath)) {
-        const pdfBuffer = fs.readFileSync(filePath);
-        const singlePages = await splitPdfPages(pdfBuffer);
+      // Quelldatei der Analyse laden: Disk → Object Storage → Base64-DB.
+      let sourceBuffer: Buffer | null = fs.existsSync(filePath)
+        ? fs.readFileSync(filePath)
+        : null;
+      if (!sourceBuffer) {
+        const key = analysis.storageKey ?? storageKeyForImageUrl(analysis.imageUrl);
+        sourceBuffer = await getObject(key);
+      }
+      if (!sourceBuffer && analysis.imageData) {
+        sourceBuffer = Buffer.from(analysis.imageData, "base64");
+      }
+
+      const pageEntries: {
+        imageUrl: string;
+        storageKey: string | null;
+        imageData: string | null;
+        imageMimeType: string;
+      }[] = [];
+      if (isPdf && sourceBuffer) {
+        const singlePages = await splitPdfPages(sourceBuffer);
         const baseName = path.basename(analysis.imageUrl, ext);
         for (const sp of singlePages) {
           const filename = `${baseName}-page-${sp.pageNumber}.pdf`;
           const fullPath = path.join(uploadDir, filename);
           fs.writeFileSync(fullPath, sp.buffer);
+          const imageUrl = `/uploads/${filename}`;
+          const persisted = await persistImageBytes(imageUrl, sp.buffer);
           pageEntries.push({
-            imageUrl: `/uploads/${filename}`,
-            imageData: sp.buffer.toString("base64"),
+            imageUrl,
+            ...persisted,
             imageMimeType: "application/pdf",
           });
         }
         console.log(`[Claim] Split PDF into ${singlePages.length} single-page PDFs`);
       } else {
-        const fileBuffer = fs.existsSync(filePath) ? fs.readFileSync(filePath) : null;
         const mimeType = isPdf ? "application/pdf" : (MIME_MAP[ext] || "image/jpeg");
+        // Liegt die Analyse schon in Object Storage, denselben Key wiederverwenden;
+        // sonst die Bytes (neu) ablegen.
+        let persisted: { storageKey: string | null; imageData: string | null };
+        if (analysis.storageKey) {
+          persisted = { storageKey: analysis.storageKey, imageData: null };
+        } else if (sourceBuffer) {
+          persisted = await persistImageBytes(analysis.imageUrl, sourceBuffer);
+        } else {
+          persisted = { storageKey: null, imageData: analysis.imageData ?? "" };
+        }
         pageEntries.push({
           imageUrl: analysis.imageUrl,
-          imageData: fileBuffer?.toString("base64") ?? "",
+          ...persisted,
           imageMimeType: mimeType,
         });
       }
@@ -1440,6 +1715,7 @@ export async function registerRoutes(
           jobId: job.id,
           pageNumber: i + 1,
           imageUrl: pageEntries[i].imageUrl,
+          storageKey: pageEntries[i].storageKey,
           imageData: pageEntries[i].imageData,
           imageMimeType: pageEntries[i].imageMimeType,
           isPreview: i === 0,
@@ -2059,125 +2335,149 @@ export async function registerRoutes(
     async (req: any, res) => {
       try {
         const userId = req.user.uid;
-        const files = req.files as Express.Multer.File[];
+        const files = req.files as UploadedFile[];
         const scriptType = req.body.scriptType as DocumentType | string;
         const translationLanguage = (req.body.translationLanguage as string) || null;
-
-        if (!files || files.length === 0) {
-          return res.status(400).json({ message: "Keine Dateien hochgeladen" });
-        }
-
-        // Quick page count without splitting (fast)
-        let totalPages = 0;
-        for (const file of files) {
-          if (file.mimetype === "application/pdf") {
-            const pdfBuffer = fs.readFileSync(file.path);
-            totalPages += await getPdfPageCount(pdfBuffer);
-          } else {
-            totalPages += 1;
-          }
-        }
-
-        const previewCreditsNeeded = 1;
-
-        const userCredits = await storage.ensureUserCredits(userId);
-        const availableCredits = userCredits.credits;
-        if (availableCredits < previewCreditsNeeded) {
-          for (const file of files) {
-            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-          }
-          return res.status(402).json({
-            message: `Nicht genügend Credits für die Vorschau. Sie benötigen ${previewCreditsNeeded} ${previewCreditsNeeded === 1 ? "Credit" : "Credits"}, haben aber nur ${availableCredits}.`,
-            creditsRequired: previewCreditsNeeded,
-            currentCredits: availableCredits,
-          });
-        }
-
-        await storage.deductCredits(userId, previewCreditsNeeded);
-
-        const job = await storage.createTranscriptionJob({
-          userId,
-          scriptType,
-          translationLanguage,
-          status: "preview",
-          totalPages,
-        });
-
-        // Respond immediately – heavy processing happens in background
-        res.json({ jobId: job.id });
-
-        // Background: split PDFs, store pages, start preview
-        (async () => {
-          try {
-            const pageEntries: { imageUrl: string; imageData: string; imageMimeType: string }[] = [];
-            for (const file of files) {
-              if (file.mimetype === "application/pdf") {
-                const pdfBuffer = fs.readFileSync(file.path);
-                const singlePages = await splitPdfPages(pdfBuffer);
-                const baseName = path.basename(file.filename, path.extname(file.filename));
-                for (const sp of singlePages) {
-                  const filename = `${baseName}-page-${sp.pageNumber}.pdf`;
-                  const fullPath = path.join(uploadDir, filename);
-                  fs.writeFileSync(fullPath, sp.buffer);
-                  pageEntries.push({
-                    imageUrl: `/uploads/${filename}`,
-                    imageData: sp.buffer.toString("base64"),
-                    imageMimeType: "application/pdf",
-                  });
-                }
-                fs.unlinkSync(file.path);
-                console.log(`[Upload] Split PDF into ${singlePages.length} single-page PDFs`);
-              } else {
-                const fileBuffer = fs.readFileSync(file.path);
-                pageEntries.push({
-                  imageUrl: `/uploads/${file.filename}`,
-                  imageData: fileBuffer.toString("base64"),
-                  imageMimeType: file.mimetype,
-                });
-              }
-            }
-
-            await storage.createTranscriptionPages(
-              pageEntries.map((entry, i) => ({
-                jobId: job.id,
-                pageNumber: i + 1,
-                imageUrl: entry.imageUrl,
-                imageData: entry.imageData,
-                imageMimeType: entry.imageMimeType,
-                isPreview: i === 0,
-                status: "pending" as const,
-              }))
-            );
-
-            const pages = await storage.getTranscriptionPages(job.id);
-            console.log(`[Upload] Starting preview transcription for job ${job.id} (${pages.length} pages, preview: page 1 only), documentType=${scriptType}`);
-
-            const previewPage = pages[0];
-            const controller = new AbortController();
-            registerAbortController(job.id, controller);
-            try {
-              await processPages(job.id, scriptType, [previewPage], {
-                includeQuality: true,
-                setJobCompletedAtEnd: false,
-                logLabel: "Upload",
-                signal: controller.signal,
-                userId,
-                translationLanguage,
-              });
-            } finally {
-              unregisterAbortController(job.id, controller);
-            }
-          } catch (err) {
-            console.error(`[Upload] Background processing failed for job ${job.id}:`, err);
-            await storage.updateTranscriptionJob(job.id, { status: "failed" });
-          }
-        })();
+        await startUploadJob(res, userId, files, scriptType, translationLanguage);
       } catch (error) {
         if (error instanceof UserNotInDatabaseError) {
           return respondUserNotInDatabase(res);
         }
         console.error("Error uploading:", error);
         res.status(500).json({ message: "Upload fehlgeschlagen" });
+      }
+    }
+  );
+
+  // ─── Chunked Upload: einzelnen Chunk entgegennehmen ────────────────────────
+  // Body (JSON): { uploadId, fileIndex, chunkIndex, dataBase64 }
+  // Speichert den Chunk temporär auf der Disk. Reassembly erst in /complete.
+  app.post(
+    "/api/upload/chunk",
+    isAuthenticated,
+    express.json({ limit: "10mb" }),
+    (req: any, res) => {
+      try {
+        const { uploadId, fileIndex, chunkIndex, dataBase64 } = req.body ?? {};
+        if (!isValidUploadId(uploadId)) {
+          return res.status(400).json({ message: "Ungültige uploadId." });
+        }
+        const fi = Number(fileIndex);
+        const ci = Number(chunkIndex);
+        if (
+          !Number.isInteger(fi) || fi < 0 || fi >= 50 ||
+          !Number.isInteger(ci) || ci < 0 || ci >= MAX_CHUNKS_PER_FILE
+        ) {
+          return res.status(400).json({ message: "Ungültiger Chunk-Index." });
+        }
+        if (typeof dataBase64 !== "string" || dataBase64.length === 0) {
+          return res.status(400).json({ message: "Leerer Chunk." });
+        }
+        const buffer = Buffer.from(dataBase64, "base64");
+        if (buffer.length === 0 || buffer.length > MAX_CHUNK_BYTES) {
+          return res.status(413).json({ message: "Chunk zu groß." });
+        }
+        const dir = chunkSessionDir(uploadId);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(chunkFilePath(uploadId, fi, ci), buffer);
+        return res.json({ ok: true });
+      } catch (err) {
+        console.error("[ChunkUpload] Fehler beim Speichern eines Chunks:", err);
+        return res.status(500).json({ message: "Chunk konnte nicht gespeichert werden." });
+      }
+    }
+  );
+
+  // ─── Chunked Upload: Chunks zusammensetzen & Job starten ───────────────────
+  // Body (JSON): { uploadId, files: [{ filename, mimeType, fileIndex, totalChunks }],
+  //               scriptType, translationLanguage? }
+  app.post(
+    "/api/upload/complete",
+    isAuthenticated,
+    express.json({ limit: "1mb" }),
+    async (req: any, res) => {
+      const uploadId = req.body?.uploadId;
+      if (!isValidUploadId(uploadId)) {
+        return res.status(400).json({ message: "Ungültige uploadId." });
+      }
+      const assembled: UploadedFile[] = [];
+      try {
+        const userId = req.user.uid;
+        const scriptType = (req.body?.scriptType as DocumentType | string) || "auto";
+        const translationLanguage = (req.body?.translationLanguage as string) || null;
+        const fileSpecs = Array.isArray(req.body?.files) ? req.body.files : null;
+        if (!fileSpecs || fileSpecs.length === 0) {
+          cleanupChunkSession(uploadId);
+          return res.status(400).json({ message: "Keine Dateien angegeben." });
+        }
+        if (fileSpecs.length > 50) {
+          cleanupChunkSession(uploadId);
+          return res.status(413).json({ message: "Zu viele Dateien. Maximal 50 Dateien pro Upload." });
+        }
+
+        for (const spec of fileSpecs) {
+          const fi = Number(spec?.fileIndex);
+          const totalChunks = Number(spec?.totalChunks);
+          const mimeType = typeof spec?.mimeType === "string" ? spec.mimeType : "";
+          if (
+            !Number.isInteger(fi) || fi < 0 ||
+            !Number.isInteger(totalChunks) || totalChunks < 1 || totalChunks > MAX_CHUNKS_PER_FILE
+          ) {
+            throw new Error("Ungültige Datei-Metadaten.");
+          }
+          if (!ALLOWED_UPLOAD_MIMES.includes(mimeType)) {
+            throw new Error("Ungültiges Dateiformat.");
+          }
+          const origName = typeof spec?.filename === "string" ? spec.filename : "";
+          const ext = path.extname(origName) || UPLOAD_EXT_BY_MIME[mimeType] || "";
+          const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+          const targetPath = path.join(uploadDir, uniqueName);
+
+          // Chunks 0..totalChunks-1 der Reihe nach an die Zieldatei anhängen.
+          const out = fs.createWriteStream(targetPath);
+          let total = 0;
+          try {
+            for (let ci = 0; ci < totalChunks; ci++) {
+              const partPath = chunkFilePath(uploadId, fi, ci);
+              if (!fs.existsSync(partPath)) {
+                throw new Error(`Fehlender Chunk ${ci} von Datei ${fi}.`);
+              }
+              const part = fs.readFileSync(partPath);
+              total += part.length;
+              if (total > MAX_UPLOAD_FILE_BYTES) {
+                throw new Error("Datei zu groß. Maximale Dateigröße: 100 MB pro Datei.");
+              }
+              out.write(part);
+            }
+          } finally {
+            out.end();
+          }
+          await new Promise<void>((resolve, reject) => {
+            out.on("finish", () => resolve());
+            out.on("error", reject);
+          });
+          if (total === 0) throw new Error("Leere Datei.");
+
+          assembled.push({ mimetype: mimeType, path: targetPath, filename: uniqueName });
+        }
+
+        // Temporäre Chunks aufräumen – die fertigen Dateien liegen jetzt in uploadDir.
+        cleanupChunkSession(uploadId);
+
+        await startUploadJob(res, userId, assembled, scriptType, translationLanguage);
+      } catch (error: any) {
+        // Aufräumen: Chunks + bereits zusammengesetzte Dateien entfernen.
+        cleanupChunkSession(uploadId);
+        for (const f of assembled) {
+          try { if (fs.existsSync(f.path)) fs.unlinkSync(f.path); } catch { /* ignore */ }
+        }
+        if (error instanceof UserNotInDatabaseError) {
+          return respondUserNotInDatabase(res);
+        }
+        console.error("[ChunkUpload] Fehler beim Zusammensetzen:", error);
+        if (!res.headersSent) {
+          return res.status(400).json({ message: error?.message || "Upload fehlgeschlagen." });
+        }
       }
     }
   );

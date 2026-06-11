@@ -227,6 +227,10 @@ export const transcriptionPages = pgTable("transcription_pages", {
     .references(() => transcriptionJobs.id, { onDelete: "cascade" }),
   pageNumber: integer("page_number").notNull(),
   imageUrl: varchar("image_url", { length: 500 }).notNull(),
+  // Quelle der Bilddaten – genau eines ist gesetzt:
+  //   storageKey  → Datei liegt in Replit Object Storage (neuer Pfad, spart DB-Platz)
+  //   imageData   → Base64-Fallback in der DB (Altbestand bzw. Object Storage deaktiviert)
+  storageKey: varchar("storage_key", { length: 500 }),
   imageData: text("image_data"),
   imageMimeType: varchar("image_mime_type", { length: 100 }),
   transcription: text("transcription"),
@@ -309,6 +313,8 @@ export const anonymousAnalyses = pgTable("anonymous_analyses", {
   id: serial("id").primaryKey(),
   token: varchar("token", { length: 100 }).notNull().unique(),
   imageUrl: varchar("image_url", { length: 500 }).notNull(),
+  // storageKey → Replit Object Storage; imageData → Base64-Fallback in der DB.
+  storageKey: varchar("storage_key", { length: 500 }),
   imageData: text("image_data"),
   imageMimeType: varchar("image_mime_type", { length: 100 }),
   scriptType: varchar("script_type", { length: 50 }).notNull(),

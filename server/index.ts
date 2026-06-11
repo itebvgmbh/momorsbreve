@@ -24,11 +24,12 @@ const jsonParser = express.json({
   },
 });
 
-// /api/upload empfängt große Base64-JSON-Bodies (WAF-Workaround, siehe routes.ts)
-// und parst den Body in seiner eigenen Route mit höherem Limit. Hier überspringen,
-// damit der globale 100-kB-Parser den Upload nicht vorzeitig mit 413 abweist.
+// Die Upload-Routen (/api/upload, /api/upload/chunk, /api/upload/complete) empfangen
+// große Base64-JSON-Bodies (WAF-Workaround + Chunked Upload, siehe routes.ts) und
+// parsen den Body in ihrer eigenen Route mit höherem Limit. Hier überspringen, damit
+// der globale 100-kB-Parser den Upload nicht vorzeitig mit 413 abweist.
 app.use((req, res, next) => {
-  if (req.path === "/api/upload") return next();
+  if (req.path === "/api/upload" || req.path.startsWith("/api/upload/")) return next();
   return jsonParser(req, res, next);
 });
 

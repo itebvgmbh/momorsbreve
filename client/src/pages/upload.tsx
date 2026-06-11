@@ -33,9 +33,9 @@ import { languageDisplayName } from "@/i18n/localized";
 import { trackBeginCheckout } from "@/lib/gtag";
 import type { UserCredits } from "@shared/models/transcription";
 
-// Liest eine Datei als reinen Base64-String (ohne "data:...;base64,"-Präfix).
+// Liest ein Blob/eine Datei als reinen Base64-String (ohne "data:...;base64,"-Präfix).
 // Wird für den WAF-Workaround beim Upload benötigt (siehe Kommentar in der Mutation).
-function fileToBase64(file: File): Promise<string> {
+function fileToBase64(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -46,6 +46,84 @@ function fileToBase64(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+// Chunked Upload: große Dateien werden in 5-MB-Stücken hochgeladen, damit die
+// Replit-Edge/WAF keinen 413 wirft. Anschließend setzt der Server sie zusammen
+// und legt sie in Object Storage ab (statt Base64 in der DB).
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB
+
+function mimeForFile(file: File): string {
+  return (
+    file.type ||
+    (file.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream")
+  );
+}
+
+async function readErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const text = await res.text();
+    if (!text) return fallback;
+    try {
+      return JSON.parse(text).message || fallback;
+    } catch {
+      return text;
+    }
+  } catch {
+    return fallback;
+  }
+}
+
+async function uploadFilesChunked(
+  files: File[],
+  scriptType: string,
+  translationLanguage: string | undefined,
+  authHeaders: Record<string, string>,
+  fallbackError: string,
+): Promise<{ jobId: number }> {
+  const uploadId =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `up-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  const fileSpecs = files.map((file, fileIndex) => ({
+    filename: file.name,
+    mimeType: mimeForFile(file),
+    fileIndex,
+    totalChunks: Math.max(1, Math.ceil(file.size / CHUNK_SIZE)),
+  }));
+
+  for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+    const file = files[fileIndex];
+    const totalChunks = fileSpecs[fileIndex].totalChunks;
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      const blob = file.slice(chunkIndex * CHUNK_SIZE, (chunkIndex + 1) * CHUNK_SIZE);
+      const dataBase64 = await fileToBase64(blob);
+      const res = await fetch("/api/upload/chunk", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ uploadId, fileIndex, chunkIndex, dataBase64 }),
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, fallbackError));
+      }
+    }
+  }
+
+  const res = await fetch("/api/upload/complete", {
+    method: "POST",
+    headers: { ...authHeaders, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      uploadId,
+      files: fileSpecs,
+      scriptType,
+      ...(translationLanguage && translationLanguage !== "none" ? { translationLanguage } : {}),
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, fallbackError));
+  }
+  return res.json();
 }
 
 export default function UploadPage() {
@@ -68,8 +146,8 @@ export default function UploadPage() {
   const previewCreditsNeeded = files.length > 0 ? 1 : 0;
   const hasEnoughCredits = previewCreditsNeeded === 0 || currentCredits >= previewCreditsNeeded;
 
-  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB per file
-  const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50 MB total per upload
+  const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB per file
+  const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100 MB total per upload (Soft-Limit)
 
   const addFiles = useCallback(
     (newFiles: FileList | File[]) => {
@@ -170,22 +248,32 @@ export default function UploadPage() {
         throw new Error(t("upload.maxSizeDesc"));
       }
 
-      // WAF-Workaround: Replits Deployment-Edge blockt Multipart-PDF-Uploads (erkennt
-      // PDF-Signaturen als Angriff → 403). Deshalb senden wir die Dateien Base64-kodiert
-      // in einem JSON-Body; so sieht die WAF keine PDF-Signatur und lässt den Request durch.
+      const authHeaders = await getAuthHeaders();
+      const fallbackError = t("upload.uploadFailed");
+
+      // Große Uploads (> 5 MB gesamt) werden in 5-MB-Chunks hochgeladen und vom
+      // Server in Object Storage abgelegt – das vermeidet 413-Fehler und hält die
+      // SQL-DB klein. Kleine Uploads gehen weiter über den Direkt-Endpoint /api/upload
+      // (Fallback), der die Dateien Base64-kodiert in einem JSON-Body sendet
+      // (WAF-Workaround: so erkennt Replits Edge keine PDF-Signatur).
+      if (totalSize > CHUNK_SIZE) {
+        return uploadFilesChunked(
+          files,
+          "auto",
+          translationLanguage,
+          authHeaders,
+          fallbackError,
+        );
+      }
+
       const filePayloads = await Promise.all(
         files.map(async (file) => ({
           filename: file.name,
-          mimeType:
-            file.type ||
-            (file.name.toLowerCase().endsWith(".pdf")
-              ? "application/pdf"
-              : "application/octet-stream"),
+          mimeType: mimeForFile(file),
           dataBase64: await fileToBase64(file),
         }))
       );
 
-      const authHeaders = await getAuthHeaders();
       const res = await fetch("/api/upload", {
         method: "POST",
         headers: { ...authHeaders, "Content-Type": "application/json" },
@@ -198,21 +286,7 @@ export default function UploadPage() {
         }),
       });
       if (!res.ok) {
-        let errorMsg = t("upload.uploadFailed");
-        try {
-          const text = await res.text();
-          if (text) {
-            try {
-              const parsed = JSON.parse(text);
-              errorMsg = parsed.message || errorMsg;
-            } catch {
-              errorMsg = text;
-            }
-          }
-        } catch {
-          // Body could not be read
-        }
-        throw new Error(errorMsg);
+        throw new Error(await readErrorMessage(res, fallbackError));
       }
       return res.json();
     },
