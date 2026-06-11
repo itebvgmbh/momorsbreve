@@ -620,9 +620,6 @@ async function processPages(
       aborted = true;
       break;
     }
-    // #region agent log
-    fetch('http://localhost:7451/ingest/da4f1dcd-f617-424b-8f7d-867380948ac6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'220336'},body:JSON.stringify({sessionId:'220336',runId:'live-file-fail-1',hypothesisId:'H2',location:'server/routes.ts:processPages:loop-start',message:'processPages page start',data:{jobId,pageId:page.id,pageNumber:page.pageNumber,imageUrl:page.imageUrl,imageMimeType:page.imageMimeType??null,scriptType,logLabel},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     try {
       await storage.updateTranscriptionPage(page.id, { status: "processing" });
       const filePath = path.join(uploadDir, path.basename(page.imageUrl));
@@ -655,16 +652,10 @@ async function processPages(
       const extMediaType = ext === ".pdf" ? "application/pdf" : (MIME_MAP[ext] || "image/jpeg");
       const detectedIsPdf = isPdfBuffer(sourceBuffer);
       const isPdf = detectedIsPdf || sourceMediaType === "application/pdf" || ext === ".pdf";
-      // #region agent log
-      fetch('http://localhost:7451/ingest/da4f1dcd-f617-424b-8f7d-867380948ac6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'220336'},body:JSON.stringify({sessionId:'220336',runId:'live-file-fail-1',hypothesisId:'H2',location:'server/routes.ts:processPages:source-inspect',message:'source media inspection',data:{jobId,pageId:page.id,fileExists:fs.existsSync(filePath),sourceBytes:sourceBuffer.length,ext,extMediaType,sourceMediaType:sourceMediaType??null,detectedIsPdf,isPdf},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
 
       let result;
       if (isPdf) {
         const base64 = sourceBuffer.toString("base64");
-        // #region agent log
-        fetch('http://localhost:7451/ingest/da4f1dcd-f617-424b-8f7d-867380948ac6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'220336'},body:JSON.stringify({sessionId:'220336',runId:'live-file-fail-1',hypothesisId:'H3',location:'server/routes.ts:processPages:before-transcribe-pdf',message:'before transcribe pdf',data:{jobId,pageId:page.id,pageNumber:page.pageNumber,base64Length:base64.length,timeoutMs:PAGE_TRANSCRIPTION_TIMEOUT_MS},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         result = await withTimeout(
           transcribePdf(base64, scriptType, includeQuality),
           PAGE_TRANSCRIPTION_TIMEOUT_MS,
@@ -691,9 +682,6 @@ async function processPages(
         }
 
         const base64 = modelBuffer.toString("base64");
-        // #region agent log
-        fetch('http://localhost:7451/ingest/da4f1dcd-f617-424b-8f7d-867380948ac6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'220336'},body:JSON.stringify({sessionId:'220336',runId:'live-file-fail-1',hypothesisId:'H3',location:'server/routes.ts:processPages:before-transcribe-image',message:'before transcribe image',data:{jobId,pageId:page.id,pageNumber:page.pageNumber,modelBytes:modelBuffer.length,mediaType,base64Length:base64.length,timeoutMs:PAGE_TRANSCRIPTION_TIMEOUT_MS},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         result = await withTimeout(
           transcribePage(base64, scriptType, includeQuality, mediaType),
           PAGE_TRANSCRIPTION_TIMEOUT_MS,
@@ -754,14 +742,8 @@ async function processPages(
       }
 
       await storage.updateTranscriptionPage(page.id, pageUpdate);
-      // #region agent log
-      fetch('http://localhost:7451/ingest/da4f1dcd-f617-424b-8f7d-867380948ac6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'220336'},body:JSON.stringify({sessionId:'220336',runId:'live-file-fail-1',hypothesisId:'H5',location:'server/routes.ts:processPages:page-completed',message:'page completed and persisted',data:{jobId,pageId:page.id,inputTokens:pageUpdate.inputTokens??null,outputTokens:pageUpdate.outputTokens??null,hasTranslation:!!pageUpdate.translation,status:pageUpdate.status},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       console.log(`[${logLabel}] Page ${page.pageNumber} completed for job ${jobId} (tokens: ${pageUpdate.inputTokens} in / ${pageUpdate.outputTokens} out)`);
     } catch (err: any) {
-      // #region agent log
-      fetch('http://localhost:7451/ingest/da4f1dcd-f617-424b-8f7d-867380948ac6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'220336'},body:JSON.stringify({sessionId:'220336',runId:'live-file-fail-1',hypothesisId:'H4',location:'server/routes.ts:processPages:catch',message:'page processing catch',data:{jobId,pageId:page.id,errorName:err?.name??null,errorMessage:err?.message??String(err),status:err?.status??err?.statusCode??null},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       console.error(`[${logLabel}] Page ${page.pageNumber} failed for job ${jobId}:`, err?.message || err);
       let errorMsg: string;
       if (isOverloadError(err)) {
@@ -2653,9 +2635,6 @@ export async function registerRoutes(
     try {
       const userId = req.user.uid;
       const jobId = parseInt(req.params.id);
-      // #region agent log
-      fetch('http://localhost:7451/ingest/da4f1dcd-f617-424b-8f7d-867380948ac6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'220336'},body:JSON.stringify({sessionId:'220336',runId:'live-file-fail-2',hypothesisId:'H0',location:'server/routes.ts:/api/jobs/:id/transcribe:entry',message:'transcribe endpoint hit',data:{jobId,userIdPresent:!!userId},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       const job = await storage.getTranscriptionJob(jobId);
 
       if (!job || job.userId !== userId) {
