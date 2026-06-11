@@ -25,11 +25,6 @@ export default function DatenschutzPage() {
 
         <div className="prose prose-neutral dark:prose-invert max-w-none space-y-6">
           <section>
-            <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm">
-              <strong>{t("privacy.noticeLabel")}</strong> {t("privacy.noticeBody")}
-            </div>
-          </section>
-          <section>
             <h2 className="font-serif text-xl font-semibold mb-3">{t("privacy.controllerTitle")}</h2>
             <p className="leading-relaxed">
               {t("privacy.controllerBody")}

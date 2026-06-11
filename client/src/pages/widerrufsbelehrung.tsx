@@ -25,11 +25,6 @@ export default function WiderrufsbelehrungPage() {
 
         <div className="prose prose-neutral dark:prose-invert max-w-none space-y-6">
           <section>
-            <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm">
-              <strong>{t("widerruf.noticeLabel")}</strong> {t("widerruf.noticeText")}
-            </div>
-          </section>
-          <section>
             <h2 className="font-serif text-xl font-semibold mb-3">{t("widerruf.rightTitle")}</h2>
             <p className="leading-relaxed">
               {t("widerruf.rightBody")}
@@ -56,8 +51,9 @@ export default function WiderrufsbelehrungPage() {
           <section>
             <h2 className="font-serif text-xl font-semibold mb-3">{t("widerruf.formTitle")}</h2>
             <p className="leading-relaxed">
-              {t("widerruf.formTo")}<br />{t("widerruf.formDeclaration")}<br />{t("widerruf.formOrderedOn")}<br />{t("widerruf.formConsumerName")}<br />{t("widerruf.formConsumerAddress")}<br />{t("widerruf.formDate")}
+              {t("widerruf.formTo")}<br />{t("widerruf.formDeclaration")}<br />{t("widerruf.formOrderedOn")}<br />{t("widerruf.formConsumerName")}<br />{t("widerruf.formConsumerAddress")}<br />{t("widerruf.formSignature")}<br />{t("widerruf.formDate")}
             </p>
+            <p className="text-sm text-muted-foreground">{t("widerruf.formAsteriskNote")}</p>
           </section>
         </div>
       </main>
