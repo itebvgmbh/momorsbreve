@@ -12,7 +12,7 @@ import {
 import { splitPdfPages, getPdfPageCount } from "./pdf-utils";
 import { generateTranscriptionPdf } from "./pdf-export";
 import { getStripeInstance, getStripeOrThrow, getStripeMode, setStripeMode, getStripePublicKey, getWebhookSecret } from "./stripe";
-import { sendQuoteEmail, sendSupportNotification, sendHumanTranscriptionRequestNotification, sendExpertRequestAssignedEmail, sendExpertQuoteAcceptedEmail, sendExpertResultCompletedEmail, sendAuthVerificationEmail, sendAuthPasswordResetEmail, rewriteAuthActionLink } from "./email";
+import { sendQuoteEmail, sendSupportNotification, sendHumanTranscriptionRequestNotification, sendExpertRequestAssignedEmail, sendExpertQuoteAcceptedEmail, sendExpertResultCompletedEmail, sendAuthVerificationEmail, sendAuthPasswordResetEmail, sendAuthMagicLinkEmail, rewriteAuthActionLink } from "./email";
 import type { EmailLang } from "./email-i18n";
 import {
   createResendBroadcastFromTemplate,
@@ -1828,6 +1828,52 @@ export async function registerRoutes(
       }
     }
     res.json({ ok: true });
+  });
+
+  /**
+   * Magic-Link-Login (passwortlos): erzeugt einen Firebase-E-Mail-Link und
+   * versendet ihn gebrandet via Resend. Funktioniert für bestehende UND neue
+   * Nutzer (unbekannte Adressen bekommen einen Firebase-Account; die E-Mail
+   * gilt nach dem Klick automatisch als verifiziert).
+   * Antwortet bewusst immer ok – kein Enumeration-Leak.
+   */
+  app.post("/api/auth/send-login-link", async (req: any, res) => {
+    const { email, lang } = req.body ?? {};
+    if (typeof email !== "string" || !email.includes("@") || email.length > 320) {
+      return res.status(400).json({ message: "Ugyldig e-mailadresse." });
+    }
+    const normalized = email.trim().toLowerCase();
+    if (!authMailAllowed(`magic:${normalized}`)) {
+      return res.status(429).json({ message: "Vent venligst et øjeblik, før du anmoder om et nyt link." });
+    }
+
+    res.json({ ok: true });
+
+    try {
+      const actionCodeSettings = {
+        url: `${APP_BASE_URL_FALLBACK()}/app`,
+        handleCodeInApp: true,
+      };
+      let link: string;
+      try {
+        link = await getFirebaseAuth().generateSignInWithEmailLink(normalized, actionCodeSettings);
+      } catch (error: any) {
+        if (error?.code === "auth/user-not-found" || error?.code === "auth/email-not-found") {
+          await getFirebaseAuth().createUser({ email: normalized });
+          link = await getFirebaseAuth().generateSignInWithEmailLink(normalized, actionCodeSettings);
+        } else {
+          throw error;
+        }
+      }
+      await sendAuthMagicLinkEmail({
+        to: normalized,
+        link: rewriteAuthActionLink(link),
+        lang: normalizeEmailLang(lang),
+      });
+    } catch (error) {
+      // Antwort ist bereits raus (Enumeration-Schutz) – nur loggen.
+      console.error("[AuthMail] Login-Link-Versand fehlgeschlagen:", error);
+    }
   });
 
   app.post("/api/checkout", isAuthenticated, async (req: any, res) => {
@@ -6922,7 +6968,7 @@ export async function registerRoutes(
     const renderPage = (title: string, body: string) => {
       res
         .type("html")
-        .send(`<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">
+        .send(`<!DOCTYPE html><html lang="da"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title} – MormorsBreve</title>
 <style>
@@ -6936,8 +6982,8 @@ export async function registerRoutes(
 
     if (!uid || !token || !verifyUnsubscribeToken(uid, token)) {
       return renderPage(
-        "Ungültiger Link",
-        `<h1>Ungültiger Abmeldelink</h1><p>Dieser Link ist ungültig oder abgelaufen. Bitte melden Sie sich in Ihrem Konto an und passen Sie den Newsletter-Empfang in den Einstellungen an.</p><p><a href="${APP_BASE_URL_FALLBACK()}">Zur Startseite</a></p>`,
+        "Ugyldigt link",
+        `<h1>Ugyldigt afmeldingslink</h1><p>Linket er ugyldigt eller udløbet. Log ind på din konto og tilpas nyhedsbrevet under indstillinger.</p><p><a href="${APP_BASE_URL_FALLBACK()}">Til forsiden</a></p>`,
       );
     }
 
@@ -6948,8 +6994,8 @@ export async function registerRoutes(
         .where(eq(usersTable.id, uid));
       if (!user) {
         return renderPage(
-          "Nicht gefunden",
-          `<h1>Konto nicht gefunden</h1><p>Wir konnten Ihr Konto nicht finden. Möglicherweise wurde es bereits gelöscht.</p>`,
+          "Ikke fundet",
+          `<h1>Konto ikke fundet</h1><p>Vi kunne ikke finde din konto. Den er muligvis allerede slettet.</p>`,
         );
       }
 
@@ -6959,17 +7005,17 @@ export async function registerRoutes(
         .where(eq(usersTable.id, uid));
 
       return renderPage(
-        "Abgemeldet",
-        `<h1>Sie sind abgemeldet.</h1>
-        <p>Die E-Mail-Adresse <strong>${(user.email || "").replace(/</g, "&lt;")}</strong> erhält keine Marketing-Mails mehr von MormorsBreve.</p>
-        <p>Wichtige Transaktionsmails (z. B. zu Ihren Aufträgen oder Zahlungen) bekommen Sie weiterhin.</p>
-        <p>Sie können den Newsletter jederzeit in Ihren <a href="${APP_BASE_URL_FALLBACK()}/app/settings">Einstellungen</a> wieder aktivieren.</p>`,
+        "Afmeldt",
+        `<h1>Du er nu afmeldt.</h1>
+        <p>E-mailadressen <strong>${(user.email || "").replace(/</g, "&lt;")}</strong> modtager ikke længere marketing-mails fra MormorsBreve.</p>
+        <p>Vigtige transaktionsmails (f.eks. om dine opgaver eller betalinger) modtager du fortsat.</p>
+        <p>Du kan altid aktivere nyhedsbrevet igen under dine <a href="${APP_BASE_URL_FALLBACK()}/app/settings">indstillinger</a>.</p>`,
       );
     } catch (err: any) {
       console.error("[Unsubscribe]", err);
       return renderPage(
-        "Fehler",
-        `<h1>Abmeldung fehlgeschlagen</h1><p>Bitte versuchen Sie es später erneut oder passen Sie den Newsletter-Empfang in Ihren <a href="${APP_BASE_URL_FALLBACK()}/app/settings">Einstellungen</a> an.</p>`,
+        "Fejl",
+        `<h1>Afmeldingen mislykkedes</h1><p>Prøv igen senere, eller tilpas nyhedsbrevet under dine <a href="${APP_BASE_URL_FALLBACK()}/app/settings">indstillinger</a>.</p>`,
       );
     }
   });
@@ -6999,7 +7045,8 @@ export async function registerRoutes(
     }
   });
 
-  // Resend Contact Webhook: spiegelt Broadcast-Abmeldungen zurück in die App.
+  // Resend Webhook: Abmeldungen (contact.updated) + E-Mail-Tracking
+  // (email.delivered/opened/clicked/bounced/complained → email_sends.status).
   app.post("/api/webhooks/resend", async (req: any, res) => {
     try {
       const result = await handleResendWebhook(
@@ -7010,6 +7057,10 @@ export async function registerRoutes(
       if (result.action === "unsubscribed") {
         console.log(
           `[Resend Webhook] ${result.email} lokal abgemeldet (${result.updatedUsers ?? 0} Nutzer)`,
+        );
+      } else if (result.action === "suppressed") {
+        console.log(
+          `[Resend Webhook] ${result.eventType}: ${result.email} unterdrückt (Opt-In entfernt bei ${result.updatedUsers ?? 0} Nutzern)`,
         );
       }
       res.json(result);

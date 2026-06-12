@@ -59,15 +59,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const stored = localStorage.getItem("newsletter_opt_in");
             if (stored !== null) {
               localStorage.removeItem("newsletter_opt_in");
-              const optIn = JSON.parse(stored);
-              if (optIn === false) {
+              let optIn: unknown = null;
+              try {
+                optIn = JSON.parse(stored);
+              } catch {
+                // Ungültiger Wert – Einwilligung im Zweifel nicht annehmen.
+              }
+              // Den tatsächlich gewählten Wert übertragen: Neuanlagen starten
+              // serverseitig ohne Opt-In, eine angekreuzte Checkbox muss also
+              // explizit als true gesynct werden (und false bleibt false).
+              if (optIn === true || optIn === false) {
                 fetch("/api/user/profile", {
                   method: "PATCH",
                   headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                   },
-                  body: JSON.stringify({ newsletterOptIn: false }),
+                  body: JSON.stringify({ newsletterOptIn: optIn }),
                 }).then((r) => {
                   if (r.ok) r.json().then((u) => setUser(u));
                 }).catch(() => {});

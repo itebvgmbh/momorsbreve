@@ -193,7 +193,17 @@
     "errCancelledPopupRequest": "Another sign-in is already in progress. Please try again.",
     "errInternal": "Internal error during sign-in. Please try again.",
     "errGenericWithCode": "An error occurred ({{code}}). Please try again.",
-    "errGeneric": "An error occurred. Please try again."
+    "errGeneric": "An error occurred. Please try again.",
+    "magicEntry": "No password: get a sign-in link by email",
+    "magicTitle": "Sign in with email link",
+    "magicIntro": "No password needed: we'll send you a link that signs you in right away. Works for new and existing accounts.",
+    "magicSubmit": "Send sign-in link",
+    "magicSentTitle": "Your sign-in link is on its way",
+    "magicSentBodyBefore": "We've sent a sign-in link to",
+    "magicSentBodyAfter": "– open the email and click the button and you're signed in.",
+    "magicError": "The sign-in link could not be sent. Please try again.",
+    "magicBackToPassword": "Back to password sign-in",
+    "close": "Close"
   },
   "blog": {
     "metaTitle": "Blog – Sütterlin, Kurrent & old handwriting | MormorsBreve",
@@ -560,7 +570,11 @@
     "rightsTitle": "Your rights",
     "rightsBody": "You have the right to access, rectification, erasure, restriction and data portability, as well as the right to object. Contact us to exercise your rights.",
     "complaintTitle": "Complaint to Datatilsynet",
-    "complaintBodyBefore": "You can lodge a complaint about our processing of your personal data with the Danish Data Protection Agency, Datatilsynet, Carl Jacobsens Vej 35, 2500 Valby,"
+    "complaintBodyBefore": "You can lodge a complaint about our processing of your personal data with the Danish Data Protection Agency, Datatilsynet, Carl Jacobsens Vej 35, 2500 Valby,",
+    "emailTitle": "Email communication",
+    "emailBody": "As part of using our service we send transactional emails to the address you provided – e.g. to confirm your email address, sign-in links, password resets and notifications about expert transcription quotes. We use Resend (Resend, Inc., San Francisco, USA) for sending; your email address and the message content are transferred to Resend. The legal basis is Art. 6(1)(b) GDPR (performance of contract).",
+    "newsletterTitle": "Newsletter",
+    "newsletterBody": "If you have consented to receiving our newsletter (e.g. via the checkbox at registration or in your account settings), we occasionally send you emails with tips, news and offers about historic handwriting and our services. The legal basis is your consent under Art. 6(1)(a) GDPR. You can withdraw your consent at any time with effect for the future – via the unsubscribe link in every email or in your account settings. After that you will receive no more newsletters; transactional emails about your orders and payments are unaffected. The newsletter is also sent via Resend; to measure performance we record whether emails are delivered and opened and whether links in them are clicked."
   },
   "topic": {
     "notFoundTitle": "Page not found",
@@ -730,7 +744,16 @@
     "confirmPasswordLabel": "Repeat password",
     "savePassword": "Save password",
     "somethingWrong": "Something went wrong",
-    "toHome": "To home"
+    "toHome": "To home",
+    "signInTitle": "Sign in via link",
+    "signInSuccessTitle": "You're signed in!",
+    "signInSuccessBody": "Sign-in successful. You'll be redirected automatically...",
+    "signInConfirmTitle": "Almost there",
+    "signInConfirmBody": "Please confirm the email address the sign-in link was sent to.",
+    "signInSubmit": "Sign in",
+    "signInEmailMismatch": "This email address doesn't match the sign-in link. Please check your input.",
+    "signInLinkInvalid": "The sign-in link has expired or was already used. Please request a new one.",
+    "signInFailed": "Sign-in failed. Please request a new sign-in link."
   },
   "bgHint": {
     "message": "The transcription runs in the background. You can leave this page and return later – your progress is always available in your dashboard."

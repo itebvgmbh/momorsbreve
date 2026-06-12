@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, MailCheck, KeyRound } from "lucide-react";
+import { Loader2, MailCheck, KeyRound, Mail } from "lucide-react";
 
 interface AuthDialogProps {
   open: boolean;
@@ -29,13 +29,14 @@ interface AuthDialogProps {
 
 export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDialogProps) {
   const { t, i18n } = useTranslation();
-  const [mode, setMode] = useState<"login" | "register" | "verify" | "forgot" | "reset-sent">(initialMode);
+  const [mode, setMode] = useState<"login" | "register" | "verify" | "forgot" | "reset-sent" | "magic" | "magic-sent">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [newsletterOptIn, setNewsletterOptIn] = useState(true);
+  // GDPR: Einwilligung erfordert aktives Ankreuzen – Checkbox darf nicht vorbelegt sein.
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
 
   const reset = () => {
     setMode(initialMode);
@@ -44,7 +45,7 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
     setError(null);
     setLoading(false);
     setAcceptedTerms(false);
-    setNewsletterOptIn(true);
+    setNewsletterOptIn(false);
   };
 
   const handleOpenChange = (value: boolean) => {
@@ -129,6 +130,31 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
     }
   };
 
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      // Für den Abschluss auf demselben Gerät (Firebase-Konvention).
+      localStorage.setItem("emailForSignIn", email);
+      // Einwilligung nur bei aktivem Haken übertragen – nie false erzwingen,
+      // sonst würde ein bestehendes Opt-In beim Link-Login widerrufen.
+      if (newsletterOptIn) {
+        localStorage.setItem("newsletter_opt_in", "true");
+      }
+      await apiRequest("POST", "/api/auth/send-login-link", {
+        email,
+        lang: i18n.language,
+      });
+      setMode("magic-sent");
+    } catch {
+      setError(t("auth.magicError"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const toggleMode = () => {
     setMode(mode === "login" ? "register" : "login");
     setError(null);
@@ -161,6 +187,113 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
             >
               {t("auth.backToLogin")}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (mode === "magic-sent") {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex flex-col items-center text-center py-4 space-y-4">
+            <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
+              <MailCheck className="h-7 w-7 text-primary" />
+            </div>
+            <DialogTitle className="font-serif text-xl">
+              {t("auth.magicSentTitle")}
+            </DialogTitle>
+            <p className="text-muted-foreground text-sm leading-relaxed max-w-sm">
+              {t("auth.magicSentBodyBefore")} <strong>{email}</strong>{" "}
+              {t("auth.magicSentBodyAfter")}
+            </p>
+            <p className="text-muted-foreground text-xs">
+              {t("auth.resetSentSpamHint")}
+            </p>
+            <Button
+              variant="outline"
+              className="w-full mt-2"
+              onClick={() => handleOpenChange(false)}
+            >
+              {t("auth.close")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (mode === "magic") {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl">
+              {t("auth.magicTitle")}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-muted-foreground">
+              {t("auth.magicIntro")}
+            </p>
+
+            <form onSubmit={handleMagicLink} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="magic-email">{t("auth.emailLabel")}</Label>
+                <Input
+                  id="magic-email"
+                  type="email"
+                  placeholder={t("auth.emailPlaceholder")}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <Checkbox
+                  id="magic-newsletter-opt-in"
+                  checked={newsletterOptIn}
+                  onCheckedChange={(checked) => setNewsletterOptIn(checked === true)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="magic-newsletter-opt-in" className="text-xs text-muted-foreground leading-relaxed cursor-pointer select-none">
+                  {t("auth.newsletterOptIn")}
+                </label>
+              </div>
+
+              {error && (
+                <p className="text-sm text-destructive">{error}</p>
+              )}
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {t("auth.magicSubmit")}
+              </Button>
+            </form>
+
+            <p className="text-[11px] text-muted-foreground/70 text-center leading-relaxed">
+              {t("auth.loginConsentBefore")}{" "}
+              <a href="/agb" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground">{t("auth.termsLink")}</a>
+              {" "}{t("auth.loginConsentMiddle")}{" "}
+              <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground">{t("auth.privacyLink")}</a>{t("auth.loginConsentAfter")}
+            </p>
+
+            <p className="text-center text-sm text-muted-foreground">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("login");
+                  setError(null);
+                }}
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                {t("auth.magicBackToPassword")}
+              </button>
+            </p>
           </div>
         </DialogContent>
       </Dialog>
@@ -387,6 +520,20 @@ export function AuthDialog({ open, onOpenChange, initialMode = "login" }: AuthDi
               {mode === "login" ? t("auth.loginSubmit") : t("auth.registerSubmit")}
             </Button>
           </form>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => {
+              setMode("magic");
+              setError(null);
+              setPassword("");
+            }}
+          >
+            <Mail className="h-4 w-4" />
+            {t("auth.magicEntry")}
+          </Button>
 
           {mode === "login" && (
             <p className="text-[11px] text-muted-foreground/70 text-center leading-relaxed">

@@ -58,6 +58,14 @@ const translations: Record<EmailLang, TranslationTree> = {
       button: "Vælg ny adgangskode",
       ignoreNote: "Hvis du ikke har bedt om dette, kan du roligt ignorere denne mail – din adgangskode forbliver uændret.",
     },
+    authMagicLink: {
+      subject: "Dit login-link – MormorsBreve",
+      tag: "Login uden adgangskode",
+      heading: "Logget ind med ét klik.",
+      body: "Klik på knappen for at logge ind hos MormorsBreve – helt uden adgangskode. Din e-mailadresse bliver samtidig bekræftet automatisk. Linket er af sikkerhedshensyn kun gyldigt i kort tid og kan kun bruges én gang.",
+      button: "Log ind nu",
+      ignoreNote: "Hvis du ikke har anmodet om denne mail, kan du roligt ignorere den.",
+    },
   },
   de: {
     common: {
@@ -112,6 +120,14 @@ const translations: Record<EmailLang, TranslationTree> = {
       button: "Neues Passwort wählen",
       ignoreNote: "Falls Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren – Ihr Passwort bleibt unverändert.",
     },
+    authMagicLink: {
+      subject: "Ihr Anmeldelink – MormorsBreve",
+      tag: "Anmeldung ohne Passwort",
+      heading: "Mit einem Klick angemeldet.",
+      body: "Klicken Sie auf die Schaltfläche, um sich bei MormorsBreve anzumelden – ganz ohne Passwort. Ihre E-Mail-Adresse wird dabei automatisch bestätigt. Der Link ist aus Sicherheitsgründen nur kurze Zeit und einmalig gültig.",
+      button: "Jetzt anmelden",
+      ignoreNote: "Falls Sie diese E-Mail nicht angefordert haben, können Sie sie einfach ignorieren.",
+    },
   },
   en: {
     common: {
@@ -165,6 +181,14 @@ const translations: Record<EmailLang, TranslationTree> = {
       body: "We received a request to reset the password for your account. Click the button below to choose a new password. The link is only valid for a short time.",
       button: "Choose new password",
       ignoreNote: "If you did not request this, you can safely ignore this email – your password remains unchanged.",
+    },
+    authMagicLink: {
+      subject: "Your sign-in link – MormorsBreve",
+      tag: "Sign in without password",
+      heading: "Signed in with one click.",
+      body: "Click the button to sign in to MormorsBreve – no password needed. Your email address is confirmed automatically at the same time. For security reasons the link is only valid for a short time and can be used once.",
+      button: "Sign in now",
+      ignoreNote: "If you did not request this email, you can safely ignore it.",
     },
   },
 };

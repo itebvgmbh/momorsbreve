@@ -18,6 +18,7 @@ import {
   type FlowTriggerConfig,
   type FlowTriggerType,
   type SegmentFilter,
+  type SendStatus,
 } from "@shared/schema";
 
 // ─── Konfiguration ─────────────────────────────────────────────────────────
@@ -379,13 +380,13 @@ function wrapWithFooter(
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:24px;">
   <tr><td align="center" style="padding:24px 20px;font-family:Helvetica,Arial,sans-serif;font-size:12px;color:#9a8c7a;line-height:1.5;">
     <p style="margin:0 0 6px 0;">
-      <a href="${escapeHtml(APP_BASE_URL)}" style="color:#7a6b56;text-decoration:none;font-weight:600;">MormorsBreve.de</a> &middot;
-      Historische Handschriften lesen &amp; bewahren
+      <a href="${escapeHtml(APP_BASE_URL)}" style="color:#7a6b56;text-decoration:none;font-weight:600;">MormorsBreve.dk</a> &middot;
+      L&aelig;s &amp; bevar historiske h&aring;ndskrifter
     </p>
     <p style="margin:0;color:#b5a893;">
-      Diese E-Mail erhalten Sie, weil Sie sich bei MormorsBreve registriert haben.
+      Du modtager denne e-mail, fordi du har oprettet en konto hos MormorsBreve.
       <br>
-      <a href="${escapeHtml(unsubscribeUrl)}" style="color:#7a6b56;text-decoration:underline;">Newsletter abbestellen</a>
+      <a href="${escapeHtml(unsubscribeUrl)}" style="color:#7a6b56;text-decoration:underline;">Afmeld nyhedsbrev</a>
     </p>
   </td></tr>
 </table>`;
@@ -419,6 +420,8 @@ export interface RenderedBroadcast {
 function renderBroadcastTemplate(template: EmailTemplate): RenderedBroadcast {
   const vars: Record<string, string> = {
     firstName: "{{{contact.first_name|}}}",
+    // Resend-Broadcasts können keine bedingte Anrede – neutrale Grußformel.
+    anrede: "Hej,",
     email: "{{{contact.email}}}",
     credits: "",
     unsubscribeUrl: "{{{RESEND_UNSUBSCRIBE_URL}}}",
@@ -443,7 +446,7 @@ function renderBroadcastTemplate(template: EmailTemplate): RenderedBroadcast {
         if (renderedText.includes("{{{RESEND_UNSUBSCRIBE_URL}}}")) {
           return renderedText;
         }
-        return `${renderedText}\n\nNewsletter abbestellen: {{{RESEND_UNSUBSCRIBE_URL}}}`;
+        return `${renderedText}\n\nAfmeld nyhedsbrev: {{{RESEND_UNSUBSCRIBE_URL}}}`;
       })()
     : undefined;
 
@@ -456,8 +459,11 @@ export function renderTemplate(
   ctx: RenderContext,
 ): RenderedEmail {
   const unsubscribeUrl = buildUnsubscribeUrl(ctx.userId);
+  const firstName = ctx.firstName?.trim() || "";
   const vars: Record<string, string> = {
-    firstName: ctx.firstName?.trim() || "",
+    firstName,
+    /** Personalisierte Grußformel mit Fallback, vermeidet „Hej ,". */
+    anrede: firstName ? `Hej ${firstName},` : "Hej,",
     email: ctx.email,
     credits: String(ctx.credits ?? 0),
     unsubscribeUrl,
@@ -552,17 +558,153 @@ export async function createResendBroadcastFromTemplate(
 type ResendWebhookEvent = {
   type?: string;
   data?: {
+    // contact.* Events
     email?: string;
     unsubscribed?: boolean;
+    // email.* Events (Tracking)
+    email_id?: string;
+    to?: string | string[];
+    subject?: string;
   };
 };
 
 export interface ResendWebhookResult {
   ok: true;
-  action: "ignored" | "unsubscribed";
+  action: "ignored" | "unsubscribed" | "tracked" | "suppressed";
   eventType?: string;
   email?: string;
   updatedUsers?: number;
+  /** Für email.*-Events: neuer Status des betroffenen Sends. */
+  newStatus?: SendStatus;
+}
+
+// ─── E-Mail-Tracking via Resend-Events ─────────────────────────────────────
+//
+// Resend schickt (wenn im Dashboard konfiguriert) Events wie email.delivered,
+// email.opened, email.clicked, email.bounced, email.complained. Wir mappen sie
+// über die Resend-Message-ID auf unsere email_sends-Zeile und heben den Status
+// monoton an (nie zurückstufen: clicked bleibt clicked, auch wenn danach noch
+// ein opened-Event eintrudelt).
+
+const EMAIL_EVENT_STATUS: Record<string, SendStatus> = {
+  "email.sent": "sent",
+  "email.delivered": "delivered",
+  "email.opened": "opened",
+  "email.clicked": "clicked",
+  "email.bounced": "bounced",
+};
+
+const STATUS_RANK: Record<string, number> = {
+  queued: 0,
+  sent: 1,
+  delivered: 2,
+  opened: 3,
+  clicked: 4,
+};
+
+/** Hard Bounce / Spam-Beschwerde → Nutzer nicht weiter anschreiben. */
+async function suppressUserByEmailSend(
+  send: { userId: string | null; toEmail: string },
+): Promise<number> {
+  if (send.userId) {
+    const updated = await db
+      .update(usersTable)
+      .set({ newsletterOptIn: false, updatedAt: new Date() })
+      .where(eq(usersTable.id, send.userId))
+      .returning({ id: usersTable.id });
+    return updated.length;
+  }
+  if (send.toEmail) {
+    const updated = await db
+      .update(usersTable)
+      .set({ newsletterOptIn: false, updatedAt: new Date() })
+      .where(sql`lower(${usersTable.email}) = lower(${send.toEmail})`)
+      .returning({ id: usersTable.id });
+    return updated.length;
+  }
+  return 0;
+}
+
+async function handleEmailTrackingEvent(
+  eventType: string,
+  data: ResendWebhookEvent["data"],
+): Promise<ResendWebhookResult> {
+  const emailId = data?.email_id?.trim();
+  if (!emailId) {
+    return { ok: true, action: "ignored", eventType };
+  }
+
+  const [send] = await db
+    .select({
+      id: emailSends.id,
+      status: emailSends.status,
+      userId: emailSends.userId,
+      toEmail: emailSends.toEmail,
+    })
+    .from(emailSends)
+    .where(eq(emailSends.resendMessageId, emailId))
+    .limit(1);
+
+  // Transaktionsmails (server/email.ts) haben keine email_sends-Zeile – ignorieren.
+  if (!send) {
+    return { ok: true, action: "ignored", eventType };
+  }
+
+  if (eventType === "email.complained") {
+    const updatedUsers = await suppressUserByEmailSend(send);
+    await db
+      .update(emailSends)
+      .set({ errorMessage: "Spam-Beschwerde (complained)" })
+      .where(eq(emailSends.id, send.id));
+    return {
+      ok: true,
+      action: "suppressed",
+      eventType,
+      email: send.toEmail,
+      updatedUsers,
+    };
+  }
+
+  const newStatus = EMAIL_EVENT_STATUS[eventType];
+  if (!newStatus) {
+    return { ok: true, action: "ignored", eventType };
+  }
+
+  if (newStatus === "bounced") {
+    const updatedUsers = await suppressUserByEmailSend(send);
+    await db
+      .update(emailSends)
+      .set({ status: "bounced", errorMessage: "Bounce (Resend-Webhook)" })
+      .where(eq(emailSends.id, send.id));
+    return {
+      ok: true,
+      action: "suppressed",
+      eventType,
+      email: send.toEmail,
+      updatedUsers,
+      newStatus: "bounced",
+    };
+  }
+
+  // Monotones Status-Upgrade; Terminal-Status (bounced/failed/skipped) nie überschreiben.
+  const currentRank = STATUS_RANK[send.status];
+  const nextRank = STATUS_RANK[newStatus];
+  if (currentRank === undefined || nextRank === undefined || nextRank <= currentRank) {
+    return { ok: true, action: "ignored", eventType, email: send.toEmail };
+  }
+
+  await db
+    .update(emailSends)
+    .set({ status: newStatus })
+    .where(eq(emailSends.id, send.id));
+
+  return {
+    ok: true,
+    action: "tracked",
+    eventType,
+    email: send.toEmail,
+    newStatus,
+  };
 }
 
 function readHeader(
@@ -617,6 +759,12 @@ export async function handleResendWebhook(
       : JSON.stringify(parsedBody ?? {});
 
   const event = await verifyResendWebhook(payload, headers);
+
+  // E-Mail-Tracking-Events (delivered/opened/clicked/bounced/complained)
+  if (event.type?.startsWith("email.")) {
+    return handleEmailTrackingEvent(event.type, event.data);
+  }
+
   if (event.type !== "contact.updated") {
     return { ok: true, action: "ignored", eventType: event.type };
   }

@@ -6,3 +6,6 @@ build/
 *.local
 .DS_Store
 npm-debug.log*
+
+# Generierte Marketing-Vorschauen (npx tsx scripts/marketing/seed-templates.ts)
+scripts/marketing/preview/

@@ -601,7 +601,7 @@ interface AuthMailParams {
   lang?: EmailLang;
 }
 
-function authMailHtml(lang: EmailLang, ns: "authVerify" | "authReset", link: string): string {
+function authMailHtml(lang: EmailLang, ns: "authVerify" | "authReset" | "authMagicLink", link: string): string {
   const f = "Helvetica, Arial, sans-serif";
   return `
 <!DOCTYPE html>
@@ -631,7 +631,7 @@ function authMailHtml(lang: EmailLang, ns: "authVerify" | "authReset", link: str
 </body></html>`;
 }
 
-async function sendAuthMail(ns: "authVerify" | "authReset", { to, link, lang = "da" }: AuthMailParams) {
+async function sendAuthMail(ns: "authVerify" | "authReset" | "authMagicLink", { to, link, lang = "da" }: AuthMailParams) {
   if (!resend) {
     throw new Error("RESEND_API_KEY ist nicht gesetzt – Auth-E-Mail kann nicht versendet werden.");
   }
@@ -650,4 +650,9 @@ export async function sendAuthVerificationEmail(params: AuthMailParams) {
 
 export async function sendAuthPasswordResetEmail(params: AuthMailParams) {
   await sendAuthMail("authReset", params);
+}
+
+/** Magic-Link-Login: Link meldet an UND verifiziert die E-Mail-Adresse. */
+export async function sendAuthMagicLinkEmail(params: AuthMailParams) {
+  await sendAuthMail("authMagicLink", params);
 }

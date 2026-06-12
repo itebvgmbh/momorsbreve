@@ -16,6 +16,12 @@ class AuthStorage implements IAuthStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    // DSGVO/GDPR: Neue Nutzer starten ohne Newsletter-Einwilligung (der Spalten-
+    // Default in der DB ist historisch true). Gilt nur für die Neuanlage – beim
+    // Update (onConflictDoUpdate-set) ist newsletterOptIn nicht enthalten, der
+    // gespeicherte Wert bestehender Nutzer bleibt also unangetastet.
+    const insertData: UpsertUser = { newsletterOptIn: false, ...userData };
+
     if (userData.email) {
       const [existing] = await db
         .select()
@@ -29,7 +35,7 @@ class AuthStorage implements IAuthStorage {
         const [user] = await db.transaction(async (tx) => {
           await tx
             .insert(users)
-            .values(userData)
+            .values(insertData)
             .onConflictDoUpdate({
               target: users.id,
               set: { ...userData, updatedAt: new Date() },
@@ -51,7 +57,7 @@ class AuthStorage implements IAuthStorage {
 
     const [user] = await db
       .insert(users)
-      .values(userData)
+      .values(insertData)
       .onConflictDoUpdate({
         target: users.id,
         set: {

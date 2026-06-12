@@ -8,6 +8,8 @@ import {
   confirmPasswordReset,
   verifyPasswordResetCode,
   signInWithEmailAndPassword,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
   signOut,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -87,11 +89,57 @@ export default function AuthActionPage() {
           setError(t("authAction.resetLinkInvalid"));
           setStatus("error");
         });
+    } else if (mode === "signIn") {
+      // Magic-Link-Anmeldung (passwortlos). E-Mail kommt aus localStorage,
+      // wenn der Link auf demselben Gerät geöffnet wird – sonst nachfragen.
+      if (!isSignInWithEmailLink(auth, window.location.href)) {
+        setError(t("authAction.signInLinkInvalid"));
+        setStatus("error");
+        return;
+      }
+      const storedEmail = window.localStorage.getItem("emailForSignIn");
+      if (storedEmail) {
+        void completeMagicSignIn(storedEmail);
+      } else {
+        setStatus("input");
+      }
     } else {
       setError(t("authAction.unknownAction"));
       setStatus("error");
     }
   }, [mode, oobCode]);
+
+  const completeMagicSignIn = async (signInEmail: string) => {
+    setSubmitting(true);
+    setError("");
+    try {
+      await signInWithEmailLink(auth, signInEmail, window.location.href);
+      window.localStorage.removeItem("emailForSignIn");
+      setAutoLogin(true);
+      setStatus("success");
+      setTimeout(() => navigate("/"), 1500);
+    } catch (err: any) {
+      const code = err?.code;
+      if (code === "auth/invalid-email") {
+        setError(t("authAction.signInEmailMismatch"));
+        setStatus("input");
+      } else if (code === "auth/invalid-action-code" || code === "auth/expired-action-code") {
+        setError(t("authAction.signInLinkInvalid"));
+        setStatus("error");
+      } else {
+        setError(t("authAction.signInFailed"));
+        setStatus("error");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleMagicEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    await completeMagicSignIn(email.trim().toLowerCase());
+  };
 
   const handleQuickLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,7 +195,9 @@ export default function AuthActionPage() {
       ? t("authAction.titleVerify")
       : mode === "resetPassword"
         ? t("authAction.titleReset")
-        : t("authAction.titleDefault");
+        : mode === "signIn"
+          ? t("authAction.signInTitle")
+          : t("authAction.titleDefault");
 
   return (
     <div className="min-h-screen bg-background">
@@ -175,6 +225,61 @@ export default function AuthActionPage() {
           <div className="flex flex-col items-center text-center py-12 space-y-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <p className="text-muted-foreground">{t("authAction.processing")}</p>
+          </div>
+        )}
+
+        {status === "success" && mode === "signIn" && (
+          <div className="flex flex-col items-center text-center py-12 space-y-4">
+            <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+            </div>
+            <h1 className="font-serif text-2xl font-bold">
+              {t("authAction.signInSuccessTitle")}
+            </h1>
+            <p className="text-muted-foreground leading-relaxed">
+              {t("authAction.signInSuccessBody")}
+            </p>
+            <Loader2 className="h-5 w-5 animate-spin text-primary mt-2" />
+          </div>
+        )}
+
+        {status === "input" && mode === "signIn" && (
+          <div className="space-y-6">
+            <div className="flex flex-col items-center text-center space-y-2">
+              <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
+                <KeyRound className="h-7 w-7 text-primary" />
+              </div>
+              <h1 className="font-serif text-2xl font-bold">
+                {t("authAction.signInConfirmTitle")}
+              </h1>
+              <p className="text-muted-foreground text-sm leading-relaxed max-w-sm">
+                {t("authAction.signInConfirmBody")}
+              </p>
+            </div>
+
+            <form onSubmit={handleMagicEmailSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="magic-confirm-email">{t("authAction.emailLabel")}</Label>
+                <Input
+                  id="magic-confirm-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  autoFocus
+                />
+              </div>
+
+              {error && <p className="text-sm text-destructive">{error}</p>}
+
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                )}
+                {t("authAction.signInSubmit")}
+              </Button>
+            </form>
           </div>
         )}
 

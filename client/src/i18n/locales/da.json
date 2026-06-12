@@ -193,7 +193,17 @@
     "errCancelledPopupRequest": "Et andet login er allerede i gang. Prøv venligst igen.",
     "errInternal": "Intern fejl ved login. Prøv venligst igen.",
     "errGenericWithCode": "Der opstod en fejl ({{code}}). Prøv venligst igen.",
-    "errGeneric": "Der opstod en fejl. Prøv venligst igen."
+    "errGeneric": "Der opstod en fejl. Prøv venligst igen.",
+    "magicEntry": "Uden adgangskode: få et login-link på e-mail",
+    "magicTitle": "Log ind med e-mail-link",
+    "magicIntro": "Ingen adgangskode nødvendig: Vi sender dig et link, der logger dig ind med det samme. Virker for både nye og eksisterende konti.",
+    "magicSubmit": "Send login-link",
+    "magicSentTitle": "Dit login-link er på vej",
+    "magicSentBodyBefore": "Vi har sendt et login-link til",
+    "magicSentBodyAfter": "– åbn mailen og klik på knappen, så er du logget ind.",
+    "magicError": "Linket kunne ikke sendes. Prøv venligst igen.",
+    "magicBackToPassword": "Tilbage til login med adgangskode",
+    "close": "Luk"
   },
   "blog": {
     "metaTitle": "Blog – gotisk skrift, kurrent & gammel håndskrift | MormorsBreve",
@@ -560,7 +570,11 @@
     "rightsTitle": "Dine rettigheder",
     "rightsBody": "Du har ret til indsigt, berigtigelse, sletning, begrænsning og dataportabilitet samt ret til at gøre indsigelse. Kontakt os for at bruge dine rettigheder.",
     "complaintTitle": "Klage til Datatilsynet",
-    "complaintBodyBefore": "Du kan klage over vores behandling af dine personoplysninger til Datatilsynet, Carl Jacobsens Vej 35, 2500 Valby,"
+    "complaintBodyBefore": "Du kan klage over vores behandling af dine personoplysninger til Datatilsynet, Carl Jacobsens Vej 35, 2500 Valby,",
+    "emailTitle": "E-mails",
+    "emailBody": "Som led i brugen af vores tjeneste sender vi transaktionsmails til den e-mailadresse, du har oplyst – f.eks. bekræftelse af din e-mailadresse, login-links, nulstilling af adgangskode samt beskeder om tilbud på ekspert-transskription. Til udsendelsen bruger vi Resend (Resend, Inc., San Francisco, USA); din e-mailadresse og beskedens indhold overføres til Resend. Retsgrundlaget er GDPR art. 6, stk. 1, litra b (opfyldelse af kontrakt).",
+    "newsletterTitle": "Nyhedsbrev",
+    "newsletterBody": "Hvis du har givet samtykke til at modtage vores nyhedsbrev (f.eks. via afkrydsningsfeltet ved registrering eller i dine kontoindstillinger), sender vi dig fra tid til anden e-mails med tips, nyheder og tilbud om historiske håndskrifter og vores ydelser. Retsgrundlaget er dit samtykke efter GDPR art. 6, stk. 1, litra a. Du kan til enhver tid trække samtykket tilbage med virkning for fremtiden – via afmeldingslinket i hver mail eller under dine kontoindstillinger. Herefter modtager du ingen nyhedsbreve; transaktionsmails om dine opgaver og betalinger berøres ikke. Nyhedsbrevet udsendes ligeledes via Resend; for at måle effekten registrerer vi, om mails leveres og åbnes, og om links i dem klikkes."
   },
   "topic": {
     "notFoundTitle": "Siden blev ikke fundet",
@@ -730,7 +744,16 @@
     "confirmPasswordLabel": "Gentag adgangskode",
     "savePassword": "Gem adgangskode",
     "somethingWrong": "Noget gik galt",
-    "toHome": "Til forsiden"
+    "toHome": "Til forsiden",
+    "signInTitle": "Log ind via link",
+    "signInSuccessTitle": "Du er logget ind!",
+    "signInSuccessBody": "Login lykkedes. Du bliver automatisk viderestillet ...",
+    "signInConfirmTitle": "Næsten færdig",
+    "signInConfirmBody": "Bekræft venligst den e-mailadresse, som login-linket blev sendt til.",
+    "signInSubmit": "Log ind",
+    "signInEmailMismatch": "E-mailadressen passer ikke til login-linket. Tjek venligst indtastningen.",
+    "signInLinkInvalid": "Login-linket er udløbet eller allerede brugt. Anmod venligst om et nyt.",
+    "signInFailed": "Login mislykkedes. Anmod venligst om et nyt login-link."
   },
   "bgHint": {
     "message": "Transkriptionen kører i baggrunden. Du kan forlade denne side og vende tilbage senere – dine fremskridt kan altid hentes i dit dashboard."

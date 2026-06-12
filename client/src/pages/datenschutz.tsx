@@ -55,6 +55,18 @@ export default function DatenschutzPage() {
             </p>
           </section>
           <section>
+            <h2 className="font-serif text-xl font-semibold mb-3">{t("privacy.emailTitle")}</h2>
+            <p className="leading-relaxed">
+              {t("privacy.emailBody")}
+            </p>
+          </section>
+          <section>
+            <h2 className="font-serif text-xl font-semibold mb-3">{t("privacy.newsletterTitle")}</h2>
+            <p className="leading-relaxed">
+              {t("privacy.newsletterBody")}
+            </p>
+          </section>
+          <section>
             <h2 className="font-serif text-xl font-semibold mb-3">{t("privacy.cookiesTitle")}</h2>
             <p className="leading-relaxed">
               {t("privacy.cookiesBody")}

@@ -193,7 +193,17 @@
     "errCancelledPopupRequest": "Eine andere Anmeldung laeuft bereits. Bitte versuchen Sie es erneut.",
     "errInternal": "Interner Fehler bei der Anmeldung. Bitte versuchen Sie es erneut.",
     "errGenericWithCode": "Ein Fehler ist aufgetreten ({{code}}). Bitte versuchen Sie es erneut.",
-    "errGeneric": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
+    "errGeneric": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+    "magicEntry": "Ohne Passwort: Anmeldelink per E-Mail",
+    "magicTitle": "Anmelden per E-Mail-Link",
+    "magicIntro": "Kein Passwort nötig: Wir senden Ihnen einen Link, mit dem Sie direkt angemeldet sind. Funktioniert für neue und bestehende Konten.",
+    "magicSubmit": "Anmeldelink senden",
+    "magicSentTitle": "Ihr Anmeldelink ist unterwegs",
+    "magicSentBodyBefore": "Wir haben einen Anmeldelink an",
+    "magicSentBodyAfter": "gesendet – öffnen Sie die E-Mail und klicken Sie auf den Button, schon sind Sie angemeldet.",
+    "magicError": "Der Anmeldelink konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+    "magicBackToPassword": "Zurück zur Anmeldung mit Passwort",
+    "close": "Schließen"
   },
   "blog": {
     "metaTitle": "Blog – Sütterlin, Kurrent & alte Handschriften | MormorsBreve",
@@ -560,7 +570,11 @@
     "rightsTitle": "Ihre Rechte",
     "rightsBody": "Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung und Datenübertragbarkeit sowie das Recht auf Widerspruch. Kontaktieren Sie uns, um Ihre Rechte wahrzunehmen.",
     "complaintTitle": "Beschwerde bei Datatilsynet",
-    "complaintBodyBefore": "Sie können sich über unsere Verarbeitung Ihrer personenbezogenen Daten bei der dänischen Datenschutzbehörde Datatilsynet, Carl Jacobsens Vej 35, 2500 Valby, beschweren:"
+    "complaintBodyBefore": "Sie können sich über unsere Verarbeitung Ihrer personenbezogenen Daten bei der dänischen Datenschutzbehörde Datatilsynet, Carl Jacobsens Vej 35, 2500 Valby, beschweren:",
+    "emailTitle": "E-Mail-Kommunikation",
+    "emailBody": "Im Rahmen der Nutzung unseres Dienstes versenden wir transaktionale E-Mails an die von Ihnen hinterlegte E-Mail-Adresse – z. B. zur Bestätigung Ihrer E-Mail-Adresse, Anmeldelinks, zum Zurücksetzen des Passworts sowie Benachrichtigungen zu Angeboten für die Experten-Transkription. Für den Versand nutzen wir Resend (Resend, Inc., San Francisco, USA); dabei werden Ihre E-Mail-Adresse und der Nachrichteninhalt an Resend übermittelt. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).",
+    "newsletterTitle": "Newsletter",
+    "newsletterBody": "Wenn Sie in den Empfang unseres Newsletters eingewilligt haben (z. B. über die Checkbox bei der Registrierung oder in Ihren Konto-Einstellungen), senden wir Ihnen gelegentlich E-Mails mit Tipps, Neuigkeiten und Angeboten rund um historische Handschriften und unsere Leistungen. Rechtsgrundlage ist Ihre Einwilligung nach Art. 6 Abs. 1 lit. a DSGVO. Sie können die Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen – über den Abmeldelink in jeder E-Mail oder in Ihren Konto-Einstellungen. Danach erhalten Sie keine Newsletter mehr; transaktionale E-Mails zu Ihren Aufträgen und Zahlungen bleiben unberührt. Auch der Newsletter-Versand erfolgt über Resend; zur Erfolgsmessung erfassen wir, ob E-Mails zugestellt und geöffnet sowie enthaltene Links angeklickt werden."
   },
   "topic": {
     "notFoundTitle": "Seite nicht gefunden",
@@ -730,7 +744,16 @@
     "confirmPasswordLabel": "Passwort wiederholen",
     "savePassword": "Passwort speichern",
     "somethingWrong": "Etwas ist schiefgelaufen",
-    "toHome": "Zur Startseite"
+    "toHome": "Zur Startseite",
+    "signInTitle": "Anmelden per Link",
+    "signInSuccessTitle": "Sie sind angemeldet!",
+    "signInSuccessBody": "Die Anmeldung war erfolgreich. Sie werden automatisch weitergeleitet ...",
+    "signInConfirmTitle": "Fast geschafft",
+    "signInConfirmBody": "Bitte geben Sie zur Bestätigung die E-Mail-Adresse ein, an die der Anmeldelink gesendet wurde.",
+    "signInSubmit": "Anmelden",
+    "signInEmailMismatch": "Diese E-Mail-Adresse passt nicht zu dem Anmeldelink. Bitte prüfen Sie die Eingabe.",
+    "signInLinkInvalid": "Der Anmeldelink ist abgelaufen oder wurde bereits verwendet. Bitte fordern Sie einen neuen an.",
+    "signInFailed": "Anmeldung fehlgeschlagen. Bitte fordern Sie einen neuen Anmeldelink an."
   },
   "bgHint": {
     "message": "Die Transkription läuft im Hintergrund. Sie können diese Seite verlassen und später zurückkehren – Ihr Fortschritt ist im Dashboard jederzeit abrufbar."
